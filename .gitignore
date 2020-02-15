@@ -5,6 +5,8 @@
 /ogsr_engine/_LIB
 /ogsr_engine/_TEMP
 /bin*
+/app*
+/game*
 
 # Precompiled Headers
 *.ipch

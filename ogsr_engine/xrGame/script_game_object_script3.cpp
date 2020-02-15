@@ -421,6 +421,9 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 
 		.def("get_holder", &CScriptGameObject::GetActorHolder)
 		.def("get_camera", &CScriptGameObject::GetCarCamera)
+		// Graff46 26.01.2020 
+		.def("exit_from_holder", &CScriptGameObject::ExitFromHolderPos)
+		.def("exit_from_holder", &CScriptGameObject::ExitFromHolder)
 
 		.def("zoom_mode", &CScriptGameObject::ZoomMode)
 		.def("reset_state", &CScriptGameObject::ResetState)

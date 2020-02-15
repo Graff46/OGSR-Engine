@@ -21,6 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{200652A6-043E-4634-8837-87983B3BD5E0}</ProjectGuid>
     <RootNamespace>xrGame</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="..\Engine_properties.props" />
@@ -70,6 +71,9 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin_$(PlatformShortName)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -431,6 +435,8 @@
     <ClInclude Include="ai\monsters\monster_aura.h" />
     <ClInclude Include="ai\monsters\states\monster_state_attack_on_run.h" />
     <ClInclude Include="ai\monsters\states\monster_state_attack_on_run_inline.h" />
+    <ClInclude Include="CTimer.h" />
+    <ClInclude Include="data_tail_save.h" />
     <ClInclude Include="derived_client_classes.h" />
     <ClInclude Include="InventoryContainer.h" />
     <ClInclude Include="mt_config.h" />
@@ -1651,8 +1657,10 @@
     <ClCompile Include="..\COMMON_AI\random32.cpp" />
     <ClCompile Include="ai\monsters\anti_aim_ability.cpp" />
     <ClCompile Include="ai\monsters\monster_aura.cpp" />
+    <ClCompile Include="CTimer.cpp" />
     <ClCompile Include="damage_manager.cpp" />
     <ClCompile Include="action_base_script.cpp" />
+    <ClCompile Include="data_tail_save.cpp" />
     <ClCompile Include="derived_client_classes.cpp" />
     <ClCompile Include="InventoryContainer.cpp" />
     <ClCompile Include="script_action_wrapper.cpp" />

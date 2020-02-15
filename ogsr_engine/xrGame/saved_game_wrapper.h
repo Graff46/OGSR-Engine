@@ -31,6 +31,7 @@ public:
 	inline	const _TIME_ID	&game_time			() const;
 	inline	const _LEVEL_ID	&level_id			() const;
 	inline	const float		&actor_health		() const;
+	LPCSTR					tail_data;
 	DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CSavedGameWrapper)

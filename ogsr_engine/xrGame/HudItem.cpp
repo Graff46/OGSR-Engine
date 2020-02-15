@@ -325,7 +325,7 @@ void CHudItem::animGet	(MotionSVec& lst, LPCSTR prefix)
 		const MotionID	&M = m_pHUD->animGet(sh_anim);
 		if (M)			lst.push_back(M);
 	}
-	ASSERT_FMT(!lst.empty(), "Can't find [anim_%s] in hud section [%s]", prefix, this->hud_sect.c_str());
+	//ASSERT_FMT(!lst.empty(), "Can't find [anim_%s] in hud section [%s]", prefix, this->hud_sect.c_str());
 }
 
 

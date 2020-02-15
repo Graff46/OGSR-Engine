@@ -22,6 +22,8 @@
 #include "string_table.h"
 #include "..\xr_3da\IGame_Persistent.h"
 #include "script_vars_storage.h"
+#include "data_tail_save.h"
+#include "script_engine.h"
 
 using namespace ALife;
 
@@ -54,6 +56,9 @@ void CALifeStorageManager::save	(LPCSTR save_name, bool update_name)
 		CMemoryWriter			stream;
 		header().save			(stream);
 		time_manager().save		(stream);
+
+		DataTailSave::save		(stream);
+
 		spawns().save			(stream);
 		objects().save			(stream);
 		registry().save			(stream);
@@ -75,6 +80,7 @@ void CALifeStorageManager::save	(LPCSTR save_name, bool update_name)
 	
 	writer->w_u32				(source_count);
 	writer->w					(dest_data,dest_count);
+
 	xr_free						(dest_data);
 	FS.w_close					(writer);
 #ifdef DEBUG
@@ -121,6 +127,12 @@ void CALifeStorageManager::load	(void *buffer, const u32 &buffer_size, LPCSTR fi
 
 bool CALifeStorageManager::load	(LPCSTR save_name)
 {
+
+	luabind::functor<void>		functor;
+	R_ASSERT2(ai().script_engine().functor("start_load_game", functor),
+		"Don`t has function 'start_load_game' in _G.script");
+	functor						(save_name);
+
 	CTimer						timer;
 	timer.Start					();
 	string256					save;
@@ -157,6 +169,7 @@ bool CALifeStorageManager::load	(LPCSTR save_name)
 	u32							source_count = stream->r_u32();
 	void						*source_data = xr_malloc(source_count);
 	rtc_decompress				(source_data,source_count,stream->pointer(),stream->length() - 3*sizeof(u32));
+
 	FS.r_close					(stream);
 	load						(source_data, source_count, file_name);
 	xr_free						(source_data);
@@ -167,7 +180,7 @@ bool CALifeStorageManager::load	(LPCSTR save_name)
 	
 	Msg							("* Game %s is successfully loaded from file '%s' (%.3fs)",save_name, file_name,timer.GetElapsed_sec());
 
-	return						(true);
+	return						(true); 
 }
 
 void CALifeStorageManager::save	(NET_Packet &net_packet)

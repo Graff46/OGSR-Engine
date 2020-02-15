@@ -1814,6 +1814,17 @@ void CCar::OnBeforeExplosion()
 	setEnabled(FALSE);
 }
 
+Fvector CCar::CalcExitPos(Fvector* pos)
+{
+	if (pos) m_exit_position.set(*pos);
+	else
+	{
+		if (!m_doors.empty()) m_doors.begin()->second.GetExitPosition(m_exit_position);
+		else m_exit_position.set(Position());
+	}
+	return m_exit_position;
+}
+
 void CCar::CarExplode()
 {
 
@@ -1827,8 +1838,9 @@ void CCar::CarExplode()
 	CActor* A=OwnerActor();
 	if(A)
 	{
-		if(!m_doors.empty())m_doors.begin()->second.GetExitPosition(m_exit_position);
-		else m_exit_position.set(Position());
+		//if(!m_doors.empty())m_doors.begin()->second.GetExitPosition(m_exit_position);
+		//else m_exit_position.set(Position());
+		CalcExitPos();
 		A->detach_Vehicle();
 		if(A->g_Alive()<=0.f)A->character_physics_support()->movement()->DestroyCharacter();
 	}
@@ -2098,3 +2110,4 @@ void CCar::SyncNetState() {
 
   co->health = GetfHealth();
 }
+

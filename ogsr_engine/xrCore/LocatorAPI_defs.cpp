@@ -94,6 +94,12 @@ LPCSTR FS_Path::_update(string_path& dest, LPCSTR src)const
 	return xr_strlwr	(dest);
 }
 
+void FS_Path::_set_path(LPSTR root, LPSTR add)
+{
+	_set_root(root);
+	_set(add);
+}
+
 
 bool XRCORE_API PatternMatch(LPCSTR s, LPCSTR mask)
 {

@@ -633,8 +633,8 @@ void CApplication::LoadEnd		()
 
 void CApplication::SetLoadingScreen(ILoadingScreen* newScreen)
 {
-	R_ASSERT(!loadingScreen, "! Trying to create new loading screen, but there is already one..");
-
+	//R_ASSERT(!loadingScreen, "! Trying to create new loading screen, but there is already one..");
+	if (!loadingScreen) Msg("! Trying to create new loading screen, but there is already one..");
 	loadingScreen = newScreen;
 }
 
@@ -747,8 +747,9 @@ void CApplication::Level_Set(u32 L)
 	if (L >= Levels.size())	return;
 
 	Level_Current = L;
-	FS.get_path("$level$")->_set(Levels[L].folder);
 
+	FS.get_path("$level$")->_set(Levels[L].folder);
+	
 	string_path temp, temp2;
 	strconcat(sizeof(temp), temp, "intro\\intro_", Levels[L].folder);
 	temp[xr_strlen(temp) - 1] = 0;

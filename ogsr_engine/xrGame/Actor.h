@@ -285,7 +285,7 @@ public:
 	s32						GetShotRndSeed			()	{ return m_ShotRndSeed;	};
 
 public:
-	void					detach_Vehicle			();
+	void					detach_Vehicle			(BOOL needCalcPos=FALSE, Fvector* pos=nullptr);
 	void					steer_Vehicle			(float angle);
 	void					attach_Vehicle			(CHolderCustom* vehicle);
 

@@ -697,6 +697,8 @@ public:
 			void				SetHudRotate(Fvector2 _v);
 
 			CScriptGameObject	*GetActorHolder();
+			void				ExitFromHolderPos(Fvector pos);
+			void				ExitFromHolder();
 			CCameraBase			*GetCarCamera();
 			Fmatrix				*GetXForm();
 			bool				ZoomMode();

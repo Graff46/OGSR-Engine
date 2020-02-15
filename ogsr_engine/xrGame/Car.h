@@ -168,7 +168,7 @@ public:
 				void			Load									(LPCSTR section);
 				void 			RestoreNetState							(const CSE_ALifeCar::SWheelState& a_state)														;
 				void 			SaveNetState							(NET_Packet& P)																					;
-				void SaveNetState( CSE_ALifeCar::SWheelState& );
+				void			SaveNetState							( CSE_ALifeCar::SWheelState& );
 				void 			ApplyDriveAxisVel						(float vel)																						;
 				void 			ApplyDriveAxisTorque					(float torque)																					;
 				void 			ApplyDriveAxisVelTorque					(float vel,float torque)																		;
@@ -645,6 +645,7 @@ private:
 
 public:
 	DECLARE_SCRIPT_REGISTER_FUNCTION
+	Fvector CalcExitPos										(Fvector* pos=nullptr);
 };
 add_to_type_list(CCar)
 #undef script_type_list

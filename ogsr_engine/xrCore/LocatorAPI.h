@@ -102,6 +102,7 @@ private:
 public:
 								CLocatorAPI		();
 								~CLocatorAPI	();
+	void						update_season_paths(LPCSTR season=nullptr);
 	void						_initialize		(u32 flags, LPCSTR target_folder=0, LPCSTR fs_name=0);
 	void						_destroy		();
 

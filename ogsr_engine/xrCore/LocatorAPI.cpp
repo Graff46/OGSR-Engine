@@ -482,6 +482,26 @@ bool CLocatorAPI::Recurse		(const char* path)
 }
 
 
+void CLocatorAPI::update_season_paths(LPCSTR season)
+{
+#ifdef SEASON_TEXTURES
+	FS_Path* P = FS.get_path("$season$");
+	P->_set((LPSTR)season);
+	FS.rescan_path(P->m_Path, TRUE);
+
+	LPSTR season_path = FS.get_path("$season$")->m_Path;
+	string_path season_level_path;
+	FS.update_path(season_level_path, "$season$", "levels");
+
+	P = FS.get_path("$season_textures$");
+	P->_set_path(season_path, "textures");
+
+	P = FS.get_path("$season_level$");
+	P->_set_root(season_level_path);
+#else
+	return;
+#endif // SEASON_TEXTURES 
+}
 
 void CLocatorAPI::_initialize	(u32 flags, LPCSTR target_folder, LPCSTR fs_name)
 {
@@ -672,6 +692,15 @@ void CLocatorAPI::_initialize	(u32 flags, LPCSTR target_folder, LPCSTR fs_name)
 		}
 	}
 	//-----------------------------------------------------------
+
+	// Graff46 seasons, settings paths
+	string_path season_level_path;
+	FS.update_path(season_level_path, "$season$", "levels");
+
+	FS.append_path("$season_level$", season_level_path, "", TRUE);
+	FS.append_path("$season_textures$", FS.get_path("$season$")->m_Path, "textures", TRUE);
+	
+	//-------------------------------
 
 	CreateLog		(0!=strstr(Core.Params,"-nolog"));
 }

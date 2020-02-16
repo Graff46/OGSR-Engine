@@ -70,4 +70,4 @@
 //****************************************************************************************************
 
 // Graff46 Use $season_textures$
-#define SEASON_TEXTURES = true
+#define SEASON_TEXTURES

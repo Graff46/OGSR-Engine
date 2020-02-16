@@ -337,6 +337,7 @@ void fs_registrator::script_register(lua_State *L)
 			.def("path_exist",							&CLocatorAPI::path_exist)
 			.def("set_path",							&hndlr_set)
 			.def("update_path",							&update_path_script)
+			.def("update_season_paths",					&CLocatorAPI::update_season_paths)
 			.def("get_path",							&CLocatorAPI::get_path)
 			.def("append_path",							&CLocatorAPI::append_path)
 			

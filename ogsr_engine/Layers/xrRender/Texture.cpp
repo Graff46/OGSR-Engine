@@ -307,9 +307,15 @@ ID3DBaseTexture*	CRender::texture_load(LPCSTR fRName, u32& ret_msize)
 	fix_texture_name		(fname);
 	IReader* S				= NULL;
 	//if (FS.exist(fn,"$game_textures$",fname,	".dds")	&& strstr(fname,"_bump"))	goto _BUMP;
-	if (!FS.exist(fn,"$game_textures$",	fname,	".dds")	&&
-		(!FS.exist(fn,"$season_textures$",	fname,	".dds")	&& strstr(fname,"_bump")))	goto _BUMP_from_base;
-	if (FS.exist(fn, "$season_textures$",	fname,	".dds"))						goto _DDS;
+
+#ifdef SEASON_TEXTURES
+	if (!FS.exist(fn, "$game_textures$", fname, ".dds") &&
+		(!FS.exist(fn, "$season_textures$", fname, ".dds") && strstr(fname, "_bump")))	goto _BUMP_from_base;
+	if (FS.exist(fn, "$season_textures$", fname, ".dds"))						goto _DDS;
+#else
+	if (!FS.exist(fn, "$game_textures$", fname, ".dds") && strstr(fname, "_bump"))	goto _BUMP_from_base;
+#endif // SEASON_TEXTURES
+
 	if (FS.exist(fn,"$level$",			fname,	".dds"))							goto _DDS;
 	if (FS.exist(fn,"$game_saves$",		fname,	".dds"))							goto _DDS;
 	if (FS.exist(fn,"$game_textures$",	fname,	".dds"))							goto _DDS;

@@ -38,7 +38,7 @@ CDemoPlay::CDemoPlay(const char *name, float ms, u32 cycles, float life_time) : 
 		m_MParam				= xr_new<SAnimParams>	();
 		m_MParam->Set			(m_pMotion);
 		m_MParam->Play			();
-	}else{
+	} else {
 		if (!FS.exist(name))						{
 			g_pGameLevel->Cameras().RemoveCamEffector	(cefDemo);
 			return		;

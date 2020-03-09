@@ -375,13 +375,14 @@ outloop:
 		if ( C.bEnabled || !is_user_input ) {
 			if (C.bLowerCaseArgs) strlwr(last_word);
 			if (last_word[0]==0) {
-				if (C.bEmptyArgsHandled)
-					C.Execute(last_word);
+				if (C.bEmptyArgsHandled) 
+					C.Execute(last_word);	
 				else {
 					IConsole_Command::TStatus S; C.Status(S);
 					Msg("- %s %s",C.Name(),S);
 				}
-			} else
+			}
+			else 
 				C.Execute(last_word);
 		} else {
 			Log("! Command disabled.");

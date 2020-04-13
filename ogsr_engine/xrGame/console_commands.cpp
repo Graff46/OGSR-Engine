@@ -341,7 +341,7 @@ public:
 			  }
 			  strconcat			(sizeof(fn),fn, args, ".xrdemo");
 			  FS.update_path	(fn, "$game_saves$", fn);
-			  if (!FS.path_exist(fn))
+			  if (!FS.exist(fn))
 				  return Msg("! Error: *.xrdemo file not found!");
 
 			  g_pGameLevel->Cameras().AddCamEffector(xr_new<CDemoPlay>(fn, 1.0f, loops));

@@ -38,7 +38,7 @@ CDemoPlay::CDemoPlay(const char *name, float ms, u32 cycles, float life_time) : 
 		m_MParam				= xr_new<SAnimParams>	();
 		m_MParam->Set			(m_pMotion);
 		m_MParam->Play			();
-	} else {
+	}else{
 		if (!FS.exist(name))						{
 			g_pGameLevel->Cameras().RemoveCamEffector	(cefDemo);
 			return		;
@@ -58,7 +58,7 @@ CDemoPlay::CDemoPlay(const char *name, float ms, u32 cycles, float life_time) : 
 		Log				("~ Total key-frames: ",m_count);
 	}
 	stat_started		= FALSE;
-	//Device.PreCache(50, true, false);
+	//Device.PreCache(50, true, false); For working "demo_play"
 }
 
 CDemoPlay::~CDemoPlay		()

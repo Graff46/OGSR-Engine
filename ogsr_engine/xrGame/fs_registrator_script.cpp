@@ -5,10 +5,6 @@
 using namespace luabind;
 
 LPCSTR get_file_age_str(CLocatorAPI* fs, LPCSTR nm);
-CLocatorAPI* getFS()
-{
-	return &FS;
-}
 
 
 LPCSTR update_path_script(CLocatorAPI* fs, LPCSTR initial, LPCSTR src)
@@ -44,7 +40,7 @@ struct FS_item
 		struct tm*	newtime;	
 		time_t t	= modif; 
 		newtime		= localtime( &t ); 
-		strcpy		(buff, asctime( newtime ) );
+		strcpy_s(buff, asctime( newtime ) );
 		return		buff;
 	}
 
@@ -111,7 +107,7 @@ FS_file_list_ex::FS_file_list_ex(LPCSTR path, u32 flags, LPCSTR mask)
 		m_file_items.push_back	(FS_item());
 		FS_item& itm			= m_file_items.back();
 		ZeroMemory				(itm.name,sizeof(itm.name));
-		strcat					(itm.name,it->name.c_str());
+		strcat_s(itm.name,it->name.c_str());
 		itm.modif				= (u32)it->time_write;
 		itm.size				= it->size;
 	}
@@ -170,6 +166,8 @@ static std::string get_engine_dir()
 //Перебор файлов в папке, подкаталоги не учитываются.
 static void directory_iterator(const char* dir, const luabind::functor<void> &iterator_func)
 {
+	if (!stdfs::exists(dir)) return;
+
 	for (const auto& file : stdfs::directory_iterator(dir))
 		if (stdfs::is_regular_file(file)) //Папки не учитываем
 			iterator_func(file);
@@ -178,6 +176,8 @@ static void directory_iterator(const char* dir, const luabind::functor<void> &it
 //Перебор файлов в папке включая подкаталоги.
 static void recursive_directory_iterator(const char* dir, const luabind::functor<void> &iterator_func)
 {
+	if (!stdfs::exists(dir)) return;
+
 	for (const auto& file : stdfs::recursive_directory_iterator(dir))
 		if (stdfs::is_regular_file(file)) //Папки не учитываем
 			iterator_func(file);
@@ -257,6 +257,7 @@ void script_register_stdfs(lua_State *L)
 {
 	module(L, "stdfs")
 	[
+		def("VerifyPath", [](const char* path) { VerifyPath(path); }),
 		def("directory_iterator", &directory_iterator),
 		def("recursive_directory_iterator", &recursive_directory_iterator),
 		class_<stdfs::directory_entry>("path")
@@ -370,6 +371,6 @@ void fs_registrator::script_register(lua_State *L)
 			.def("file_list_open",						&file_list_open_script_2)
 			.def("file_list_open_ex",					&file_list_open_ex),
 
-		def("getFS",									getFS)
+		def("getFS", [] { return &FS; })
 	];
 }

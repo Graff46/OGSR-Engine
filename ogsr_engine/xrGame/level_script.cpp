@@ -34,6 +34,7 @@
 #include "monster_community.h"
 #include "GamePersistent.h"
 #include "../xr_3da/fdemoplay.h"
+#include "..\xr_3da\XR_IOConsole.h"
 
 using namespace luabind;
 
@@ -965,18 +966,21 @@ int get_character_community_team( LPCSTR comm ) {
   return community.team();
 }
 
-void runDemoPlay(LPCSTR args) {
+void runDemoPlay(LPCSTR demoAnmFilePath) {
 	string_path			fn;
 	u32		loops = 0;
-	LPSTR		comma = strchr(const_cast<LPSTR>(args), ',');
+	LPSTR		comma = strchr(const_cast<LPSTR>(demoAnmFilePath), ',');
 	if (comma) {
 		loops = atoi(comma + 1);
 		*comma = 0;
 	}
-	strconcat(sizeof(fn), fn, args, ".xrdemo");
+	strconcat(sizeof(fn), fn, demoAnmFilePath, ".xrdemo");
 	FS.update_path(fn, "$game_anims$", fn);
-	if (!FS.exist(fn))
-		return Msg("! Error: *.xrdemo file not found!");
+	if (!FS.exist(fn)) {
+		Console->Show();
+		Msg("! Error: *.xrdemo file not found!");
+		return;
+	}
 
 	g_pGameLevel->Cameras().AddCamEffector(xr_new<CDemoPlay>(fn, 1.0f, loops));
 }

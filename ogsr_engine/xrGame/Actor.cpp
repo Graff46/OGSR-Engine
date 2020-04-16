@@ -776,6 +776,7 @@ void CActor::g_Physics(Fvector& _accel, float jump, float dt)
 	}
 }
 float g_fov = 67.5f; //75.0f - SWM
+float temp_fov = 0.0f;
 
 float CActor::currentFOV()
 {
@@ -827,7 +828,11 @@ void CActor::UpdateCL	()
 	CWeapon* pWeapon = smart_cast<CWeapon*>(inventory().ActiveItem());	
 
 	Device.Statistic->TEST1.Begin		();
-	cam_Update(float(Device.dwTimeDelta)/1000.0f, currentFOV());
+
+	if (temp_fov > 1.0f)
+		cam_Update(float(Device.dwTimeDelta) / 1000.0f, temp_fov);
+	else
+		cam_Update(float(Device.dwTimeDelta)/1000.0f, currentFOV());
 	Device.Statistic->TEST1.End		();
 
 	if(Level().CurrentEntity() && this->ID()==Level().CurrentEntity()->ID() )

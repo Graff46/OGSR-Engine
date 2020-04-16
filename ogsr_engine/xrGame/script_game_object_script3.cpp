@@ -379,6 +379,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("object_from_inv_box", &CScriptGameObject::ObjectFromInvBox)
 		.def("get_camera_fov", &CScriptGameObject::GetCamFOV)
 		.def("set_camera_fov", &CScriptGameObject::SetCamFOV)
+		.def("set_camera_temp_fov", &CScriptGameObject::SetCamTempFOV)
 
 		.def("set_max_weight", &CScriptGameObject::SetMaxWeight)
 		.def("set_max_walk_weight", &CScriptGameObject::SetMaxWalkWeight)

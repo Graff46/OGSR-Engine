@@ -375,6 +375,11 @@ void CScriptGameObject::SetCamFOV(float _fov)
 	g_fov = _fov;
 }
 
+void CScriptGameObject::SetCamTempFOV(float _fov)
+{
+	temp_fov = _fov;
+}
+
 #include "HudManager.h"
 #include "UIGameSP.h"
 void CScriptGameObject::OpenInvBox(CScriptGameObject *obj)

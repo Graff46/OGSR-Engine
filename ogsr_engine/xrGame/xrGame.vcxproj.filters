@@ -6088,7 +6088,6 @@
     </ClInclude>
     <ClInclude Include="ui\UIHelper.h" />
     <ClInclude Include="data_tail_save.h" />
-    <ClInclude Include="CTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -8877,7 +8876,6 @@
     </ClCompile>
     <ClCompile Include="ui\UIHelper.cpp" />
     <ClCompile Include="data_tail_save.cpp" />
-    <ClCompile Include="CTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuildStep Include="Explosive.h">

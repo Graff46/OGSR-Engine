@@ -127,7 +127,7 @@ void CScriptEngine::script_register(lua_State *L)
 		def("log1",			(void(*)(LPCSTR)) &Log),
 		def("fail",			(void(*)(LPCSTR)) &msg_and_fail),
 		def("screenshot",	(void(*)(IRender_interface::ScreenshotMode, LPCSTR)) &take_screenshot),
-		def("timer",		&CWTimer), 
+		def("timer",		&CWTimer),
 
 		class_<enum_exporter<IRender_interface::ScreenshotMode> >("screenshot_modes")
 			.enum_("modes")

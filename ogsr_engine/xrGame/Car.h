@@ -179,7 +179,7 @@ public:
 				void			SetSteerHiLimit							(float hi)																						;
 				void			SetSteerLimits							(float hi,float lo)																				;
 
-virtual void ApplyDamage			(u16 level);
+	virtual void ApplyDamage			(u16 level);
 		SWheel(CCar* acar)
 		{
 			bone_id=BI_NONE;
@@ -384,6 +384,7 @@ private:
 	CCameraBase*			active_camera;
 
 	Fvector					m_camera_position;
+	xr_vector <Fvector>		cam_vectors;
 
 public:
 	IC CCameraBase*			get_active_camera() { return active_camera; };
@@ -412,6 +413,7 @@ private:
 	float					m_doors_torque_factor;
 	/////////////////////////////////////////////////////////////
 
+	float					rpm_koef					;
 	float					m_max_power					;//best rpm
 	float					m_power_increment_factor	;
 	float					m_power_decrement_factor	;
@@ -472,7 +474,6 @@ IC	float	 			EngineRpmFromWheels					(){return dFabs(DriveWheelsMeanAngleRate()*
 	void				CircleSwitchTransmission			();
 	void				TransmissionUp						();
 	void				TransmissionDown					();
-IC	size_t				CurrentTransmission					(){return m_current_transmission_num;}
 	void				PressRight							();
 	void				PressLeft							();
 	void				PressForward						();
@@ -527,6 +528,7 @@ IC	size_t				CurrentTransmission					(){return m_current_transmission_num;}
 			bool WheelHit								(float P,s16 element,ALife::EHitType hit_type);
 			bool DoorHit								(float P,s16 element,ALife::EHitType hit_type);
 public:
+	IC	size_t				CurrentTransmission			() { return m_current_transmission_num; }
 	virtual bool			allowWeapon					() const { return false; }; //	{return true;};
 	virtual bool			HUDView						() const;
 	virtual Fvector			ExitPosition				(){return m_exit_position;}
@@ -576,6 +578,9 @@ public:
 	virtual void			GetRayExplosionSourcePos	(Fvector &pos);
 	virtual void			ActivateExplosionBox		(const Fvector &size,Fvector &in_out_pos){};
 	virtual void			ResetScriptData				(void *P=0);
+	inline void				onRight						(bool noRevers);
+	inline void				onLeft						(bool noRevers);
+	bool					reverseSteer;
 
 	virtual void			Action						(int id, u32 flags);
 	virtual void			SetParam					(int id, Fvector2 val);
@@ -585,6 +590,7 @@ public:
 			float			FireDirDiff					();
 			bool			isObjectVisible				(CScriptGameObject* O);
 			Fvector			CurrentVel					();
+			float			CurrentRPM					();
 	virtual float			GetfHealth					() const		{return CEntity::GetfHealth();};
 	virtual float			SetfHealth					(float value)	{return CEntity::SetfHealth(value);};
 

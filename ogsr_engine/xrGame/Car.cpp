@@ -53,6 +53,9 @@ CCar::CCar()
 	camera[ectFree]	= xr_new<CCameraLook>		(this); 
 	camera[ectFree]->tag	= ectFree;
 	camera[ectFree]->Load("car_free_cam");
+
+	cam_vectors.resize(3);
+
 	OnCameraChange(ectFirst);
 
 	m_repairing		=false;
@@ -84,11 +87,13 @@ CCar::CCar()
 	m_break_start=0.f;
 	m_break_time=1.;
 	m_breaks_to_back_rate=1.f;
+	rpm_koef = 1.f / 60.f * 2.f * M_PI;
 
 	b_exploded=false;
 	m_car_weapon=NULL;
 	m_power_neutral_factor=0.25f;
 	m_steer_angle=0.f;
+	reverseSteer = false;
 #ifdef DEBUG
 	InitDebug();
 #endif
@@ -671,7 +676,14 @@ bool CCar::attach_Actor(CGameObject* actor)
 	}
 	CBoneInstance& instance=K->LL_GetBoneInstance				(u16(id));
 	m_sits_transforms.push_back(instance.mTransform);
-	OnCameraChange(ectFirst);
+
+	int currCam = ectFirst;
+	if (ini->line_exist("car_definition", "default_cam"))
+	{
+		currCam = ini->r_u8("car_definition", "default_cam");
+	}
+	OnCameraChange(currCam);
+
 	PPhysicsShell()->Enable();
 	PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
 //	VisualUpdate();
@@ -776,17 +788,17 @@ void CCar::ParseDefinitions()
 	m_max_power			*=		(0.8f*1000.f);
 
 	m_max_rpm			=		ini->r_float("car_definition","max_engine_rpm");
-	m_max_rpm			*=		(1.f/60.f*2.f*M_PI);
+	m_max_rpm			*=		rpm_koef;
 
 
 	m_min_rpm					=		ini->r_float("car_definition","idling_engine_rpm");
-	m_min_rpm					*=		(1.f/60.f*2.f*M_PI);
+	m_min_rpm					*=		rpm_koef;
 
 	m_power_rpm					=		ini->r_float("car_definition","max_power_rpm");
-	m_power_rpm					*=		(1.f/60.f*2.f*M_PI);//
+	m_power_rpm					*=		rpm_koef;//
 
 	m_torque_rpm				=		ini->r_float("car_definition","max_torque_rpm");
-	m_torque_rpm				*=		(1.f/60.f*2.f*M_PI);//
+	m_torque_rpm				*=		rpm_koef;//
 
 	m_power_increment_factor	=		READ_IF_EXISTS(ini,r_float,"car_definition","power_increment_factor",m_power_increment_factor);
 	m_rpm_increment_factor		=		READ_IF_EXISTS(ini,r_float,"car_definition","rpm_increment_factor",m_rpm_increment_factor);
@@ -797,6 +809,11 @@ void CCar::ParseDefinitions()
 	if(ini->line_exist("car_definition","exhaust_particles"))
 	{
 		m_exhaust_particles =ini->r_string("car_definition","exhaust_particles");
+	}
+
+	if(ini->line_exist("car_definition","reverse_steer"))
+	{
+		reverseSteer = ini->r_bool("car_definition", "reverse_steer");
 	}
 			
 	b_auto_switch_transmission= !!ini->r_bool("car_definition","auto_transmission");
@@ -823,8 +840,8 @@ void CCar::ParseDefinitions()
 		if(!ini->line_exist("transmission_gear_ratio",rat_num)) break;
 		Fvector gear_rat=ini->r_fvector3("transmission_gear_ratio",rat_num);
 		gear_rat[0]*=main_gear_ratio;
-		gear_rat[1]*=(1.f/60.f*2.f*M_PI);
-		gear_rat[2]*=(1.f/60.f*2.f*M_PI);
+		gear_rat[1]*=(rpm_koef);
+		gear_rat[2]*=(rpm_koef);
 		m_gear_ratious.push_back(gear_rat);
 	}
 
@@ -855,6 +872,22 @@ void CCar::ParseDefinitions()
 	}
 
 	m_damage_particles.Init(this);
+
+	string16 IniKeyName;
+
+	for (int i = 0; i < 3; i++)
+	{
+		sprintf(IniKeyName, "camera_pos_%d", i);
+		Msg(IniKeyName);
+		if (ini->line_exist("car_definition", IniKeyName))
+		{
+			cam_vectors.at(i) = ini->r_fvector3("car_definition", IniKeyName);
+		}
+		else
+		{
+			cam_vectors.at(i) = m_camera_position;
+		}
+	}
 }
 
 void CCar::CreateSkeleton(CSE_Abstract	*po)
@@ -1273,7 +1306,7 @@ void CCar::DriveForward()
 }
 void CCar::ReleaseRight()
 {
-	if(lsp)
+	if ((lsp) && (!reverseSteer))
 		SteerLeft();
 	else
 		SteerIdle();
@@ -1281,7 +1314,7 @@ void CCar::ReleaseRight()
 }
 void CCar::ReleaseLeft()
 {
-	if(rsp)
+	if ((rsp) && (!reverseSteer))
 		SteerRight();
 	else
 		SteerIdle();
@@ -2111,3 +2144,7 @@ void CCar::SyncNetState() {
   co->health = GetfHealth();
 }
 
+float CCar::CurrentRPM() // Graff46
+{
+	return m_current_rpm / rpm_koef;
+}

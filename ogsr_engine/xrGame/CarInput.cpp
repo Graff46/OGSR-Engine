@@ -133,6 +133,34 @@ void CCar::vfProcessInputKey	(int iCommand, bool bPressed)
 		OnKeyboardRelease		(iCommand);
 }
 
+inline void CCar::onRight(bool noRevers=false)
+{	
+	if ((reverseSteer) && (!noRevers))
+	{
+		onLeft(true);
+	}
+	else 
+	{
+		PressRight();
+		if (OwnerActor())
+			OwnerActor()->steer_Vehicle(1);
+	}
+}
+
+inline void CCar::onLeft(bool noRevers=false)
+{
+	if ((reverseSteer) && (!noRevers))
+	{
+		onRight(true);
+	}
+	else 
+	{
+		PressLeft();
+		if (OwnerActor())
+			OwnerActor()->steer_Vehicle(-1);
+	}
+}
+
 void CCar::OnKeyboardPress(int cmd)
 {
 	if (Remote())								return;
@@ -146,8 +174,8 @@ void CCar::OnKeyboardPress(int cmd)
 	case kCROUCH:	TransmissionDown();			break;
 	case kFWD:		PressForward();				break;
 	case kBACK:		PressBack();				break;
-	case kR_STRAFE:	PressRight();				if (OwnerActor()) OwnerActor()->steer_Vehicle(1);	break;
-	case kL_STRAFE:	PressLeft();				if (OwnerActor()) OwnerActor()->steer_Vehicle(-1);break;
+	case kR_STRAFE:	onRight();					break;
+	case kL_STRAFE:	onLeft();					break;
 	case kJUMP:		PressBreaks();				break;
 	case kENGINE:	SwitchEngine();				break;
 	case kTORCH:	m_lights.SwitchHeadLights();break;

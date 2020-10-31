@@ -188,6 +188,11 @@ void CTextureDescrMngr::Load()
 #ifdef USE_TEXTURES_LTX
 	LoadLTX();
 #endif
+
+#ifdef SEASON_TEXTURES
+	LoadTHM("$season_textures$");
+	LoadTHM("$season_level$");
+#endif // SEASON_TEXTURES
 	LoadTHM					("$game_textures$");
 	LoadTHM					("$level$");
 

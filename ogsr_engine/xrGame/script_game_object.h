@@ -655,6 +655,7 @@ public:
 			CScriptGameObject	*ObjectFromInvBox(int _i);
 			float				GetCamFOV();
 			void				SetCamFOV(float _fov);
+			void				SetCamTempFOV(float _fov);
 
 			void				SetMaxWeight(float _weight);
 			void				SetMaxWalkWeight(float _weight);
@@ -700,6 +701,8 @@ public:
 			void				SetHudRotate(Fvector2 _v);
 
 			CScriptGameObject	*GetActorHolder();
+			void				ExitFromHolderPos(Fvector pos);
+			void				ExitFromHolder();
 			CCameraBase			*GetCarCamera();
 			Fmatrix				*GetXForm();
 			bool				ZoomMode();

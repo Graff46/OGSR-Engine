@@ -243,6 +243,13 @@ static std::string get_last_write_time_string_short(const stdfs::directory_entry
 	return format_last_write_time(file, "[%d:%m:%Y %T]");
 }
 
+void hndlr_set(CLocatorAPI* fs, LPCSTR initian, LPCSTR root, LPCSTR add)
+{
+	FS_Path* fspath = fs->get_path(initian);
+	fspath->_set_path((LPSTR) root, (LPSTR) add);
+	fs->rescan_path(fspath->m_Path, TRUE);
+}
+
 
 #pragma optimize("s",on)
 void script_register_stdfs(lua_State *L)
@@ -334,7 +341,9 @@ void fs_registrator::script_register(lua_State *L)
 				value("FS_RootOnly",					int(FS_RootOnly))
 			]
 			.def("path_exist",							&CLocatorAPI::path_exist)
+			.def("set_path",							&hndlr_set)
 			.def("update_path",							&update_path_script)
+			.def("update_season_paths",					&CLocatorAPI::update_season_paths)
 			.def("get_path",							&CLocatorAPI::get_path)
 			.def("append_path",							&CLocatorAPI::append_path)
 			

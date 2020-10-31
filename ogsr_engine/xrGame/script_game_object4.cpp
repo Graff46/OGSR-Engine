@@ -375,6 +375,11 @@ void CScriptGameObject::SetCamFOV(float _fov)
 	g_fov = _fov;
 }
 
+void CScriptGameObject::SetCamTempFOV(float _fov)
+{
+	temp_fov = _fov;
+}
+
 #include "HudManager.h"
 #include "UIGameSP.h"
 void CScriptGameObject::OpenInvBox(CScriptGameObject *obj)
@@ -627,6 +632,27 @@ CScriptGameObject *CScriptGameObject::GetActorHolder()
 	else
 		return nullptr;
 }
+
+void CScriptGameObject::ExitFromHolder()
+{
+	CActor* k = smart_cast<CActor*>(&object());
+	if (!k) {
+		ai().script_engine().script_log(ScriptStorage::eLuaMessageTypeError, "CActor : cannot access class member ExitFromHolder!");
+		return;
+	}
+	k->detach_Vehicle(TRUE);
+}
+
+void CScriptGameObject::ExitFromHolderPos(Fvector pos)
+{
+	CActor* k = smart_cast<CActor*>(&object());
+	if (!k) {
+		ai().script_engine().script_log(ScriptStorage::eLuaMessageTypeError, "CActor : cannot access class member ExitFromHolder!");
+		return;
+	}
+	k->detach_Vehicle(TRUE, &pos);
+}
+
 class CCameraBase;
 CCameraBase *CScriptGameObject::GetCarCamera()
 {

@@ -60,7 +60,7 @@ void CActor::attach_Vehicle(CHolderCustom* vehicle)
 	this->callback(GameObject::eAttachVehicle)(car->lua_game_object());
 }
 
-void CActor::detach_Vehicle()
+void CActor::detach_Vehicle(BOOL needCalcPos, Fvector* pos)
 {
 	if(!m_holder) return;
 	CCar* car=smart_cast<CCar*>(m_holder);
@@ -73,6 +73,7 @@ void CActor::detach_Vehicle()
 		return;
 	}
 	if(sh)sh->Activate();
+	if (needCalcPos) car->CalcExitPos(pos); // Graff46 27.01.2020 
 	m_holder->detach_Actor();//
 
 	character_physics_support()->movement()->SetPosition(m_holder->ExitPosition());

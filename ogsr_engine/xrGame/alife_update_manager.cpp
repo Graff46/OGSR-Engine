@@ -22,6 +22,7 @@
 #include "restriction_space.h"
 #include "profiler.h"
 #include "mt_config.h"
+#include "script_engine.h"
 
 using namespace ALife;
 
@@ -232,6 +233,11 @@ void CALifeUpdateManager::new_game			(LPCSTR save_name)
 {
 	g_pGamePersistent->LoadTitle		("st_creating_new_game");
 	Msg									("* Creating new game...");
+
+	luabind::functor<void>		functor;
+	R_ASSERT2(ai().script_engine().functor("start_load_game", functor),
+		"Don`t has function 'start_load_game' in _G.script");
+	functor("NEW_GAME");
 
 	unload								();
 	reload								(m_section);

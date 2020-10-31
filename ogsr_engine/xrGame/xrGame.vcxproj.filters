@@ -6071,6 +6071,7 @@
       <Filter>AI\AScript\ScriptClasses\UI\LoadScreen</Filter>
     </ClInclude>
     <ClInclude Include="ui\UIHelper.h" />
+    <ClInclude Include="data_tail_save.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -8855,6 +8856,7 @@
       <Filter>AI\AScript\ScriptClasses\UI\LoadScreen</Filter>
     </ClCompile>
     <ClCompile Include="ui\UIHelper.cpp" />
+    <ClCompile Include="data_tail_save.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuildStep Include="Explosive.h">

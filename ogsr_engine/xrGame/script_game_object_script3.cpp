@@ -370,6 +370,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("object_from_inv_box", &CScriptGameObject::ObjectFromInvBox)
 		.def("get_camera_fov", &CScriptGameObject::GetCamFOV)
 		.def("set_camera_fov", &CScriptGameObject::SetCamFOV)
+		.def("set_camera_temp_fov", &CScriptGameObject::SetCamTempFOV)
 
 		.def("set_max_weight", &CScriptGameObject::SetMaxWeight)
 		.def("set_max_walk_weight", &CScriptGameObject::SetMaxWalkWeight)
@@ -413,6 +414,9 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 
 		.def("get_holder", &CScriptGameObject::GetActorHolder)
 		.def("get_camera", &CScriptGameObject::GetCarCamera)
+		// Graff46 26.01.2020 
+		.def("exit_from_holder", &CScriptGameObject::ExitFromHolderPos)
+		.def("exit_from_holder", &CScriptGameObject::ExitFromHolder)
 
 		.def("zoom_mode", &CScriptGameObject::ZoomMode)
 		.def("reset_state", &CScriptGameObject::ResetState)

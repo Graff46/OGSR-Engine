@@ -33,6 +33,8 @@
 #include "script_rq_result.h"
 #include "monster_community.h"
 #include "GamePersistent.h"
+#include "../xr_3da/fdemoplay.h"
+#include "..\xr_3da\XR_IOConsole.h"
 #include "EffectorBobbing.h"
 
 using namespace luabind;
@@ -969,6 +971,25 @@ int get_character_community_team( LPCSTR comm ) {
   return community.team();
 }
 
+void runDemoPlay(LPCSTR demoAnmFilePath) {
+	string_path			fn;
+	u32		loops = 0;
+	LPSTR		comma = strchr(const_cast<LPSTR>(demoAnmFilePath), ',');
+	if (comma) {
+		loops = atoi(comma + 1);
+		*comma = 0;
+	}
+	strconcat(sizeof(fn), fn, demoAnmFilePath, ".xrdemo");
+	FS.update_path(fn, "$game_anims$", fn);
+	if (!FS.exist(fn)) {
+		Console->Show();
+		Msg("! Error: *.xrdemo file not found!");
+		return;
+	}
+
+	g_pGameLevel->Cameras().AddCamEffector(xr_new<CDemoPlay>(fn, 1.0f, loops));
+}
+
 
 CEffectorBobbing* get_effector_bobbing() {
   return Actor()->GetEffectorBobbing();
@@ -1095,6 +1116,8 @@ void CLevel::script_register(lua_State *L)
 
 		def("add_complex_effector",				&add_complex_effector),
 		def("remove_complex_effector",			&remove_complex_effector),
+
+		def("run_demo_play",					&runDemoPlay),
 		
 		def("game_id",							&GameID),
 		def("set_ignore_game_state_update",		&set_ignore_game_state_update),

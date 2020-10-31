@@ -59,6 +59,10 @@ void	CCar::OnCameraChange		(int type)
 	}
 	
 	if (!active_camera||active_camera->tag!=type){
+
+		Fvector3 gg = cam_vectors.at(type);
+		m_camera_position.set(cam_vectors.at(type));
+
 		active_camera	= camera[type];
 		if (ectFree==type){
 			Fvector xyz;

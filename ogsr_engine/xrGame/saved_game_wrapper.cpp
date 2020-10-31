@@ -14,6 +14,7 @@
 #include "ai_space.h"
 #include "game_graph.h"
 #include "alife_simulator_header.h"
+#include "data_tail_save.h"
 
 extern LPCSTR alife_section;
 
@@ -63,8 +64,9 @@ CSavedGameWrapper::CSavedGameWrapper		(LPCSTR saved_game_name)
 	saved_game_full_name		(saved_game_name,file_name);
 	R_ASSERT3					(FS.exist(file_name),"There is no saved game ",file_name);
 	
-	IReader						*stream = FS.r_open(file_name);
-	if (!valid_saved_game(*stream)) {
+	IReader						*stream = FS.r_open(file_name); 
+	if (!valid_saved_game(*stream))
+	{
 		FS.r_close				(stream);
 		CALifeTimeManager		time_manager(alife_section);
 		m_game_time				= time_manager.game_time();
@@ -76,6 +78,7 @@ CSavedGameWrapper::CSavedGameWrapper		(LPCSTR saved_game_name)
 	u32							source_count = stream->r_u32();
 	void						*source_data = xr_malloc(source_count);
 	rtc_decompress				(source_data,source_count,stream->pointer(),stream->length() - 3*sizeof(u32));
+	
 	FS.r_close					(stream);
 
 	IReader						reader(source_data,source_count);
@@ -84,6 +87,8 @@ CSavedGameWrapper::CSavedGameWrapper		(LPCSTR saved_game_name)
 		CALifeTimeManager		time_manager(alife_section);
 		time_manager.load		(reader);
 		m_game_time				= time_manager.game_time();
+
+		tail_data				= DataTailSave::load(reader);
 	}
 
 	{

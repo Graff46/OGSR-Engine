@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../entity.h"
-#include "fastdelegate.h"
 #include "../../../Include\xrRender\Kinematics.h"
 #include "../../../Include\xrRender\animation_motion.h"
 
@@ -25,13 +24,13 @@ private:
 
 	void				SwitchToState_internal		(EState new_state);
 	void				SwitchToState				(EState new_state){m_TgtState=new_state;}
-	void __stdcall		OnIdleState					();
-	void __stdcall		OnFlyState					();
-	void __stdcall		OnDeadState					();
+	void OnIdleState();
+	void OnFlyState();
+	void OnDeadState();
 
 	void				UpdateFlyMedia				();
 
-	fastdelegate::FastDelegate0<>					UpdateEvent;
+	fastdelegate::FastDelegate<void()> UpdateEvent;
 private:
 	struct SStateData{
 		shared_str		particles;
@@ -40,10 +39,10 @@ private:
 	};
 	SStateData			m_state_data[stCount];
 private:
-	CParticlesObject*	m_fly_particles;
+	CParticlesObject* m_fly_particles{};
 	static void			animation_end_callback	(CBlend* B);
 private:
-	CObject*			m_enemy;
+	CObject* m_enemy{};
 
 	float				fSpeed;	
 	float				fASpeed;

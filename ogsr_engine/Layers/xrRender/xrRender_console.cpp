@@ -1,11 +1,10 @@
 #include	"stdafx.h"
-#pragma		hdrstop
 
 #include	"xrRender_console.h"
 #include	"dxRenderDeviceRender.h"
 
 u32 r2_SmapSize = 2048;
-xr_token SmapSizeToken[] = {
+constexpr xr_token SmapSizeToken[] = {
   { "1536x1536",   1536 },
   { "2048x2048",   2048 },
   { "2560x2560",   2560 },
@@ -17,8 +16,34 @@ xr_token SmapSizeToken[] = {
   { nullptr, 0 }
 };
 
+u32 ps_r_pp_aa_mode = 0;
+constexpr xr_token pp_aa_mode_token[] = {
+	{ "st_opt_off", NO_AA },
+	{ "st_opt_smaa", SMAA },
+	{ nullptr, 0 },
+};
+
+u32 ps_r_sunshafts_mode = SS_SS_MANOWAR;
+constexpr xr_token sunshafts_mode_token[] =
+{
+	{ "st_opt_off", SS_OFF        },
+	{ "volumetric", SS_VOLUMETRIC },
+	{ "ss_ogse",    SS_SS_OGSE    },
+	{ "ss_manowar", SS_SS_MANOWAR },
+	{ nullptr, 0 }
+};
+// Sunshafts
+u32 ps_r_sun_shafts = 3;
+float ps_r_ss_sunshafts_length = 0.9f; // 1.0f;
+float ps_r_ss_sunshafts_radius = 2.f; // 1.0f;
+float ps_r_prop_ss_radius = 1.56f;
+float ps_r_prop_ss_blend = 0.25f; // 0.066f;
+float ps_r_prop_ss_sample_step_phase0 = 0.09f;
+float ps_r_prop_ss_sample_step_phase1 = 0.07f;
+
+
 u32			ps_Preset				=	2	;
-xr_token							qpreset_token							[ ]={
+constexpr xr_token qpreset_token[] = {
 	{ "Minimum",					0											},
 	{ "Low",						1											},
 	{ "Default",					2											},
@@ -28,7 +53,7 @@ xr_token							qpreset_token							[ ]={
 };
 
 u32			ps_r_ssao_mode			=	2;
-xr_token							qssao_mode_token						[ ]={
+constexpr xr_token qssao_mode_token[] = {
 	{ "disabled",					0											},
 	{ "default",					1											},
 	{ "hdao",						2											},
@@ -36,17 +61,8 @@ xr_token							qssao_mode_token						[ ]={
 	{ 0,							0											}
 };
 
-u32			ps_r_sun_shafts				=	2;
-xr_token							qsun_shafts_token							[ ]={
-	{ "st_opt_off",					0												},
-	{ "st_opt_low",					1												},
-	{ "st_opt_medium",				2												},
-	{ "st_opt_high",				3												},
-	{ 0,							0												}
-};
-
 u32			ps_r_ssao				=	3;
-xr_token							qssao_token									[ ]={
+constexpr xr_token qssao_token[] = {
 	{ "st_opt_off",					0												},
 	{ "st_opt_low",					1												},
 	{ "st_opt_medium",				2												},
@@ -58,7 +74,7 @@ xr_token							qssao_token									[ ]={
 };
 
 u32			ps_r_sun_quality		=	1;			//	=	0;
-xr_token							qsun_quality_token							[ ]={
+constexpr xr_token qsun_quality_token[] = {
 	{ "st_opt_low",					0												},
 	{ "st_opt_medium",				1												},
 	{ "st_opt_high",				2												},
@@ -70,7 +86,7 @@ xr_token							qsun_quality_token							[ ]={
 };
 
 u32			ps_r3_msaa				=	0;			//	=	0;
-xr_token							qmsaa_token							[ ]={
+constexpr xr_token qmsaa_token[] = {
 	{ "st_opt_off",					0												},
 	{ "2x",							1												},
 	{ "4x",							2												},
@@ -79,7 +95,7 @@ xr_token							qmsaa_token							[ ]={
 };
 
 u32			ps_r3_msaa_atest		=	0;			//	=	0;
-xr_token							qmsaa__atest_token					[ ]={
+constexpr xr_token qmsaa__atest_token[] = {
 	{ "st_opt_off",					0												},
 	{ "st_opt_atest_msaa_dx10_0",	1												},
 	{ "st_opt_atest_msaa_dx10_1",	2												},
@@ -87,7 +103,7 @@ xr_token							qmsaa__atest_token					[ ]={
 };
 
 u32			ps_r3_minmax_sm			=	0;
-xr_token							qminmax_sm_token					[ ]={
+constexpr xr_token qminmax_sm_token[] = {
 	{ "off",						0												},
 	{ "on",							1												},
 	{ "auto",						2												},
@@ -157,7 +173,6 @@ float		ps_r2_ssaLOD_B				= 48.f	;
 Flags32		ps_r2_ls_flags				= { R2FLAG_SUN 
 	//| R2FLAG_SUN_IGNORE_PORTALS
 	| R2FLAG_EXP_DONT_TEST_UNSHADOWED 
-	| R2FLAG_EXP_DONT_TEST_SHADOWED
 	| R2FLAG_USE_NVSTENCIL | R2FLAG_EXP_SPLIT_SCENE 
 	| R2FLAG_EXP_MT_CALC | R3FLAG_DYN_WET_SURF
 	| R3FLAG_VOLUMETRIC_SMOKE
@@ -177,6 +192,9 @@ Flags32		ps_r2_ls_flags				= { R2FLAG_SUN
 
 Flags32 ps_r2_ls_flags_ext = {
 	/*R2FLAGEXT_SSAO_OPT_DATA |*/ R2FLAGEXT_SSAO_HALF_DATA | R2FLAGEXT_ENABLE_TESSELLATION | R2FLAGEXT_RAIN_DROPS | R2FLAGEXT_RAIN_DROPS_CONTROL
+#if RENDER==R_R4
+	| R2FLAGEXT_SSLR
+#endif
 };
 
 BOOL		ps_no_scale_on_fade			= 0; //Alundaio
@@ -246,6 +264,11 @@ int ps_r3_dyn_wet_surf_enable_streaks = 0;
 
 float ps_r2_rain_drops_intensity = 0.00025f;
 float ps_r2_rain_drops_speed = 1.25f;
+
+#if RENDER==R_R4
+float ps_ext_SSLR_L = 1.f;
+float ps_ext_SSLR_blur = 0.f;
+#endif
 
 int			ps_r__detail_radius = 49;
 u32			dm_size = 24;
@@ -413,7 +436,7 @@ public:
 class	CCC_SSAO_Mode		: public CCC_Token
 {
 public:
-	CCC_SSAO_Mode(LPCSTR N, u32* V, xr_token* T) : CCC_Token(N,V,T)	{}	;
+	CCC_SSAO_Mode(LPCSTR N, u32* V, const xr_token* T) : CCC_Token(N,V,T)	{}	;
 
 	virtual void	Execute	(LPCSTR args)	{
 		CCC_Token::Execute	(args);
@@ -469,7 +492,7 @@ public:
 class	CCC_Preset		: public CCC_Token
 {
 public:
-	CCC_Preset(LPCSTR N, u32* V, xr_token* T) : CCC_Token(N,V,T)	{}	;
+	CCC_Preset(LPCSTR N, u32* V, const xr_token* T) : CCC_Token(N,V,T)	{}	;
 
 	virtual void	Execute	(LPCSTR args)	{
 		CCC_Token::Execute	(args);
@@ -694,6 +717,14 @@ public:
 	}
 };
 
+class CCC_SunshaftsIntensity : public CCC_Float
+{
+public:
+	CCC_SunshaftsIntensity(LPCSTR N, float* V, float _min, float _max) : CCC_Float(N, V, _min, _max) {}
+	virtual void Save(IWriter*) {}
+};
+
+
 //	Allow real-time fog config reload
 #if	(RENDER == R_R3) || (RENDER == R_R4)
 #ifdef	DEBUG
@@ -839,6 +870,12 @@ void		xrRender_initconsole	()
 	CMD4(CCC_Float, "r2_rain_drops_intensity", &ps_r2_rain_drops_intensity, 0.f, 1.f);
 	CMD4(CCC_Float, "r2_rain_drops_speed", &ps_r2_rain_drops_speed, 0.8f, 5.f);
 
+#if RENDER==R_R4
+	CMD3(CCC_Mask, "r_sslr_enable", &ps_r2_ls_flags_ext, R2FLAGEXT_SSLR);
+	CMD4(CCC_Float, "r_sslr_l", &ps_ext_SSLR_L, .1f, 10.f);
+	CMD4(CCC_Float, "r_sslr_blur", &ps_ext_SSLR_blur, 0.0f, 5.f);
+#endif
+
 	CMD3(CCC_Mask,		"r2_sun",				&ps_r2_ls_flags,			R2FLAG_SUN		);
 	CMD3(CCC_Mask,		"r2_sun_details",		&ps_r2_ls_flags,			R2FLAG_SUN_DETAILS);
 	CMD3(CCC_Mask,		"r2_sun_focus",			&ps_r2_ls_flags,			R2FLAG_SUN_FOCUS);
@@ -912,8 +949,21 @@ void		xrRender_initconsole	()
 //	float		ps_r2_dof_focus			= 1.4f;					// 1.4f
 	
 	CMD3(CCC_Mask,		"r2_volumetric_lights",			&ps_r2_ls_flags,			R2FLAG_VOLUMETRIC_LIGHTS);
-//	CMD3(CCC_Mask,		"r2_sun_shafts",				&ps_r2_ls_flags,			R2FLAG_SUN_SHAFTS);
-	CMD3(CCC_Token,		"r2_sun_shafts",				&ps_r_sun_shafts,			qsun_shafts_token);
+
+
+	// Sunshafts
+	CMD3(CCC_Token, "r_sunshafts_mode", &ps_r_sunshafts_mode, sunshafts_mode_token);
+	CMD4(CCC_SunshaftsIntensity, "r_sunshafts_intensity", &ps_r_sunshafts_intensity, 0.0f, 5.0f); //Dbg
+
+	CMD4(CCC_Float, "r_ss_sunshafts_length", &ps_r_ss_sunshafts_length, 0.2f, 1.5f);
+	CMD4(CCC_Float, "r_ss_sunshafts_radius", &ps_r_ss_sunshafts_radius, 0.5f, 2.f);
+
+	//CMD4(CCC_Float, "r_SunShafts_SampleStep_Phase1", &ps_r_prop_ss_sample_step_phase0, 0.01f, 0.2f);
+	//CMD4(CCC_Float, "r_SunShafts_SampleStep_Phase2", &ps_r_prop_ss_sample_step_phase1, 0.01f, 0.2f);
+	CMD4(CCC_Float, "r_SunShafts_Radius", &ps_r_prop_ss_radius, 0.5f, 2.0f);
+	CMD4(CCC_Float, "r_SunShafts_Blend",  &ps_r_prop_ss_blend, 0.01f, 1.0f);
+
+
 	CMD3(CCC_SSAO_Mode,	"r2_ssao_mode",					&ps_r_ssao_mode,			qssao_mode_token);
 	CMD3(CCC_Token,		"r2_ssao",						&ps_r_ssao,					qssao_token);
 	CMD3(CCC_Mask,		"r2_ssao_blur",                 &ps_r2_ls_flags_ext,		R2FLAGEXT_SSAO_BLUR);//Need restart
@@ -932,6 +982,8 @@ void		xrRender_initconsole	()
 	CMD3(CCC_Mask,		"r2_soft_water",				&ps_r2_ls_flags,			R2FLAG_SOFT_WATER);
 	CMD3(CCC_Mask,		"r2_soft_particles",			&ps_r2_ls_flags,			R2FLAG_SOFT_PARTICLES);
 
+	CMD3(CCC_Token, "r_aa_mode", &ps_r_pp_aa_mode, pp_aa_mode_token);
+
 	CMD3(CCC_Token,		"r3_msaa",						&ps_r3_msaa,				qmsaa_token);
 	//CMD3(CCC_Mask,		"r3_msaa_hybrid",				&ps_r2_ls_flags,			R3FLAG_MSAA_HYBRID);
 	//CMD3(CCC_Mask,		"r3_msaa_opt",					&ps_r2_ls_flags,			R3FLAG_MSAA_OPT);
@@ -940,8 +992,6 @@ void		xrRender_initconsole	()
 	//CMD3(CCC_Mask,		"r3_msaa_alphatest",			&ps_r2_ls_flags,			(u32)R3FLAG_MSAA_ALPHATEST);
 	CMD3(CCC_Token,		"r3_msaa_alphatest",			&ps_r3_msaa_atest,			qmsaa__atest_token);
 	CMD3(CCC_Token,		"r3_minmax_sm",					&ps_r3_minmax_sm,			qminmax_sm_token);
-
-	CMD3(CCC_Mask, "r2_fxaa", &ps_r2_ls_flags, R2FLAG_FXAA);
 
 	CMD4(CCC_detail_radius, "r__detail_radius", &ps_r__detail_radius, 49, 300);
 	CMD4(CCC_Integer, "r__no_scale_on_fade", &ps_no_scale_on_fade, 0, 1); //Alundaio

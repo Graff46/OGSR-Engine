@@ -17,7 +17,7 @@
 
 xr_token* vid_quality_token = nullptr;
 
-xr_token FpsLockToken[] = {
+constexpr xr_token FpsLockToken[] = {
   { "nofpslock",  0 },
   { "fpslock60",  60 },
   { "fpslock120", 120 },
@@ -27,7 +27,7 @@ xr_token FpsLockToken[] = {
 };
 
 #ifdef DEBUG
-xr_token							vid_bpp_token							[ ]={
+constexpr xr_token							vid_bpp_token							[ ]={
 	{ "16",							16											},
 	{ "32",							32											},
 	{ 0,							0											}
@@ -332,7 +332,7 @@ public:
 };
 class CCC_VidMode : public CCC_Token
 {
-	u32		_dummy;
+	u32		_dummy{};
 public :
 					CCC_VidMode(LPCSTR N) : CCC_Token(N, &_dummy, NULL) { bEmptyArgsHandled = FALSE; };
 	virtual void	Execute(LPCSTR args){
@@ -350,7 +350,7 @@ public :
 	{ 
 		xr_sprintf(S,sizeof(S),"%dx%d",psCurrentVidMode[0],psCurrentVidMode[1]); 
 	}
-	virtual xr_token* GetToken()				{return vid_mode_token;}
+	virtual const xr_token* GetToken() override { return vid_mode_token; }
 	virtual void	Info	(TInfo& I)
 	{	
 		xr_strcpy(I,sizeof(I),"change screen resolution WxH");
@@ -362,7 +362,7 @@ public :
 		Status( cur );
 
 		bool res = false;
-		xr_token* tok = GetToken();
+		const xr_token* tok = GetToken();
 		while ( tok->name && !res )
 		{
 			if ( !xr_strcmp( tok->name, cur ) )
@@ -520,7 +520,7 @@ public:
 		tokens					= vid_quality_token;
 		inherited::Save(F);
 	}
-	virtual xr_token* GetToken()
+	virtual const xr_token* GetToken() override
 	{
 		tokens					= vid_quality_token;
 		return					inherited::GetToken();
@@ -558,7 +558,7 @@ public:
 		inherited::Status		(S);
 	}
 
-	virtual xr_token* GetToken()
+	virtual const xr_token* GetToken() override
 	{
 		tokens					= snd_devices_token;
 		return inherited::GetToken();
@@ -731,8 +731,8 @@ void CCC_Register()
 	CMD1(CCC_SND_Restart,"snd_restart"			);
 	CMD3(CCC_Mask,		"snd_acceleration",		&psSoundFlags,		ss_Hardware	);
 	CMD3(CCC_Mask,		"snd_efx",				&psSoundFlags,		ss_EAX		);
-	CMD4(CCC_Integer,	"snd_targets",			&psSoundTargets,	4,256		);
-	CMD4(CCC_Integer,	"snd_cache_size",		&psSoundCacheSizeMB,4,32		);
+	CMD4(CCC_Integer,	"snd_targets",			&psSoundTargets, 128, 256 );
+	CMD4(CCC_Integer,	"snd_cache_size",		&psSoundCacheSizeMB, 32, 64 );
 
 #ifdef DEBUG
 	CMD3(CCC_Mask,		"snd_stats",			&g_stats_flags,		st_sound	);

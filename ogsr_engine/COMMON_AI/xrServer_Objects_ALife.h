@@ -214,12 +214,6 @@ public:
 		return						(inherited1::base());
 	}
 
-	virtual void		FillProps	(LPCSTR pref, PropItemVec& items)
-	{
-   		inherited1::FillProps		(pref, items);
-   		inherited2::FillProps		(pref, items);
-	};	
-
 	virtual CSE_Abstract			*cast_abstract			()
 	{
 		return						(this);
@@ -385,7 +379,6 @@ add_to_type_list(CSE_ALifeObjectPhysic)
 
 SERVER_ENTITY_DECLARE_BEGIN2(CSE_ALifeObjectHangingLamp,CSE_ALifeDynamicObjectVisual,CSE_PHSkeleton)
 
-    void __stdcall 					OnChangeFlag	(PropValue* sender);
     enum{
         flPhysic					= (1<<0),
 		flCastShadow				= (1<<1),
@@ -520,7 +513,7 @@ add_to_type_list(CSE_ALifeMountedWeapon)
 #define script_type_list save_type_list(CSE_ALifeMountedWeapon)
 
 SERVER_ENTITY_DECLARE_BEGIN(CSE_ALifeStationaryMgun,CSE_ALifeDynamicObjectVisual)
-	bool							m_bWorking;
+	bool							m_bWorking{};
 	Fvector							m_destEnemyDir;
 
 									CSE_ALifeStationaryMgun	(LPCSTR caSection);

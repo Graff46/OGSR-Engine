@@ -47,7 +47,7 @@ public:
 
 			void			PutNextToSlot						();
 
-	virtual void			Deactivate							();
+	virtual void			Deactivate( bool = false );
 	virtual void			GetBriefInfo						(xr_string& str_name, xr_string& icon_sect_name, xr_string& str_count);
 	virtual bool			StopSprintOnFire() { return false; }
 protected:
@@ -70,7 +70,7 @@ public:
 	virtual CGameObject		*cast_game_object					()	{return this;}
 	virtual IDamageSource	*cast_IDamageSource					()	{return CExplosive::cast_IDamageSource();}
 
-	typedef					fastdelegate::FastDelegate< void (CGrenade*) >	destroy_callback;
+	using destroy_callback = fastdelegate::FastDelegate<void(CGrenade*)>;
 	void					set_destroy_callback				(destroy_callback callback) 
 																{ m_destroy_callback = callback; }
 	void					DestroyCalbackClear()

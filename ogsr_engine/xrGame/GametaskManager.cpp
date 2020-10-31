@@ -80,8 +80,7 @@ CGameTask*	CGameTaskManager::GiveGameTaskToActor(CGameTask* t, u32 timeToComplet
 
 	m_flags.set					(eChanged, TRUE);
 
-	GameTasks().push_back				(SGameTaskKey(t->m_ID) );
-	GameTasks().back().game_task			= t;
+	GameTasks().emplace_back(t->m_ID).game_task = t;
 	t->m_ReceiveTime				= Level().GetGameTime();
 	t->m_TimeToComplete				= t->m_ReceiveTime + timeToComplete;
 
@@ -99,7 +98,7 @@ CGameTask*	CGameTaskManager::GiveGameTaskToActor(CGameTask* t, u32 timeToComplet
 		if( std::find_if(article_vector.begin(), article_vector.end(), pred) == article_vector.end() ){
 			CEncyclopediaArticle article;
 			article.Load(obj->article_id);
-			article_vector.push_back(ARTICLE_DATA(obj->article_id, Level().GetGameTime(), article.data()->articleType));
+			article_vector.emplace_back(obj->article_id, Level().GetGameTime(), article.data()->articleType);
 			}
 		}
 
@@ -114,7 +113,7 @@ CGameTask*	CGameTaskManager::GiveGameTaskToActor(CGameTask* t, u32 timeToComplet
 	CGameTask* _at = ActiveTask();
 	if	( (NULL==_at) || (_at->m_priority > t->m_priority) )
 	{
-		SetActiveTask(t->m_ID, 1);
+		SetActiveTask(t->m_ID, 1, true);
 	}
 
 
@@ -301,13 +300,37 @@ CGameTask* CGameTaskManager::ActiveTask()
 	return						HasGameTask( t_id );
 }
 
-void CGameTaskManager::SetActiveTask(const TASK_ID& id, u16 idx)
+void CGameTaskManager::SetActiveTask(const TASK_ID& id, u16 idx, const bool safe)
 {
-	if(idx==0)
-		Msg("! g_active_task_objective_idx==0");
+	g_active_task_id = id;
 
-	g_active_task_id			= id;
-	g_active_task_objective_id	= idx;
+	if (safe)
+	{
+		auto* t = ActiveTask();
+		if (t && t->m_Objectives.size() < (idx + 1))
+		{
+			ASSERT_FMT(!t->m_Objectives.empty(), "!![%s] m_Objectives is empty! Something strange!", __FUNCTION__);
+			g_active_task_objective_id = t->m_Objectives.size() - 1; //Некторые таски могут содержать всего один objective
+
+			if (g_active_task_objective_id == 0)
+				Msg("!![%s - 1] g_active_task_objective_idx == 0", __FUNCTION__);
+		}
+		else
+		{
+			g_active_task_objective_id = idx;
+
+			if (g_active_task_objective_id == 0)
+				Msg("!![%s - 2] g_active_task_objective_idx == 0", __FUNCTION__);
+		}
+
+	}
+	else
+	{
+		g_active_task_objective_id = idx;
+
+		if (g_active_task_objective_id == 0)
+			Msg("!![%s - 3] g_active_task_objective_idx == 0", __FUNCTION__);
+	}
 
 	Level().MapManager().DisableAllPointers();
 	SGameTaskObjective* o		= ActiveObjective();
@@ -329,14 +352,56 @@ SGameTaskObjective* CGameTaskManager::ActiveObjective()
 
 
 void CGameTaskManager::cleanup() {
+  std::vector<shared_str> articles;
   GameTasks().erase(
     std::remove_if(
       GameTasks().begin(),
       GameTasks().end(),
-      []( const SGameTaskKey& k ) {
-        return k.game_task->Objective( 0 ).TaskState() != eTaskStateInProgress;
+      [&]( const SGameTaskKey& k ) {
+        if ( k.game_task->Objective( 0 ).TaskState() != eTaskStateInProgress ) {
+          for ( const auto& obj : k.game_task->m_Objectives )
+            if ( obj.article_id.size() )
+              articles.push_back( obj.article_id );
+          return true;
+        }
+        return false;
       }
     ),
     GameTasks().end()
   );
+
+  if ( !articles.empty() )
+    articles.erase(
+      std::remove_if(
+        articles.begin(),
+        articles.end(),
+        [&]( const auto& article_id ) {
+          for ( const auto& it : GameTasks() ) {
+            for ( const auto& obj : it.game_task->m_Objectives )
+              if ( obj.article_id == article_id )
+                return true;
+          }
+          return false;
+        }
+      ),
+      articles.end()
+    );
+
+  if ( !articles.empty() ) {
+    auto& article_vector = Actor()->encyclopedia_registry->registry().objects();
+    for ( const auto& article_id : articles ) {
+      FindArticleByIDPred pred( article_id );
+      article_vector.erase(
+        std::remove_if( article_vector.begin(), article_vector.end(), pred ),
+        article_vector.end()
+      );
+    }
+    if ( HUD().GetUI() ) {
+      auto* pGameSP = smart_cast<CUIGameSP*>( HUD().GetUI()->UIGame() );
+      if ( pGameSP ) {
+        pGameSP->PdaMenu->PdaContentsChanged( pda_section::encyclopedia, false );
+        pGameSP->PdaMenu->PdaContentsChanged( pda_section::journal, false );
+      }
+    }
+  }
 }

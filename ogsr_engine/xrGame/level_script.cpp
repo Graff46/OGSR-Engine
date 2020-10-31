@@ -33,6 +33,7 @@
 #include "script_rq_result.h"
 #include "monster_community.h"
 #include "GamePersistent.h"
+#include "EffectorBobbing.h"
 
 using namespace luabind;
 
@@ -616,6 +617,10 @@ int get_actor_points(LPCSTR sect)
 {
 	return Actor()->StatisticMgr().GetSectionPoints(sect);
 }
+
+void remove_actor_points( LPCSTR sect, LPCSTR detail_key) {
+  Actor()->StatisticMgr().RemovePoints( sect, detail_key );
+}
 extern int get_actor_ranking();
 extern void add_human_to_top_list		(u16 id);
 extern void remove_human_from_top_list	(u16 id);
@@ -958,6 +963,17 @@ void iterate_vertices_border( Fvector P, float R, const luabind::functor<void>& 
   );
 }
 
+int get_character_community_team( LPCSTR comm ) {
+  CHARACTER_COMMUNITY community;
+  community.set( comm );
+  return community.team();
+}
+
+
+CEffectorBobbing* get_effector_bobbing() {
+  return Actor()->GetEffectorBobbing();
+}
+
 
 #pragma optimize("s",on)
 void CLevel::script_register(lua_State *L)
@@ -982,79 +998,87 @@ void CLevel::script_register(lua_State *L)
 	,
 
 	class_<CPHCall>( "CPHCall" )
-          .def( "set_pause", &CPHCall::setPause )
+          .def( "set_pause", &CPHCall::setPause ),
+
+	class_<CEffectorBobbing>( "CEffectorBobbing" )
+          .def_readwrite( "run_amplitude",  &CEffectorBobbing::m_fAmplitudeRun  )
+          .def_readwrite( "walk_amplitude", &CEffectorBobbing::m_fAmplitudeWalk )
+          .def_readwrite( "limp_amplitude", &CEffectorBobbing::m_fAmplitudeLimp )
+          .def_readwrite( "run_speed",      &CEffectorBobbing::m_fSpeedRun      )
+          .def_readwrite( "walk_speed",     &CEffectorBobbing::m_fSpeedWalk     )
+          .def_readwrite( "limp_speed",     &CEffectorBobbing::m_fSpeedLimp     )
 	],
 
 	module(L,"level")
 	[
 		// obsolete\deprecated
-		def("object_by_id",						get_object_by_id),
-		def("is_removing_objects",				is_removing_objects_script),
+		def("object_by_id",						&get_object_by_id),
+		def("is_removing_objects",				&is_removing_objects_script),
 #ifdef DEBUG
-		def("debug_object",						get_object_by_name),
-		def("debug_actor",						tpfGetActor),
-		def("check_object",						check_object),
+		def("debug_object",						&get_object_by_name),
+		def("debug_actor",						&tpfGetActor),
+		def("check_object",						&check_object),
 #endif
 		
-		def("get_weather",						get_weather),
-		def("get_weather_prev",						get_weather_prev),
-		def("get_weather_last_shift",					get_weather_last_shift),
-		def("set_weather",						set_weather),
-		def("set_weather_next",						set_weather_next),
-		def("set_weather_fx",					set_weather_fx),
-		def("start_weather_fx_from_time", start_weather_fx_from_time),
-		def("is_wfx_playing", is_wfx_playing),
-		def("get_wfx_time", get_wfx_time),
-		def("stop_weather_fx", stop_weather_fx),
-		def("environment",						environment),
+		def("get_weather",						&get_weather),
+		def("get_weather_prev",						&get_weather_prev),
+		def("get_weather_last_shift",					&get_weather_last_shift),
+		def("set_weather",						&set_weather),
+		def("set_weather_next",						&set_weather_next),
+		def("set_weather_fx",					&set_weather_fx),
+		def("start_weather_fx_from_time", &start_weather_fx_from_time),
+		def("is_wfx_playing", &is_wfx_playing),
+		def("get_wfx_time", &get_wfx_time),
+		def("stop_weather_fx", &stop_weather_fx),
+		def("environment",						&environment),
 		
-		def("set_time_factor",					set_time_factor),
-		def("get_time_factor",					get_time_factor),
+		def("set_time_factor",					&set_time_factor),
+		def("get_time_factor",					&get_time_factor),
 
-		def("set_game_difficulty",				set_game_difficulty),
-		def("get_game_difficulty",				get_game_difficulty),
+		def("set_game_difficulty",				&set_game_difficulty),
+		def("get_game_difficulty",				&get_game_difficulty),
 		
-		def("get_time_days",					get_time_days),
-		def("get_time_hours",					get_time_hours),
-		def("get_time_minutes",					get_time_minutes),
+		def("get_time_days",					&get_time_days),
+		def("get_time_hours",					&get_time_hours),
+		def("get_time_minutes",					&get_time_minutes),
 
-		def("cover_in_direction",				cover_in_direction),
-		def("vertex_in_direction",				vertex_in_direction),
-		def("rain_factor",						rain_factor),
-		def("patrol_path_exists",				patrol_path_exists),
-		def("vertex_position",					vertex_position),
-		def("name",								get_name),
-		def("prefetch_sound",					prefetch_sound),
+		def("cover_in_direction",				&cover_in_direction),
+		def("vertex_in_direction",				&vertex_in_direction),
+		def("rain_factor",						&rain_factor),
+		def("patrol_path_exists",				&patrol_path_exists),
+		def("vertex_position",					&vertex_position),
+		def("name",								&get_name),
+		def("prefetch_sound",					&prefetch_sound),
 
-		def("client_spawn_manager",				get_client_spawn_manager),
+		def("client_spawn_manager",				&get_client_spawn_manager),
 
-		def("map_add_object_spot_ser",			map_add_object_spot_ser),
-		def("map_add_object_spot",				map_add_object_spot),
-		def("map_remove_object_spot",			map_remove_object_spot),
-		def("map_has_object_spot",				map_has_object_spot),
-		def("map_change_spot_hint",				map_change_spot_hint),
+		def("map_add_object_spot_ser",			&map_add_object_spot_ser),
+		def("map_add_object_spot",				&map_add_object_spot),
+		def("map_remove_object_spot",			&map_remove_object_spot),
+		def("map_has_object_spot",				&map_has_object_spot),
+		def("map_change_spot_hint",				&map_change_spot_hint),
 
-		def("start_stop_menu",					start_stop_menu),
-		def("add_dialog_to_render",				add_dialog_to_render),
-		def("remove_dialog_to_render",			remove_dialog_to_render),
-		def("main_input_receiver",				main_input_receiver),
-		def("hide_indicators",					hide_indicators),
-		def("show_indicators",					show_indicators),
-		def("game_indicators_shown",			game_indicators_shown),
-		def("get_hud_flags",					get_hud_flags),
+		def("start_stop_menu",					&start_stop_menu),
+		def("add_dialog_to_render",				&add_dialog_to_render),
+		def("remove_dialog_to_render",			&remove_dialog_to_render),
+		def("main_input_receiver",				&main_input_receiver),
+		def("hide_indicators",					&hide_indicators),
+		def("show_indicators",					&show_indicators),
+		def("game_indicators_shown",			&game_indicators_shown),
+		def("get_hud_flags",					&get_hud_flags),
 		def("add_call",							((CPHCall* (*) (const luabind::functor<bool> &,const luabind::functor<void> &)) &add_call)),
 		def("add_call",							((CPHCall* (*) (const luabind::object &,const luabind::functor<bool> &,const luabind::functor<void> &)) &add_call)),
 		def("add_call",							((CPHCall* (*) (const luabind::object &, LPCSTR, LPCSTR)) &add_call)),
 		def("remove_call",						((void (*) (const luabind::functor<bool> &,const luabind::functor<void> &)) &remove_call)),
 		def("remove_call",						((void (*) (const luabind::object &,const luabind::functor<bool> &,const luabind::functor<void> &)) &remove_call)),
 		def("remove_call",						((void (*) (const luabind::object &, LPCSTR, LPCSTR)) &remove_call)),
-		def("remove_calls_for_object",			remove_calls_for_object),
-		def("present",							is_level_present),
-		def("disable_input",					disable_input),
-		def("enable_input",						enable_input),
-		def("spawn_phantom",					spawn_phantom),
+		def("remove_calls_for_object",			&remove_calls_for_object),
+		def("present",							&is_level_present),
+		def("disable_input",					&disable_input),
+		def("enable_input",						&enable_input),
+		def("spawn_phantom",					&spawn_phantom),
 
-		def("get_bounding_volume",				get_bounding_volume),
+		def("get_bounding_volume",				&get_bounding_volume),
 
 		def("iterate_sounds",					&iterate_sounds1),
 		def("iterate_sounds",					&iterate_sounds2),
@@ -1107,13 +1131,17 @@ void CLevel::script_register(lua_State *L)
 		def( "set_monster_relation", &set_monster_relation ),
 		def( "patrol_path_add", &patrol_path_add ),
 		def( "patrol_path_remove", &patrol_path_remove ),
-		def( "valid_vertex_id",	valid_vertex_id ),
-		def( "vertex_count",	vertex_count ),
-		def( "disable_vertex",	disable_vertex ),
-		def( "enable_vertex",	enable_vertex ),
+		def( "valid_vertex_id",	&valid_vertex_id ),
+		def( "vertex_count",	&vertex_count ),
+		def( "disable_vertex",	&disable_vertex ),
+		def( "enable_vertex",	&enable_vertex ),
 		def( "is_accessible_vertex_id", &is_accessible_vertex_id ),
 		def( "iterate_vertices_inside", &iterate_vertices_inside ),
 		def( "iterate_vertices_border", &iterate_vertices_border ),
+		def( "get_character_community_team", &get_character_community_team ),
+
+		def( "get_effector_bobbing", &get_effector_bobbing ),
+
 		//--#SM+# Begin --
 		def("set_blender_mode_main", &set_blender_mode_main),
 		def("get_blender_mode_main", &get_blender_mode_main),
@@ -1127,6 +1155,7 @@ void CLevel::script_register(lua_State *L)
 		def("add_points",						&add_actor_points),
 		def("add_points_str",					&add_actor_points_str),
 		def("get_points",						&get_actor_points),
+		def( "remove_points", &remove_actor_points),
 		def("add_to_ranking",					&add_human_to_top_list),
 		def("remove_from_ranking",				&remove_human_from_top_list),
 		def("get_actor_ranking",				&get_actor_ranking)

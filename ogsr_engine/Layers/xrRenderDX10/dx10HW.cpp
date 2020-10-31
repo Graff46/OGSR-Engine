@@ -183,8 +183,9 @@ void CHW::CreateDevice( HWND m_hWnd, bool move_window )
 
 	// https://habr.com/ru/post/308980/
 	IDXGIDevice1* pDeviceDXGI = nullptr;
-	R_CHK(pDevice->QueryInterface(__uuidof(IDXGIDevice1), reinterpret_cast<void**>(&pDeviceDXGI)));
+	R_CHK(pDevice->QueryInterface(IID_PPV_ARGS(&pDeviceDXGI)));
 	R_CHK(pDeviceDXGI->SetMaximumFrameLatency(1));
+	_RELEASE(pDeviceDXGI);
 #else
 	HRESULT R = D3DX10CreateDeviceAndSwapChain(m_pAdapter,
                                           m_DriverType,
@@ -459,8 +460,8 @@ void CHW::updateWindowProps(HWND m_hWnd)
 			// desktop.
 
 			RECT			m_rcWindowBounds;
-			float fYOffset = 0.f;
-			static const bool bCenter = !strstr(Core.Params, "-no_center_screen");
+			int fYOffset = 0;
+			static const bool bCenter = !!strstr(Core.Params, "-center_screen");
 
 			if (bCenter) {
 				RECT				DesktopRect;
@@ -482,7 +483,7 @@ void CHW::updateWindowProps(HWND m_hWnd)
 					m_ChainDesc.BufferDesc.Height);
 			};
 
-			AdjustWindowRect		(	&m_rcWindowBounds, dwWindowStyle, FALSE );
+			AdjustWindowRect		(	&m_rcWindowBounds, DWORD(dwWindowStyle), FALSE );
 
 			SetWindowPos			(	m_hWnd, 
 				HWND_NOTOPMOST,	

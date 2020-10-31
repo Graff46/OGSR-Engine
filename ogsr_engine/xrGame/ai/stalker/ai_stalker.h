@@ -90,7 +90,7 @@ public:
 	
 private:
 	CStalkerAnimationManager		*m_animation_manager;
-	CStalkerPlanner					*m_brain;
+	CStalkerPlanner* m_brain{};
 	CSightManager					*m_sight_manager;
 	CStalkerMovementManager			*m_movement_manager;
 
@@ -267,6 +267,7 @@ public:
 	virtual bool						unlimited_ammo			();
 	virtual	void						spawn_supplies			();
 	CAgentManager& agent_manager() const;
+	CAgentManager* get_agent_manager() const;
 	
 	virtual bool						human_being				() const
 	{
@@ -294,6 +295,7 @@ public:
 			float						pick_distance			();
 	IC		float						start_pick_distance		() const;
 			bool						fire_make_sense			();
+			bool can_fire_to_enemy( const CEntityAlive *enemy );
 			
 	virtual LPCSTR						Name					() const;
 	virtual BOOL						feel_touch_contact		(CObject* O);
@@ -388,7 +390,7 @@ private:
 public:
 	IC		bool						group_behaviour					() const;
 	virtual	void						update_range_fov				(float &new_range, float &new_fov, float start_range, float start_fov);
-			void __stdcall				update_object_handler			();
+	void update_object_handler();
 			bool						zoom_state						() const;
 			void						react_on_grenades				();
 			void						react_on_member_death			();
@@ -442,7 +444,7 @@ public:
 	IC		u32							max_queue_interval_close		() const;
 
 public:
-	typedef fastdelegate::FastDelegate<void (const CCoverPoint *, const CCoverPoint *)>	on_best_cover_changed_delegate;
+	using on_best_cover_changed_delegate = fastdelegate::FastDelegate<void(const CCoverPoint*, const CCoverPoint*)>;
 
 private:
 	typedef xr_vector<on_best_cover_changed_delegate>	cover_delegates;
@@ -569,7 +571,7 @@ private:
 			void						on_enemy_wounded_or_killed					(const CAI_Stalker *wounded_or_killed);
 			void						notify_on_wounded_or_killed					(CObject *object);
 			void						notify_on_wounded_or_killed					();
-			void	xr_stdcall			remove_critical_hit							();
+			void				remove_critical_hit							();
 //////////////////////////////////////////////////////////////////////////
 private:
 	bool	m_registered_in_combat_on_migration;

@@ -44,6 +44,10 @@
 #include "clsid_game.h"
 #include "alife_simulator_header.h"
 #include "actorcondition.h"
+#include "UIGameSP.h"
+#include "ui/UIPDAWnd.h"
+#include "ui/UIEncyclopediaWnd.h"
+#include "ui/UIDiaryWnd.h"
 
 #ifdef DEBUG
 #	include "debug_renderer.h"
@@ -67,20 +71,20 @@ CActor* Actor()
 //--------------------------------------------------------------------
 void	CActor::ConvState(u32 mstate_rl, string128 *buf)
 {
-	strcpy(*buf,"");
-	if (isActorAccelerated(mstate_rl, IsZoomAimingMode()))		strcat(*buf,"Accel ");
-	if (mstate_rl&mcCrouch)		strcat(*buf,"Crouch ");
-	if (mstate_rl&mcFwd)		strcat(*buf,"Fwd ");
-	if (mstate_rl&mcBack)		strcat(*buf,"Back ");
-	if (mstate_rl&mcLStrafe)	strcat(*buf,"LStrafe ");
-	if (mstate_rl&mcRStrafe)	strcat(*buf,"RStrafe ");
-	if (mstate_rl&mcJump)		strcat(*buf,"Jump ");
-	if (mstate_rl&mcFall)		strcat(*buf,"Fall ");
-	if (mstate_rl&mcTurn)		strcat(*buf,"Turn ");
-	if (mstate_rl&mcLanding)	strcat(*buf,"Landing ");
-	if (mstate_rl&mcLLookout)	strcat(*buf,"LLookout ");
-	if (mstate_rl&mcRLookout)	strcat(*buf,"RLookout ");
-	if (m_bJumpKeyPressed)		strcat(*buf,"+Jumping ");
+	strcpy_s(*buf,"");
+	if (isActorAccelerated(mstate_rl, IsZoomAimingMode())) strcat_s(*buf,"Accel ");
+	if (mstate_rl&mcCrouch)		strcat_s(*buf,"Crouch ");
+	if (mstate_rl&mcFwd)		strcat_s(*buf,"Fwd ");
+	if (mstate_rl&mcBack)		strcat_s(*buf,"Back ");
+	if (mstate_rl&mcLStrafe)	strcat_s(*buf,"LStrafe ");
+	if (mstate_rl&mcRStrafe)	strcat_s(*buf,"RStrafe ");
+	if (mstate_rl&mcJump)		strcat_s(*buf,"Jump ");
+	if (mstate_rl&mcFall)		strcat_s(*buf,"Fall ");
+	if (mstate_rl&mcTurn)		strcat_s(*buf,"Turn ");
+	if (mstate_rl&mcLanding)	strcat_s(*buf,"Landing ");
+	if (mstate_rl&mcLLookout)	strcat_s(*buf,"LLookout ");
+	if (mstate_rl&mcRLookout)	strcat_s(*buf,"RLookout ");
+	if (m_bJumpKeyPressed)		strcat_s(*buf,"+Jumping ");
 };
 //--------------------------------------------------------------------
 void CActor::net_Export	(NET_Packet& P)					// export to server
@@ -514,7 +518,7 @@ BOOL CActor::net_Spawn		(CSE_Abstract* DC)
 		g_actor = this;
 
 	VERIFY(m_pActorEffector == NULL);
-	m_pActorEffector = xr_new<CCameraManager>(false);
+	m_pActorEffector = xr_new<CActorCameraManager>();
 
 	// motions
 	m_bAnimTorsoPlayed			= false;
@@ -529,12 +533,22 @@ BOOL CActor::net_Spawn		(CSE_Abstract* DC)
 	game_news_registry->registry().init(ID());
 
 	{
-	  auto news = game_news_registry->registry().objects();
-	  if ( news.size() > NEWS_TO_SHOW )
+	  auto& news = game_news_registry->registry().objects();
+	  if ( news.size() > NewsToShow() ) {
+	    u32 s = news.size();
 	    news.erase(
 	      news.begin(),
-	      news.begin() + ( news.size() - NEWS_TO_SHOW )
+	      news.begin() + ( news.size() - NewsToShow() )
             );
+	    Msg( "[%s]: purge %u news items, %u left", __FUNCTION__, s - news.size(), news.size() );
+	  }
+	}
+
+	if ( HUD().GetUI() ) {
+	  CUIGameSP* pGameSP = smart_cast<CUIGameSP*>( HUD().GetUI()->UIGame() );
+	  if ( pGameSP )
+	    pGameSP->PdaMenu->UIEncyclopediaWnd->FillEncyclopedia();
+	    pGameSP->PdaMenu->UIDiaryWnd->FillNews();
 	}
 
 	if (!CInventoryOwner::net_Spawn(DC)) return FALSE;
@@ -650,9 +664,7 @@ BOOL CActor::net_Spawn		(CSE_Abstract* DC)
 		m_HeavyBreathSnd.stop();
 	}
 	
-	typedef CClientSpawnManager::CALLBACK_TYPE	CALLBACK_TYPE;
-	CALLBACK_TYPE	callback;
-	callback.bind	(this,&CActor::on_requested_spawn);
+	auto callback = fastdelegate::MakeDelegate(this, &CActor::on_requested_spawn);
 	m_holder_id				= E->m_holderID;
 	if (E->m_holderID != ALife::_OBJECT_ID(-1))
 		Level().client_spawn_manager().add(E->m_holderID,ID(),callback);

@@ -22,7 +22,7 @@ CSE_Visual::CSE_Visual		   	(LPCSTR name)
 	if(name)
 	{
 		string_path					tmp;
-		strcpy						(tmp, name);
+		strcpy_s(tmp, name);
 		if(strext(tmp)) 
 			*strext(tmp)			=0;
 		xr_strlwr					(tmp);
@@ -41,7 +41,7 @@ CSE_Visual::~CSE_Visual			()
 void CSE_Visual::set_visual	   	(LPCSTR name, bool load)
 {
 	string_path					tmp;
-    strcpy						(tmp,name);
+    strcpy_s(tmp,name);
     if (strext(tmp))		 	*strext(tmp) = 0;
 	xr_strlwr					(tmp);
 	visual_name					= tmp; 
@@ -58,28 +58,6 @@ void CSE_Visual::visual_write  	(NET_Packet	&tNetPacket)
 {
 	tNetPacket.w_stringZ		(visual_name);
 	tNetPacket.w_u8				(flags.get());
-}
-
-void CSE_Visual::OnChangeVisual	(PropValue* sender)
-{
-	ISE_Abstract* abstract		= smart_cast<ISE_Abstract*>(this); VERIFY(abstract);
-	abstract->set_editor_flag	(ISE_Abstract::flVisualChange);
-}
-
-void CSE_Visual::OnChangeAnim(PropValue* sender)
-{
-	ISE_Abstract* abstract		= smart_cast<ISE_Abstract*>(this); VERIFY(abstract);
-	abstract->set_editor_flag	(ISE_Abstract::flVisualAnimationChange);
-}
-
-void CSE_Visual::FillProps		(LPCSTR pref, PropItemVec &items)
-{
-	ISE_Abstract* abstract		= smart_cast<ISE_Abstract*>(this); VERIFY(abstract);
-	ChooseValue *V 				= PHelper().CreateChoose(items, PrepareKey(pref,abstract->name(),"Model\\Visual"),		&visual_name,		smVisual);
-	V->OnChangeEvent.bind		(this,&CSE_Visual::OnChangeVisual);
-	V							= PHelper().CreateChoose(items,	PrepareKey(pref,abstract->name(),"Model\\Animation"),	&startup_animation, smSkeletonAnims,0,(void*)*visual_name);
-	V->OnChangeEvent.bind		(this,&CSE_Visual::OnChangeAnim);
-	PHelper().CreateFlag8		(items, PrepareKey(pref,abstract->name(),"Model\\Obstacle"),	&flags,	flObstacle);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -107,19 +85,6 @@ void CSE_Motion::motion_read	(NET_Packet	&tNetPacket)
 void CSE_Motion::motion_write	(NET_Packet	&tNetPacket)
 {
 	tNetPacket.w_stringZ			(motion_name);
-}
-
-void CSE_Motion::OnChangeMotion	(PropValue* sender)
-{
-	ISE_Abstract* abstract		= smart_cast<ISE_Abstract*>(this); VERIFY(abstract);
-	abstract->set_editor_flag	(ISE_Abstract::flMotionChange);
-}
-
-void CSE_Motion::FillProps(		LPCSTR pref, PropItemVec &items)
-{
-	ISE_Abstract* abstract		= smart_cast<ISE_Abstract*>(this); VERIFY(abstract);
-	ChooseValue *V				= PHelper().CreateChoose(items, PrepareKey(pref,abstract->name(),"Motion"),&motion_name, smGameAnim);
-	V->OnChangeEvent.bind		(this,&CSE_Motion::OnChangeMotion);
 }
 
 #pragma pack(pop,4)

@@ -76,7 +76,7 @@ void CUIEventsWnd::Init				()
 	xml_init.InitTabControl			(uiXml, "main_wnd:left_frame:filter_tab", 0, m_TaskFilter);
 	m_TaskFilter->SetWindowName		("filter_tab");
 	Register						(m_TaskFilter);
-    AddCallback						("filter_tab",TAB_CHANGED,CUIWndCallback::void_function(this,&CUIEventsWnd::OnFilterChanged));
+	AddCallback("filter_tab", TAB_CHANGED, fastdelegate::MakeDelegate(this, &CUIEventsWnd::OnFilterChanged));
 
 	m_currFilter					= eActiveTask;
 	SetDescriptionMode				(true);
@@ -120,19 +120,28 @@ void CUIEventsWnd::ReloadList(bool bClearOnly)
 {
 	m_ListWnd->Clear			();
 	if(bClearOnly)				return;
-
 	if(!g_actor)				return;
-	GameTasks& tasks			= Actor()->GameTaskManager().GameTasks();
-	GameTasks::iterator it		= tasks.begin();
-	CGameTask* task				= NULL;
-	
-	for(;it!=tasks.end();++it)
-	{
-		task					= (*it).game_task;
-		R_ASSERT				(task);
-		R_ASSERT				(task->m_Objectives.size() > 0);
 
-		if( !Filter(task) )		continue;
+	GameTasks& tasks = Actor()->GameTaskManager().GameTasks();
+	std::vector<CGameTask*> game_tasks;
+	for ( const auto& it : tasks ) {
+	  CGameTask* task = it.game_task;
+	  R_ASSERT( task );
+	  R_ASSERT( task->m_Objectives.size() > 0 );
+	  if ( Filter( task ) )
+	    game_tasks.push_back( task );
+	}
+
+	if ( m_currFilter == eActiveTask )
+	  std::sort(
+	    game_tasks.begin(), game_tasks.end(), []( const auto& a, const auto& b ) {
+	      if ( a->m_priority == b->m_priority )
+	        return a->m_ReceiveTime > b->m_ReceiveTime;
+	      return a->m_priority < b->m_priority;
+	    }
+	  );
+
+	for ( const auto& task : game_tasks ) {
 		CUITaskItem* pTaskItem	= NULL;
 /*
 		if(task->m_Objectives[0].TaskState()==eTaskUserDefined)

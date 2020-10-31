@@ -69,7 +69,7 @@ void CUIMessageBox::Init	(LPCSTR box_template)
         xml_init.InitStatic						(uiXml, str, 0, m_UIStaticText);
 	}
 
-	strcpy		(str,box_template);
+	strcpy_s(str,box_template);
 	xml_init.InitStatic						(uiXml, str, 0, this);
 
 	LPCSTR _type							= uiXml.ReadAttrib(str,0,"type",NULL);
@@ -264,7 +264,7 @@ LPCSTR CUIMessageBox::GetHost(){
 	if (m_UIEditHost){
 		m_ret_val.clear();
 		xr_string tmp= m_UIEditHost->GetText();
-		xr_string::size_type pos = tmp.find(":");
+		xr_string::size_type pos = tmp.find(':');
 
 		if (xr_string::npos != pos)
 		{

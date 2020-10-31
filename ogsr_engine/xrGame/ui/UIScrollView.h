@@ -26,7 +26,7 @@ enum {eVertFlip=(1<<0),eNeedRecalc=(1<<1),eFixedScrollBar=(1<<2),eItemsSelectabe
 
 virtual void		RecalcSize			();
 		void		UpdateScroll		();	
-		void __stdcall	OnScrollV		(CUIWindow*, void*);
+		void OnScrollV(CUIWindow*, void*);
 		void		SetRightIndention	(float val);
 		void		SetLeftIndention	(float val);
 		void		SetUpIndention		(float val);
@@ -42,7 +42,7 @@ public:
 	virtual bool	OnMouse				(float x, float y, EUIMessages mouse_action);
 	virtual void	Draw				();
 	virtual void	Update				();
-			void	AddWindow			(CUIWindow* pWnd, bool auto_delete);
+	void AddWindow( CUIWindow* pWnd, bool auto_delete, bool top = false );
 			void	RemoveWindow		(CUIWindow* pWnd);
 			void	Clear				(bool scrollToTop = true);
 			void	ScrollToBegin		();

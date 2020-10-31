@@ -98,15 +98,16 @@ public:
 	MotionSVec			mhud_shots_w_gl;
 	MotionSVec			mhud_show_w_gl;
 	MotionSVec			mhud_hide_w_gl;
+	MotionSVec			mhud_reload_w_gl_partly;
 
 
 	//дополнительные параметры патронов 
 	//для подствольника
-	CWeaponAmmo*			m_pAmmo2;
+	CWeaponAmmo* m_pAmmo2{};
 	shared_str				m_ammoSect2;
 	xr_vector<shared_str>	m_ammoTypes2;
 	u32						m_ammoType2;
-	int						iMagazineSize2;
+	int						iMagazineSize2{};
 	xr_vector<CCartridge>	m_magazine2;
 	bool					m_bGrenadeMode;
 

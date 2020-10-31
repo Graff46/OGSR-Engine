@@ -42,17 +42,22 @@ void CWeaponBM16::Load	(LPCSTR section)
 	animGetEx(mhud_hide2, pSettings->line_exist(hud_sect.c_str(), "anim_holster_2") ? "anim_holster_2"
 		: "anim_holster");
 
-	HUD_SOUND::LoadSound(section, "snd_reload_1", m_sndReload1, m_eSoundShot);
+	HUD_SOUND::LoadSound(section, "snd_reload_1", m_sndReload1, m_eSoundReload);
 }
 
 void CWeaponBM16::PlayReloadSound()
 {
-	bool b_both = HaveCartridgeInInventory(2);
-
-	if(m_magazine.size()==1 || !b_both)	
+	if ( m_magazine.size() == 1 || !HaveCartridgeInInventory( 2 ) )
 		PlaySound	(m_sndReload1,get_LastFP());
 	else
 		PlaySound	(sndReload,get_LastFP());
+}
+
+void CWeaponBM16::UpdateSounds()
+{
+	inherited::UpdateSounds();
+
+	if (m_sndReload1.playing())	m_sndReload1.set_position(get_LastFP());
 }
 
 void CWeaponBM16::PlayAnimShoot()
@@ -67,10 +72,8 @@ void CWeaponBM16::PlayAnimShoot()
 
 void CWeaponBM16::PlayAnimReload()
 {
-	bool b_both = HaveCartridgeInInventory(2);
-
 	VERIFY(GetState()==eReload);
-	if(m_magazine.size()==1 || !b_both)
+	if ( m_magazine.size() == 1 || !HaveCartridgeInInventory( 2 ) )
 		m_pHUD->animPlay(random_anim(mhud_reload1),TRUE,this,GetState());
 	else
 		m_pHUD->animPlay(random_anim(mhud.mhud_reload),TRUE,this,GetState());

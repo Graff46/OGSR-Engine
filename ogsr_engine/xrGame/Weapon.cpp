@@ -141,7 +141,10 @@ void CWeapon::UpdateXForm	()
 		if ((HandDependence() == hd1Hand) || (GetState() == eReload) || (!E->g_Alive()))
 			boneL = boneR2;
 #pragma todo("TO ALL: serious performance problem")
-		V->CalculateBones	();
+		// от mortan:
+		// https://www.gameru.net/forum/index.php?s=&showtopic=23443&view=findpost&p=1677678
+		V->CalculateBones_Invalidate();
+		V->CalculateBones( true ); //V->CalculateBones	();
 		Fmatrix& mL			= V->LL_GetTransform(u16(boneL));
 		Fmatrix& mR			= V->LL_GetTransform(u16(boneR));
 		// Calculate
@@ -490,7 +493,7 @@ void CWeapon::Load		(LPCSTR section)
 			for (int it = 0; it < count; ++it) {
 				_GetItem(S, it, _addonItem);
 				ASSERT_FMT(pSettings->section_exist(_addonItem), "Section [%s] not found!", _addonItem);
-				m_highlightAddons.emplace_back(std::move(_addonItem));
+				m_highlightAddons.emplace_back(_addonItem);
 #ifdef OGSR_MOD
 				if (pSettings->line_exist(_addonItem, "real_item_section")) //KRodin: Костыль для огсе-шной системы аддонов, т.к. мне лень по конфигам лазить.
 					m_highlightAddons.emplace_back(pSettings->r_string(_addonItem, "real_item_section"));
@@ -652,6 +655,18 @@ BOOL CWeapon::net_Spawn		(CSE_Abstract* DC)
 	m_DefaultCartridge.Load(*m_ammoTypes[m_ammoType], u8(m_ammoType));	
 	if(iAmmoElapsed) 
 	{
+		// нож автоматически заряжается двумя патронами, хотя
+		// размер магазина у него 0. Что бы зря не ругаться, проверим
+		// что в конфиге размер магазина не нулевой.
+		if ( iMagazineSize && iAmmoElapsed > iMagazineSize ) {
+		  Msg( "! [%s]: %s: wrong iAmmoElapsed[%u/%u]", __FUNCTION__, cName().c_str(), iAmmoElapsed, iMagazineSize );
+		  iAmmoElapsed = iMagazineSize;
+		  auto se_obj = alife_object();
+		  if ( se_obj ) {
+		    auto W = smart_cast<CSE_ALifeItemWeapon*>( se_obj );
+		    W->a_elapsed = iAmmoElapsed;
+		  }
+		}
 		m_fCurrentCartirdgeDisp = m_DefaultCartridge.m_kDisp;
 		for(int i = 0; i < iAmmoElapsed; ++i) 
 			m_magazine.push_back(m_DefaultCartridge);
@@ -941,18 +956,17 @@ void CWeapon::UpdateWeaponParams()
 
 
 u8 CWeapon::idle_state() {
-  CActor *actor = smart_cast<CActor*>( H_Parent() );
+	auto* actor = smart_cast<CActor*>(H_Parent());
 
-  if ( actor )
-    if ( actor->get_state() & mcSprint ) {
-     return eSubstateIdleSprint;
-    }
-	else {
-		if (actor->is_actor_running() || actor->is_actor_walking() || actor->is_actor_creeping() || actor->is_actor_crouching())
+	if (actor) {
+		u32 st = actor->get_state();
+		if (st & mcSprint)
+			return eSubstateIdleSprint;
+		else if (st & mcAnyAction && !(st & mcJump) && !(st & mcFall))
 			return eSubstateIdleMoving;
 	}
 
-  return eIdle;
+	return eIdle;
 }
 
 
@@ -1069,25 +1083,18 @@ bool CWeapon::Action(s32 cmd, u32 flags)
 				if(flags&CMD_START) 
 				{
 					u32 l_newType = m_ammoType;
-					bool b1,b2;
-					do 
+					bool b1, b2;
+					do
 					{
-						l_newType = (l_newType+1)%m_ammoTypes.size();
+						l_newType = (l_newType + 1) % m_ammoTypes.size();
 						b1 = l_newType != m_ammoType;
 						b2 = unlimited_ammo() ? false : (!m_pCurrentInventory->GetAmmo(*m_ammoTypes[l_newType], ParentIsActor()));
-					} while( b1 && b2);
+					} while (b1 && b2);
 
-					if(l_newType != m_ammoType) 
+					if (l_newType != m_ammoType)
 					{
-						m_set_next_ammoType_on_reload = l_newType;						
-/*						m_ammoType = l_newType;
-						m_pAmmo = NULL;
-						if (unlimited_ammo())
-						{
-							m_DefaultCartridge.Load(*m_ammoTypes[m_ammoType], u8(m_ammoType));
-						};							
-*/
-						if(OnServer()) Reload();
+						m_set_next_ammoType_on_reload = l_newType;
+						if (OnServer()) Reload();
 					}
 				}
 			} 
@@ -1097,15 +1104,25 @@ bool CWeapon::Action(s32 cmd, u32 flags)
 		{
 			if (IsZoomEnabled())
 			{
-				if (flags&CMD_START && !IsPending())
-					OnZoomIn();
-				else if (IsZoomed())
+				if (flags & CMD_START && !IsPending())
+				{
+					if (psActorFlags.is(AF_WPN_AIM_TOGGLE) && IsZoomed())
+					{
+						OnZoomOut();
+					}
+					else
+						OnZoomIn();
+				}
+				else if (IsZoomed() && !psActorFlags.is(AF_WPN_AIM_TOGGLE))
+				{
 					OnZoomOut();
+				}
 				return true;
 			}
 			else
 				return false;
 		}
+
 		case kWPN_ZOOM_INC:
 		case kWPN_ZOOM_DEC:
 		{
@@ -1153,8 +1170,14 @@ void CWeapon::ZoomChange(bool inc)
 
 		const float currentZoomFactor = m_fRTZoomFactor;
 
-		m_fRTZoomFactor += delta * (inc ? 1 : -1);
-		clamp(m_fRTZoomFactor, min_zoom_factor, m_fSecondVPZoomFactor);
+		if (Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system)) {
+			m_fRTZoomFactor += delta * (inc ? 1 : -1);
+			clamp(m_fRTZoomFactor, min_zoom_factor, m_fSecondVPZoomFactor);
+		}
+		else {
+			m_fRTZoomFactor += delta * (inc ? 1 : -1);
+			clamp(m_fRTZoomFactor, m_fSecondVPZoomFactor, min_zoom_factor);
+		}
 
 		wasChanged = !fsimilar(currentZoomFactor, m_fRTZoomFactor);
 	}
@@ -1192,14 +1215,8 @@ void CWeapon::SpawnAmmo(u32 boxCurr, LPCSTR ammoSect, u32 ParentID)
 	if (OnClient())					return;
 	m_bAmmoWasSpawned				= true;
 	
-	int l_type						= 0;
-	l_type							%= m_ammoTypes.size();
-
-	if(!ammoSect) ammoSect			= *m_ammoTypes[l_type]; 
+	if (!ammoSect) ammoSect = m_ammoTypes.front().c_str();
 	
-	++l_type; 
-	l_type							%= m_ammoTypes.size();
-
 	CSE_Abstract *D					= F_entity_Create(ammoSect);
 
 	if (D->m_tClassID==CLSID_OBJECT_AMMO	||
@@ -1258,36 +1275,7 @@ int CWeapon::GetAmmoCurrent(bool use_item_to_spawn) const
 
 	for(int i = 0; i < (int)m_ammoTypes.size(); ++i) 
 	{
-		LPCSTR l_ammoType = *m_ammoTypes[i];
-
-		for(TIItemContainer::iterator l_it = m_pCurrentInventory->m_belt.begin(); m_pCurrentInventory->m_belt.end() != l_it; ++l_it) 
-		{
-			CWeaponAmmo *l_pAmmo = smart_cast<CWeaponAmmo*>(*l_it);
-
-			if(l_pAmmo && !xr_strcmp(l_pAmmo->cNameSect(), l_ammoType)) 
-			{
-				iAmmoCurrent = iAmmoCurrent + l_pAmmo->m_boxCurr;
-			}
-		}
-
-		bool include_ruck = true;
-
-		auto parent = const_cast<CObject*>(H_Parent());
-		auto pActor = smart_cast<CActor*>(parent);
-		include_ruck = !psActorFlags.test(AF_AMMO_ON_BELT) || !pActor;
-
-		if (include_ruck)
-		{
-			for (TIItemContainer::iterator l_it = m_pCurrentInventory->m_ruck.begin(); m_pCurrentInventory->m_ruck.end() != l_it; ++l_it)
-			{
-				CWeaponAmmo *l_pAmmo = smart_cast<CWeaponAmmo*>(*l_it);
-
-				if (l_pAmmo && !xr_strcmp(l_pAmmo->cNameSect(), l_ammoType))
-				{
-					iAmmoCurrent = iAmmoCurrent + l_pAmmo->m_boxCurr;
-				}
-			}
-		}
+		iAmmoCurrent += GetAmmoCount_forType( m_ammoTypes[i] );
 
 		if (!use_item_to_spawn)
 			continue;
@@ -1298,6 +1286,30 @@ int CWeapon::GetAmmoCurrent(bool use_item_to_spawn) const
 		iAmmoCurrent += inventory_owner().ammo_in_box_to_spawn();
 	}
 	return l_count + iAmmoCurrent;
+}
+
+int CWeapon::GetAmmoCount( u8 ammo_type, u32 max ) const {
+  VERIFY( m_pInventory );
+  R_ASSERT( ammo_type < m_ammoTypes.size() );
+
+  return GetAmmoCount_forType( m_ammoTypes[ ammo_type ], max );
+}
+
+int CWeapon::GetAmmoCount_forType( shared_str const& ammo_type, u32 max ) const {
+  u32 res = 0;
+  auto callback = [&]( const auto pIItem ) -> bool {
+    auto* ammo = smart_cast<CWeaponAmmo*>( pIItem );
+    if ( ammo->cNameSect() == ammo_type )
+      res += ammo->m_boxCurr;
+    return ( max > 0 && res >= max );
+  };
+
+  m_pCurrentInventory->IterateAmmo( false, callback );
+  if ( max == 0 || res < max )
+    if ( !smart_cast<const CActor*>( H_Parent() ) || !psActorFlags.test( AF_AMMO_ON_BELT ) )
+      m_pCurrentInventory->IterateAmmo( true, callback );
+
+  return res;
 }
 
 float CWeapon::GetConditionMisfireProbability() const
@@ -1533,10 +1545,10 @@ void CWeapon::UpdateAddonsVisibility()
 	pWeaponVisual->CalculateBones							();
 }
 
-bool CWeapon::Activate() 
+bool CWeapon::Activate( bool now ) 
 {
 	UpdateAddonsVisibility();
-	return inherited::Activate();
+	return inherited::Activate( now );
 }
 
 void CWeapon::InitAddons()
@@ -1545,19 +1557,14 @@ void CWeapon::InitAddons()
 
 float CWeapon::CurrentZoomFactor()
 {
-	if (Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system)) {
-		if (is_second_zoom_offset_enabled)
-			return m_fSecondScopeZoomFactor;
-		else if (SecondVPEnabled())
-			return 1; // no change to main fov zoom when use second vp
-		else if (IsScopeAttached())
-			return m_fScopeZoomFactor;
-		else
-			return m_fIronSightZoomFactor;
-	}
-	else {
-		return IsScopeAttached() ? m_fScopeZoomFactor : m_fIronSightZoomFactor;
-	}
+	if (is_second_zoom_offset_enabled)
+		return m_fSecondScopeZoomFactor;
+	else if (SecondVPEnabled())
+		return Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system) ? 1.0f : m_fIronSightZoomFactor; // no change to main fov zoom when use second vp
+	else if (IsScopeAttached())
+		return m_fScopeZoomFactor;
+	else
+		return m_fIronSightZoomFactor;
 }
 
 void CWeapon::OnZoomIn()
@@ -2061,16 +2068,27 @@ u32 CWeapon::Cost() const
 	return res;
 }
 
-void CWeapon::Hide		()
-{
-	SwitchState(eHiding);
+void CWeapon::Hide( bool now ) {
+  if ( now ) {
+    OnStateSwitch( eHidden );
+    SetState( eHidden );
+    StopHUDSounds();
+  }
+  else
+    SwitchState( eHiding );
 
-	OnZoomOut();
+  OnZoomOut();
 }
 
-void CWeapon::Show		()
-{
-	SwitchState(eShowing);
+void CWeapon::Show( bool now ) {
+  if ( now ) {
+    if ( m_pHUD ) m_pHUD->StopCurrentAnimWithoutCallback();
+    OnStateSwitch( eIdle );
+    SetState( eIdle );
+    StopHUDSounds();
+  }
+  else
+    SwitchState( eShowing );
 }
 
 bool CWeapon::show_crosshair()
@@ -2190,7 +2208,7 @@ float CWeapon::GetSecondVPFov() const
 	{
 		fov_factor = m_fRTZoomFactor;
 	}
-	return atanf(tanf(g_fov * (0.5f * PI / 180)) / fov_factor) / (0.5f * PI / 180); //-V595
+	return atanf(tanf(g_fov * (0.5f * PI / 180)) / fov_factor) / (0.5f * PI / 180);
 }
 
 bool CWeapon::IsGrenadeMode() const
@@ -2249,4 +2267,9 @@ float CWeapon::GetHudFov()
 void CWeapon::OnBulletHit() {
   if ( !fis_zero( conditionDecreasePerShotOnHit ) )
     ChangeCondition( -conditionDecreasePerShotOnHit );
+}
+
+
+bool CWeapon::IsPartlyReloading() {
+  return ( m_set_next_ammoType_on_reload == u32(-1) && GetAmmoElapsed() > 0 && !IsMisfire() );
 }

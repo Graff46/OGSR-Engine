@@ -124,7 +124,7 @@ public:
 	// stream executors
 	virtual void		Exec_Action				( float dt );
 	virtual void		Exec_Look				( float dt );
-	void	__stdcall	Exec_Visibility			( );
+	void Exec_Visibility();
 	void				eye_pp_s0				( );
 	void				eye_pp_s1				( );
 	void				eye_pp_s2				( );
@@ -156,6 +156,8 @@ public:
 	virtual void		net_Relcase				(CObject*	 O);
 
 	virtual void		SelectAnimation			( const Fvector& _view, const Fvector& _move, float speed ) = 0;
+
+	virtual bool		is_base_monster_with_enemy	() { return false; }
 
 	// debug
 #ifdef DEBUG
@@ -254,7 +256,7 @@ public:
 	virtual	void					update_range_fov		(float &new_range, float &new_fov, float start_range, float start_fov);
 
 public:
-			void __stdcall			update_sound_player		();
+	void update_sound_player();
 	virtual	void					on_restrictions_change	();
 	virtual	LPCSTR					visual_name				(CSE_Abstract *server_entity);
 

@@ -32,7 +32,7 @@ public:
 		Fvector		target_pos;
 		Fvector		from_pos;
 
-		u32			time_last_update;
+		u32			time_last_update{};
 
 		const CEntityAlive *enemy;
 		
@@ -170,7 +170,7 @@ public:
 private:
 			bool			m_force_gravi_attack;
 
-	void xr_stdcall			StaminaHit			();
+	void 			StaminaHit			();
 
 	DECLARE_SCRIPT_REGISTER_FUNCTION
 

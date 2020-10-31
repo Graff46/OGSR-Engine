@@ -60,6 +60,8 @@ class CActorStatisticMgr;
 
 class CLocationManager;
 
+class CActorCameraManager;
+
 struct ActorRestoreParams
 {
 	float	HealthRestoreSpeed;
@@ -151,14 +153,17 @@ struct SDefNewsMsg{
 	};
 	xr_vector<SDefNewsMsg> m_defferedMessages;
 	void UpdateDefferedMessages();	
+	u32 m_news_to_show;
 public:	
 	void			AddGameNews_deffered	 (GAME_NEWS_DATA& news_data, u32 delay);
 	virtual void	AddGameNews				 (GAME_NEWS_DATA& news_data);
+	void PushNewsData( GAME_NEWS_DATA& news_data );
+	u32  NewsToShow() { return m_news_to_show; };
 protected:
 	CGameTaskManager*				m_game_task_manager;
 	CActorStatisticMgr*				m_statistic_manager;
 public:
-	virtual void StartTalk			(CInventoryOwner* talk_partner); //-V762
+	void StartTalk(CInventoryOwner* talk_partner, bool = true) override;
 	virtual	void RunTalkDialog		(CInventoryOwner* talk_partner);
 	CGameTaskManager&				GameTaskManager() const {return *m_game_task_manager;}
 	CActorStatisticMgr&				StatisticMgr()	{return *m_statistic_manager;}
@@ -358,11 +363,12 @@ public:
 	// Cameras and effectors
 	//////////////////////////////////////////////////////////////////////////
 public:
-	CCameraManager&			Cameras				() 	{VERIFY(m_pActorEffector); return *m_pActorEffector;}
+	CActorCameraManager&	Cameras				() 	{VERIFY(m_pActorEffector); return *m_pActorEffector;}
 	IC CCameraBase*			cam_Active			()	{return cameras[cam_active];}
 	IC CCameraBase*			cam_ByIndex(u16 index)  { return (index < eacMaxCam ? cameras[index] : NULL); }
 	IC CCameraBase*			cam_FirstEye		()	{return cameras[eacFirstEye];}
 	IC EActorCameras		active_cam			()	{return cam_active;}			// KD: need to know which cam active outside actor methods
+	CEffectorBobbing* GetEffectorBobbing() { return pCamBobbing; }
 
 protected:
 	void					cam_Set					(EActorCameras style);
@@ -389,7 +395,7 @@ protected:
 	CSleepEffectorPP*		m_pSleepEffectorPP;
 
 	//менеджер эффекторов, есть у каждого актрера
-	CCameraManager*			m_pActorEffector;
+	CActorCameraManager*	m_pActorEffector;
 	static float			f_Ladder_cam_limit;
 	////////////////////////////////////////////
 	// для взаимодействия с другими персонажами 
@@ -563,7 +569,7 @@ public:
 	virtual void						net_Destroy			();
 	virtual BOOL						net_Relevant		();//	{ return getSVU() | getLocal(); };		// relevant for export to server
 	virtual	void						net_Relcase			( CObject* O );					//
-	virtual void xr_stdcall				on_requested_spawn  (CObject *object);
+	virtual void 				on_requested_spawn  (CObject *object);
 	//object serialization
 	virtual void						save				(NET_Packet &output_packet);
 	virtual void						load				(IReader &input_packet);
@@ -696,7 +702,7 @@ protected:
 		Fvector							m_AutoPickUp_AABB;
 		Fvector							m_AutoPickUp_AABB_Offset;
 public:
-		void							SetWeaponHideState				(u32 State, bool bSet);
+		void SetWeaponHideState( u32 State, bool bSet, bool now = false );
 		virtual CCustomOutfit*			GetOutfit() const;
 private:
 	CActorCondition				*m_entity_condition;

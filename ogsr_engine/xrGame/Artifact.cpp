@@ -32,7 +32,7 @@ struct SArtefactActivation{
 		float		m_time;
 		shared_str	m_snd;
 		Fcolor		m_light_color;
-		float		m_light_range;
+		float		m_light_range{};
 		shared_str	m_particle;
 		shared_str	m_animation;
 		
@@ -200,16 +200,15 @@ void CArtefact::UpdateCL		()
 }
 
 u8 CArtefact::idle_state() {
-	CActor *actor = smart_cast<CActor*>(H_Parent());
+	auto* actor = smart_cast<CActor*>(H_Parent());
 
-	if (actor)
-		if (actor->get_state() & mcSprint) {
+	if (actor) {
+		u32 st = actor->get_state();
+		if (st & mcSprint)
 			return eSubstateIdleSprint;
-		}
-		else {
-			if (actor->is_actor_running() || actor->is_actor_walking() || actor->is_actor_creeping() || actor->is_actor_crouching())
-				return eSubstateIdleMoving;
-		}
+		else if (st & mcAnyAction && !(st & mcJump) && !(st & mcFall))
+			return eSubstateIdleMoving;
+	}
 
 	return eIdle;
 }
@@ -313,12 +312,12 @@ bool CArtefact::CanTake() const
 	return (m_activationObj==NULL);
 }
 
-void CArtefact::Hide()
+void CArtefact::Hide( bool now )
 {
 	SwitchState(eHiding);
 }
 
-void CArtefact::Show()
+void CArtefact::Show( bool now )
 {
 	SwitchState(eShowing);
 }

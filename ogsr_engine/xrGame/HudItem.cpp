@@ -93,7 +93,7 @@ void CHudItem::net_Destroy()
 
 void CHudItem::PlaySound( HUD_SOUND& hud_snd, const Fvector& position, bool overlap  )
 {
-  HUD_SOUND::PlaySound( hud_snd, position, object().H_Root(), !!GetHUDmode(), false, overlap );
+  HUD_SOUND::PlaySound( hud_snd, position, object().H_Root(), /*!!GetHUDmode()*/ false, false, overlap );
 }
 
 BOOL  CHudItem::net_Spawn	(CSE_Abstract* DC) 
@@ -168,19 +168,19 @@ void CHudItem::OnStateSwitch	(u32 S)
 }
 
 
-bool CHudItem::Activate() 
+bool CHudItem::Activate( bool now )
 {
 	if(m_pHUD) 
 		m_pHUD->Init();
 
-	Show();
+	Show( now );
 	OnActiveItem ();
 	return true;
 }
 
-void CHudItem::Deactivate() 
+void CHudItem::Deactivate( bool now )
 {
-	Hide();
+	Hide( now );
 	OnHiddenItem ();
 }
 
@@ -192,11 +192,15 @@ void CHudItem::UpdateHudPosition	()
 		if(item().IsHidden()) 
 			SetHUDmode(FALSE);
 
-		Fmatrix							trans;
-
 		CActor* pActor = smart_cast<CActor*>(object().H_Parent());
-		if(pActor){
-			pActor->Cameras().camera_Matrix				(trans);
+		if(pActor) {
+			Fmatrix trans;
+
+			if (pActor->cam_Active() == pActor->cam_FirstEye())
+				pActor->Cameras().hud_camera_Matrix(trans);
+			else
+				pActor->Cameras().camera_Matrix(trans);
+
 			UpdateHudInertion							(trans);
 			UpdateHudAdditonal							(trans);
 			m_pHUD->UpdatePosition						(trans);
@@ -310,23 +314,33 @@ void CHudItem::OnH_B_Independent	(bool just_before_destroy)
 void CHudItem::OnH_A_Independent	()
 {
 }
-void CHudItem::animGet	(MotionSVec& lst, LPCSTR prefix)
-{
-	const MotionID		&M = m_pHUD->animGet(prefix);
-	if (M)				lst.push_back(M);
-	for (int i=0; i<MAX_ANIM_COUNT; ++i)
-	{
-		string128		sh_anim;
-		sprintf_s			(sh_anim,"%s%d",prefix,i);
-		const MotionID	&M = m_pHUD->animGet(sh_anim);
-		if (M)			lst.push_back(M);
-	}
-	ASSERT_FMT(!lst.empty(), "Can't find [anim_%s] in hud section [%s]", prefix, this->hud_sect.c_str());
+
+
+void CHudItem::animGet( MotionSVec& lst, LPCSTR prefix ) {
+  const MotionID &M = m_pHUD->animGet( prefix );
+  if ( M )
+    lst.push_back( MotionIDEx( M ) );
+  for ( int i = 0; i < MAX_ANIM_COUNT; ++i ) {
+    string128 sh_anim;
+    sprintf_s( sh_anim, "%s%d", prefix, i );
+    const MotionID &M = m_pHUD->animGet( sh_anim );
+    if ( M )
+      lst.push_back( MotionIDEx( M ) );
+  }
+  ASSERT_FMT( !lst.empty(), "Can't find [anim_%s] in hud section [%s]", prefix, this->hud_sect.c_str() );
 }
 
 
-void CHudItem::animGetEx( MotionSVec& lst, LPCSTR prefix, LPCSTR suffix ) {
-  std::string anim_name = pSettings->r_string( hud_sect.c_str(), prefix );
+void CHudItem::animGetEx( MotionSVec& lst, LPCSTR prefix, LPCSTR suffix, LPCSTR prefix2 ) {
+  std::string anim_name;
+  if ( prefix2 ) {
+    if ( pSettings->line_exist( hud_sect.c_str(), prefix ) )
+      anim_name = pSettings->r_string( hud_sect.c_str(), prefix  );
+    else
+      anim_name = pSettings->r_string( hud_sect.c_str(), prefix2 );
+  }
+  else
+    anim_name = pSettings->r_string( hud_sect.c_str(), prefix );
   if ( suffix )
     anim_name += suffix;
   animGet( lst, anim_name.c_str() );
@@ -338,9 +352,18 @@ void CHudItem::animGetEx( MotionSVec& lst, LPCSTR prefix, LPCSTR suffix ) {
     if ( !fsimilar( k, 1.f ) ) {
       for ( const auto& M : lst ) {
         auto *animated   = m_pHUD->Visual()->dcast_PKinematicsAnimated();
-        auto *motion_def = animated->LL_GetMotionDef( M );
+        auto *motion_def = animated->LL_GetMotionDef( M.m_MotionID );
         motion_def->SetSpeedKoeff( k );
       }
     }
+  }
+
+  std::string stop_k = prefix;
+  stop_k += "_stop_k";
+  if ( pSettings->line_exist( hud_sect.c_str(), stop_k.c_str() ) ) {
+    float k = pSettings->r_float( hud_sect.c_str(), stop_k.c_str() );
+    if ( k < 1.f )
+      for ( auto& M : lst )
+        M.stop_k = k;
   }
 }

@@ -423,8 +423,8 @@ void CLevel::OnFrame	()
 	Device.Statistic->TEST0.End			();
 
 	// update static sounds
-		if (g_mt_config.test(mtLevelSounds)) 
-			Device.seqParallel.push_back	(fastdelegate::FastDelegate0<>(m_level_sound_manager,&CLevelSoundManager::Update));
+	if (g_mt_config.test(mtLevelSounds))
+		Device.seqParallel.push_back(fastdelegate::MakeDelegate(m_level_sound_manager, &CLevelSoundManager::Update));
 		else								
 			m_level_sound_manager->Update	();
 	//-----------------------------------------------------
@@ -601,7 +601,7 @@ void CLevel::OnEvent(EVENT E, u64 P1, u64 /**P2/**/)
 		char* name = (char*)P1;
 		string_path RealName;
 		strcpy_s		(RealName,name);
-		strcat			(RealName,".xrdemo");
+		strcat_s(RealName,".xrdemo");
 		Cameras().AddCamEffector(xr_new<CDemoPlay> (RealName,1.3f,0));
 	} else if (E==eChangeTrack && P1) {
 		// int id = atoi((char*)P1);
@@ -846,13 +846,12 @@ void CLevel::SetEnvironmentGameTimeFactor(u64 const& GameTime, float const& fTim
 	game->SetEnvironmentGameTimeFactor(GameTime, fTimeFactor);
 }
 
-/*
-void CLevel::SetGameTime(ALife::_TIME_ID GameTime)
+void CLevel::GetGameTimeForShaders(u32& hours, u32& minutes, u32& seconds, u32& milliseconds)
 {
-	game->SetGameTime(GameTime);
-//	Server->game->SetGameTime(GameTime);
+	u32 unused;
+	split_time(GetGameTime(), unused, unused, unused, hours, minutes, seconds, milliseconds);
 }
-*/
+
 bool CLevel::IsServer ()
 {
 //	return (!!Server);

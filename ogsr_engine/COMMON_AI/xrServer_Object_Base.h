@@ -63,7 +63,7 @@ private:
 
 public:
 	BOOL							net_Ready;
-	BOOL							net_Processed;	// Internal flag for connectivity-graph
+	BOOL							net_Processed{};	// Internal flag for connectivity-graph
 	
 	u16								m_wVersion;
 	u16								m_script_version;
@@ -91,7 +91,7 @@ public:
 
 	// for ALife control
 	bool							m_bALifeControl;
-	ALife::_SPAWN_ID				m_tSpawnID;
+	ALife::_SPAWN_ID				m_tSpawnID{};
 
 	// ALife spawn params
 	// obsolete, just because we hope to uncomment all this stuff
@@ -106,12 +106,10 @@ public:
 									CSE_Abstract	(LPCSTR caSection);
 	virtual							~CSE_Abstract	();
 	virtual void					OnEvent			(NET_Packet &tNetPacket, u16 type, u32 time, ClientID sender ){};
-	virtual void					FillProps		(LPCSTR pref, PropItemVec &items);
 	virtual BOOL					Net_Relevant	(){return TRUE;};
 	//
 	virtual void		__stdcall	Spawn_Write		(NET_Packet &tNetPacket, BOOL bLocal);
 	virtual BOOL		__stdcall	Spawn_Read		(NET_Packet &tNetPacket);
-	virtual void		__stdcall	FillProp		(LPCSTR pref, PropItemVec &items);
 	virtual LPCSTR		__stdcall	name			() const;
 	virtual LPCSTR		__stdcall	name_replace	() const;
 	virtual void		__stdcall	set_name		(LPCSTR s)

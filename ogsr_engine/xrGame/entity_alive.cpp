@@ -256,10 +256,6 @@ void CEntityAlive::Hit(SHit* pHDS)
 {
 	SHit HDS = *pHDS;
 
-	callback(GameObject::entity_alive_before_hit)(&HDS);
-	if (HDS.ignore_flag) //KRodin: добавил флаг, чтобы из скриптов можно было управлять игнорированием хита.
-		return;
-
 	//-------------------------------------------------------------------
 	if (HDS.hit_type == ALife::eHitTypeWound_2)
 		HDS.hit_type = ALife::eHitTypeWound;
@@ -309,7 +305,7 @@ void CEntityAlive::Die	(CObject* who)
 	if (!getDestroy()) {
 		NET_Packet		P;
 		u_EventGen		(P,GE_ASSIGN_KILLER,ID());
-		P.w_u16			(u16(who->ID()));
+		P.w_u16(who ? who->ID() : u16(-1));
 		u_EventSend		(P);
 	}
 

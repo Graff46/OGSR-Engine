@@ -58,7 +58,7 @@ void CUISequenceSimpleItem::Load(CUIXml* xml, int idx)
 	m_time_length			= xml->ReadFlt			("length_sec",0,0		);
 	m_desired_cursor_pos.x	= xml->ReadAttribFlt	("cursor_pos",0,"x",1024);
 	m_desired_cursor_pos.y	= xml->ReadAttribFlt	("cursor_pos",0,"y",768	);
-	strcpy					(m_pda_section, xml->Read("pda_section",0,"")	);
+	strcpy_s(m_pda_section, xml->Read("pda_section",0,"")	);
 
 	LPCSTR str				= xml->Read				("pause_state",0,"ignore");
 	m_flags.set										(etiNeedPauseOn, 0==_stricmp(str, "on"));
@@ -108,7 +108,7 @@ void CUISequenceSimpleItem::Load(CUIXml* xml, int idx)
 		_si->m_wnd					= smart_cast<CUIStatic*>(find_child_window(m_UIWindow, sname)); VERIFY(_si->m_wnd);
 		_si->m_wnd->SetTextComplexMode(true);
 		_si->m_wnd->Show			(false);
-		_si->m_wnd->SetWidth(_si->m_wnd->GetWidth()*UI()->get_current_kx());
+	//	_si->m_wnd->SetWidth(_si->m_wnd->GetWidth()*UI()->get_current_kx()); // KRodin: этот код вызывает кучу проблем с положением текстур, не раскомментировать!
 
 		xml->SetLocalRoot			(_sr);
 	}

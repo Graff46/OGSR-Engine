@@ -35,7 +35,7 @@ BOOL CLevel::net_Start	( LPCSTR op_server, LPCSTR op_client )
 			strcpy_s(tmpstr, op_client);
 			*(strstr(tmpstr, "name=")+5) = 0;
 			strcat_s(tmpstr, xr_strlen(Core.UserName) ? Core.UserName : Core.CompName);
-			const char* ptmp = strstr(strstr(op_client, "name="), "/");
+			const char* ptmp = strchr(strstr(op_client, "name="), '/');
 			if (ptmp)
 				strcat_s(tmpstr, ptmp);
 			m_caClientOptions = tmpstr;
@@ -77,12 +77,12 @@ BOOL CLevel::net_Start	( LPCSTR op_server, LPCSTR op_client )
 		}
 	}
 	//---------------------------------------------------------------------------
-	g_loading_events.push_back	(LOADING_EVENT(this,&CLevel::net_start1));
-	g_loading_events.push_back	(LOADING_EVENT(this,&CLevel::net_start2));
-	g_loading_events.push_back	(LOADING_EVENT(this,&CLevel::net_start3));
-	g_loading_events.push_back	(LOADING_EVENT(this,&CLevel::net_start4));
-	g_loading_events.push_back	(LOADING_EVENT(this,&CLevel::net_start5));
-	g_loading_events.push_back	(LOADING_EVENT(this,&CLevel::net_start6));
+	g_loading_events.push_back(fastdelegate::MakeDelegate(this, &CLevel::net_start1));
+	g_loading_events.push_back(fastdelegate::MakeDelegate(this, &CLevel::net_start2));
+	g_loading_events.push_back(fastdelegate::MakeDelegate(this, &CLevel::net_start3));
+	g_loading_events.push_back(fastdelegate::MakeDelegate(this, &CLevel::net_start4));
+	g_loading_events.push_back(fastdelegate::MakeDelegate(this, &CLevel::net_start5));
+	g_loading_events.push_back(fastdelegate::MakeDelegate(this, &CLevel::net_start6));
 	
 	return net_start_result_total;
 
@@ -105,7 +105,7 @@ bool CLevel::net_start1				()
 		{
 			string64			l_name = "";
 			const char* SOpts = *m_caServerOptions;
-			strncpy(l_name, *m_caServerOptions, strchr(SOpts, '/') - SOpts);
+			strncpy_s(l_name, *m_caServerOptions, strchr(SOpts, '/') - SOpts);
 			// Activate level
 			if (strchr(l_name,'/'))
 				*strchr(l_name,'/')	= 0;
@@ -165,7 +165,7 @@ bool CLevel::net_start3				()
 			string64	PasswordStr = "";
 			const char* PSW = strstr(m_caServerOptions.c_str(), "psw=") + 4;
 			if (strchr(PSW, '/')) 
-				strncpy(PasswordStr, PSW, strchr(PSW, '/') - PSW);
+				strncpy_s(PasswordStr, PSW, strchr(PSW, '/') - PSW);
 			else
 				strcpy_s(PasswordStr, PSW);
 
@@ -183,12 +183,12 @@ bool CLevel::net_start4				()
 
 	g_loading_events.pop_front();
 
-	g_loading_events.push_front	(LOADING_EVENT(this,&CLevel::net_start_client6));
-	g_loading_events.push_front	(LOADING_EVENT(this,&CLevel::net_start_client5));
-	g_loading_events.push_front	(LOADING_EVENT(this,&CLevel::net_start_client4));
-	g_loading_events.push_front	(LOADING_EVENT(this,&CLevel::net_start_client3));
-	g_loading_events.push_front	(LOADING_EVENT(this,&CLevel::net_start_client2));
-	g_loading_events.push_front	(LOADING_EVENT(this,&CLevel::net_start_client1));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(this, &CLevel::net_start_client6));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(this, &CLevel::net_start_client5));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(this, &CLevel::net_start_client4));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(this, &CLevel::net_start_client3));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(this, &CLevel::net_start_client2));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(this, &CLevel::net_start_client1));
 
 	return false;
 }
@@ -214,7 +214,7 @@ xrServer::EConnect	g_connect_server_err	= xrServer::ErrConnect;
 
 struct LevelLoadFinalizer
 {
-bool xr_stdcall net_start_finalizer()
+bool  net_start_finalizer()
 {
 	return true;
 }
@@ -226,7 +226,7 @@ bool CLevel::net_start6()
 	g_start_total_res			= net_start_result_total;
 	g_connect_server_err		= m_connect_server_err;
 	g_loading_events.pop_front	();
-	g_loading_events.push_front	(LOADING_EVENT(&LF, &LevelLoadFinalizer::net_start_finalizer));
+	g_loading_events.push_front(fastdelegate::MakeDelegate(&LF, &LevelLoadFinalizer::net_start_finalizer));
 
 	//init bullet manager
 	BulletManager().Clear		();

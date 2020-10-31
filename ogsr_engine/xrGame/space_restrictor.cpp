@@ -33,7 +33,7 @@ void CSpaceRestrictor::Center		(Fvector& C) const
 
 float CSpaceRestrictor::Radius() const {
   auto cf = CFORM();
-  ASSERT_FMT( cf, "[%]: %s has no CFORM()", __FUNCTION__, cName().c_str() );
+  ASSERT_FMT( cf, "!![%s]: [%s] has no CFORM()", __FUNCTION__, cName().c_str() );
   return cf->getRadius();
 }
 
@@ -104,10 +104,22 @@ void CSpaceRestrictor::net_Destroy	()
 	Level().space_restriction_manager().unregister_restrictor(this);
 }
 
-bool CSpaceRestrictor::inside	(const Fsphere &sphere) const
+bool CSpaceRestrictor::inside(const Fsphere &sphere)
 {
 	if (!actual())
-		prepare	();
+	{
+		std::string copy_cName{ this->cName().c_str() };
+
+		try
+		{
+			prepare();
+		}
+		catch (...)
+		{
+			Msg("!![%s] FATAL ERROR IN RESTRICTOR [%s]!", __FUNCTION__, copy_cName.c_str());
+			return false;
+		}
+	}
 
 	if (!m_selfbounds.intersect(sphere))
 		return	(false);
@@ -126,7 +138,7 @@ void CSpaceRestrictor::spatial_move		()
 	actual								(false);
 }
 
-void CSpaceRestrictor::prepare			() const
+void CSpaceRestrictor::prepare()
 {
 	Center							(m_selfbounds.P);
 	m_selfbounds.R					= Radius();
@@ -386,11 +398,11 @@ void CSpaceRestrictor::OnRender()
 		if(z){
 			string64 str;
 			switch (z->ZoneState()){
-				case CCustomZone::eZoneStateIdle:		strcpy(str,"IDLE"); break;
-				case CCustomZone::eZoneStateAwaking:	strcpy(str,"AWAKING"); break;
-				case CCustomZone::eZoneStateBlowout:	strcpy(str,"BLOWOUT"); break;
-				case CCustomZone::eZoneStateAccumulate: strcpy(str,"ACCUMULATE"); break;
-				case CCustomZone::eZoneStateDisabled:	strcpy(str,"DISABLED"); break;
+				case CCustomZone::eZoneStateIdle:		strcpy_s(str,"IDLE"); break;
+				case CCustomZone::eZoneStateAwaking:	strcpy_s(str,"AWAKING"); break;
+				case CCustomZone::eZoneStateBlowout:	strcpy_s(str,"BLOWOUT"); break;
+				case CCustomZone::eZoneStateAccumulate: strcpy_s(str,"ACCUMULATE"); break;
+				case CCustomZone::eZoneStateDisabled:	strcpy_s(str,"DISABLED"); break;
 			};
 			HUD().Font().pFontMedium->OutNext	( str );
 		}

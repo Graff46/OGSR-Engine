@@ -19,7 +19,7 @@ struct GAME_NEWS_DATA : public IPureSerializeObject<IReader,IWriter>
 	shared_str			news_text;
 	int					show_time;
 
-	ALife::_TIME_ID		receive_time;
+	ALife::_TIME_ID		receive_time{};
 
 	shared_str			texture_name;
 	Frect				tex_rect;
@@ -32,4 +32,4 @@ private:
 
 };
 
-DEFINE_VECTOR(GAME_NEWS_DATA, GAME_NEWS_VECTOR, GAME_NEWS_IT);
+DEFINE_DEQUE(GAME_NEWS_DATA, GAME_NEWS_VECTOR, GAME_NEWS_IT);

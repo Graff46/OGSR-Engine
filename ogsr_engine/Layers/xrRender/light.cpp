@@ -49,8 +49,15 @@ light::~light	()
 
 	// remove from Lights_LastFrame
 #if (RENDER==R_R2) || (RENDER==R_R3) || (RENDER==R_R4)
-	for (u32 it=0; it<RImplementation.Lights_LastFrame.size(); it++)
-		if (this==RImplementation.Lights_LastFrame[it])	RImplementation.Lights_LastFrame[it]=0;
+
+	for ( u32 it = 0; it < RImplementation.Lights_LastFrame.size(); it++ ) {
+	  if ( RImplementation.Lights_LastFrame[ it ] == this )
+	    RImplementation.Lights_LastFrame[ it ]->svis.resetoccq();
+	    RImplementation.Lights_LastFrame[ it ] = 0;
+	}
+	if ( vis.pending )
+	  RImplementation.occq_free( vis.query_id );
+
 #endif // (RENDER==R_R2) || (RENDER==R_R3) || (RENDER==R_R4)
 }
 
@@ -136,7 +143,7 @@ void	light::set_position		(const Fvector& P)
 }
 
 void	light::set_range		(float R)			{
-	float	eps					=	_max	(range*0.1f,EPS_L);
+	float	eps = std::max(range * 0.1f, EPS_L);
 	if (fsimilar(range,R,eps))	return	;
 	range						= R		;
 	spatial_move				();

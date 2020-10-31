@@ -89,6 +89,9 @@ CCar::CCar()
 	m_car_weapon=NULL;
 	m_power_neutral_factor=0.25f;
 	m_steer_angle=0.f;
+	m_current_rpm = 0.f;
+	m_current_engine_power = 0.f;
+
 #ifdef DEBUG
 	InitDebug();
 #endif
@@ -448,8 +451,8 @@ void CCar::UpdateEx			(float fov)
 	if(OwnerActor() && OwnerActor()->IsMyCamera()) 
 	{
 		cam_Update(Device.fTimeDelta, fov);
-		OwnerActor()->Cameras().Update(Camera());
-		OwnerActor()->Cameras().ApplyDevice(VIEWPORT_NEAR);
+		OwnerActor()->Cameras().UpdateFromCamera(Camera());
+		OwnerActor()->Cameras().ApplyDevice();
 	}
 
 	
@@ -498,14 +501,7 @@ void CCar::UpdateCL				( )
 		{
 			Owner()->XFORM().mul_43	(XFORM(),m_sits_transforms[0]);
 		}
-/*
-		if(OwnerActor() && OwnerActor()->IsMyCamera()) 
-		{
-			cam_Update(Device.fTimeDelta, fov);
-			OwnerActor()->Cameras().Update(Camera());
-			OwnerActor()->Cameras().ApplyDevice();
-		}
-*/
+
 		if(HUD().GetUI())//
 		{
 			HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(true);
@@ -1063,6 +1059,7 @@ void CCar::StartEngine()
 	m_car_sound->Start();
 	b_engine_on=true;
 	m_current_rpm=0.f;
+	m_current_engine_power = 0.f;
 	b_starting=true;
 }
 void CCar::StopEngine()
@@ -1938,8 +1935,7 @@ IC void CCar::fill_exhaust_vector(LPCSTR S,xr_vector<SExhaust>& exhausts)
 
 		u16 bone_id	=				pKinematics->LL_BoneID(S1);
 
-		exhausts.push_back		(SExhaust(this));
-		SExhaust& exhaust				= exhausts.back();
+		auto& exhaust = exhausts.emplace_back(this);
 		exhaust.bone_id						= bone_id;
 
 		BONE_P_PAIR_IT J		= bone_map.find(bone_id);

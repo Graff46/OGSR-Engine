@@ -9,6 +9,8 @@
 #include "../COMMON_AI/object_broker.h"
 #include "../COMMON_AI/LevelGameDef.h"
 
+ENGINE_API float ps_r_sunshafts_intensity = 0.0f;
+
 void CEnvModifier::load	(IReader* fs, u32 version)
 {
 	use_flags.one					();
@@ -350,7 +352,9 @@ void CEnvDescriptor::load	(CEnvironment& environment, CInifile& config)
 	if (config.line_exist(m_identifier.c_str(),"water_intensity"))
 		m_fWaterIntensity = config.r_float(m_identifier.c_str(),"water_intensity");
 
-	m_fTreeAmplitudeIntensity = READ_IF_EXISTS(reinterpret_cast<CInifile*>(&config), r_float, m_identifier.c_str(), "tree_amplitude_intensity", 0.01f);
+	constexpr float def_min_TAI = 0.01f, def_max_TAI = 0.07f;
+	const float def_TAI = def_min_TAI + (rain_density * (def_max_TAI - def_min_TAI)); //Если не прописано, дефолт будет рассчитываться от силы дождя.
+	m_fTreeAmplitudeIntensity = READ_IF_EXISTS(reinterpret_cast<CInifile*>(&config), r_float, m_identifier.c_str(), "tree_amplitude_intensity", def_TAI);
 
 	C_CHECK					(clouds_color);
 	C_CHECK					(sky_color	);
@@ -419,7 +423,9 @@ void CEnvDescriptor::load(float exec_tm, LPCSTR S, CEnvironment& environment)
 	if (pSettings->line_exist(m_identifier.c_str(), "water_intensity"))
 		m_fWaterIntensity = pSettings->r_float(m_identifier.c_str(), "water_intensity");
 
-	m_fTreeAmplitudeIntensity = READ_IF_EXISTS(pSettings, r_float, m_identifier.c_str(), "tree_amplitude_intensity", 0.01f);
+	constexpr float def_min_TAI = 0.01f, def_max_TAI = 0.07f;
+	const float def_TAI = def_min_TAI + (rain_density * (def_max_TAI - def_min_TAI)); //Если не прописано, дефолт будет рассчитываться от силы дождя.
+	m_fTreeAmplitudeIntensity = READ_IF_EXISTS(pSettings, r_float, m_identifier.c_str(), "tree_amplitude_intensity", def_TAI);
 
 	C_CHECK(clouds_color);
 	C_CHECK(sky_color);
@@ -518,7 +524,11 @@ void CEnvDescriptorMixer::lerp	(CEnvironment* , CEnvDescriptor& A, CEnvDescripto
 	wind_velocity			=	fi*A.wind_velocity + f*B.wind_velocity;
 	wind_direction			=	fi*A.wind_direction + f*B.wind_direction;
 
-	m_fSunShaftsIntensity	=	fi*A.m_fSunShaftsIntensity + f*B.m_fSunShaftsIntensity;
+	if (ps_r_sunshafts_intensity > 0.f)
+		m_fSunShaftsIntensity = ps_r_sunshafts_intensity;
+	else
+		m_fSunShaftsIntensity = fi * A.m_fSunShaftsIntensity + f * B.m_fSunShaftsIntensity;
+
 	m_fWaterIntensity		=	fi*A.m_fWaterIntensity + f*B.m_fWaterIntensity;
 	m_fTreeAmplitudeIntensity = fi * A.m_fTreeAmplitudeIntensity + f * B.m_fTreeAmplitudeIntensity;
 
@@ -581,7 +591,6 @@ void	CEnvironment::mods_load			()
 {
 	Modifiers.clear_and_free			();
 	string_path							path;
-#pragma todo("KRodin: В ЗП ЗДЕСЬ ТОЖЕ ДРУГОЙ ФОРМАТ? Надо тоже под дефайнами сделать тогда. Хотя, проверка версии есть, фиг знает, может и ТЧ формат тут поддерживается, тестить надо.")
 	if (FS.exist(path,"$level$","level.env_mod"))	
 	{
 		IReader*	fs	= FS.r_open		(path);

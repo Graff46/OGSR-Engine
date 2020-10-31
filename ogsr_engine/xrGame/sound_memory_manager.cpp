@@ -71,6 +71,7 @@ void CSoundMemoryManager::reload				(LPCSTR section)
 	m_self_sound_factor		= READ_IF_EXISTS(pSettings,r_float,section,"self_sound_factor",0.f);
 	m_sound_decrease_quant	= READ_IF_EXISTS(pSettings,r_u32,section,"self_decrease_quant",250);
 	m_decrease_factor		= READ_IF_EXISTS(pSettings,r_float,section,"self_decrease_factor",.95f);
+	m_max_hear_dist = READ_IF_EXISTS( pSettings, r_float, section, "max_hear_dist", -1.f );
 
 	LPCSTR					sound_perceive_section = READ_IF_EXISTS(pSettings,r_string,section,"sound_perceive_section",section);
 	m_weapon_factor			= READ_IF_EXISTS(pSettings,r_float,sound_perceive_section,"weapon",10.f);
@@ -145,15 +146,26 @@ void CSoundMemoryManager::feel_sound_new(CObject *object, int sound_type, CSound
 	Msg						("%s (%d) - sound type %x from %s at %d in (%.2f,%.2f,%.2f) with power %.2f",*self->cName(),Device.dwTimeGlobal,sound_type,object ? *object->cName() : "world",Device.dwTimeGlobal,position.x,position.y,position.z,sound_power);
 #endif
 
+	// ignore unknown sounds
+	if ( sound_type == 0xffffffff ) return;
+
+	CEntityAlive			*entity_alive = m_object;
+	if (!entity_alive->g_Alive())
+		return;
+
+	// ignore distant sounds
+	if ( m_max_hear_dist >= 0.f ) {
+	  Fvector center;
+	  m_object->Center( center );
+	  float dist = center.distance_to( position );
+	  if ( dist > m_max_hear_dist ) return;
+	}
+
 	VERIFY					(_valid(m_sound_threshold));
 	m_object->sound_callback(object,sound_type,position,sound_power);
 	VERIFY					(_valid(m_sound_threshold));
 		
 	update_sound_threshold	();
-
-	CEntityAlive			*entity_alive = m_object;
-	if (!entity_alive->g_Alive())
-		return;
 	
 	VERIFY					(_valid(sound_power));
 	if (is_sound_type(sound_type,SOUND_TYPE_WEAPON))
@@ -253,18 +265,20 @@ void CSoundMemoryManager::add			(const CObject *object, int sound_type, const Fv
 		return;
 #endif
 
-#ifndef SAVE_VISIBLE_OBJECT_SOUNDS
-#	ifdef SAVE_FRIEND_SOUNDS
-		const CEntityAlive	*entity_alive	= smart_cast<const CEntityAlive*>(object);
-#	endif
-	// we do not save sounds from the objects we see (?!)
-	if (m_object->memory().visual().visible_now(entity_alive))
-		return;
-#endif
-
 	const CGameObject		*game_object = smart_cast<const CGameObject*>(object);
 	if (!game_object && object)
 		return;
+
+#ifndef SAVE_VISIBLE_OBJECT_SOUNDS
+/*
+#	ifdef SAVE_FRIEND_SOUNDS
+		const CEntityAlive	*entity_alive	= smart_cast<const CEntityAlive*>(object);
+#	endif
+*/
+	// we do not save sounds from the objects we see (?!)
+	if ( game_object && m_object->memory().visual().visible_now( game_object ) )
+		return;
+#endif
 
 	const CGameObject		*self = m_object;
 
@@ -421,9 +435,7 @@ void CSoundMemoryManager::load	(IReader &packet)
 	if (!m_object->g_Alive())
 		return;
 
-	typedef CClientSpawnManager::CALLBACK_TYPE	CALLBACK_TYPE;
-	CALLBACK_TYPE					callback;
-	callback.bind					(&m_object->memory(),&CMemoryManager::on_requested_spawn);
+	auto callback = fastdelegate::MakeDelegate(&m_object->memory(), &CMemoryManager::on_requested_spawn);
 
 	int								count = packet.r_u8();
 	for (int i=0; i<count; ++i) {

@@ -29,6 +29,7 @@
 #include "memory_manager.h"
 #include "alife_registry_wrappers.h"
 #include "alife_simulator_header.h"
+#include "holder_custom.h"
 
 #ifndef MASTER_GOLD
 #	include "clsid_game.h"
@@ -149,17 +150,32 @@ void CVisualMemoryManager::reload				(LPCSTR section)
 		m_free.Load		(pSettings->r_string(section,"vision_free_section"),true);
 		m_danger.Load	(pSettings->r_string(section,"vision_danger_section"),true);
 	}
+	else if (m_object) {
+		m_free.Load( READ_IF_EXISTS( pSettings, r_string, section, "vision_free_section", section ), !!m_client );
+		m_danger.Load( READ_IF_EXISTS( pSettings, r_string, section, "vision_danger_section", section ), !!m_client );
+	}
 	else
 		m_free.Load		(section,!!m_client);
 }
 
 /*IC*/	const CVisionParameters &CVisualMemoryManager::current_state() const
 {
-	return				(!m_stalker || (m_stalker->movement().mental_state() != eMentalStateDanger) ? m_free : m_danger);
+	if ( m_stalker ) {
+		return			(m_stalker->movement().mental_state() == eMentalStateDanger) ? m_danger : m_free;
+	}
+	else if ( m_object ) { 
+		return			m_object->is_base_monster_with_enemy() ? m_danger : m_free;
+	}
+	else {
+		return			m_free;
+	}
 }
 
 u32	CVisualMemoryManager::visible_object_time_last_seen	(const CObject *object) const
 {
+	if ( Actor()->Holder() && smart_cast<const CActor*>( object ) )
+	  object = smart_cast<const CObject*>( Actor()->Holder() );
+
 	VISIBLES::iterator	I = std::find(m_objects->begin(),m_objects->end(),object_id(object));
 	if (I != m_objects->end()) 
 		return (I->m_level_time);	
@@ -169,6 +185,9 @@ u32	CVisualMemoryManager::visible_object_time_last_seen	(const CObject *object) 
 
 bool CVisualMemoryManager::visible_right_now	(const CGameObject *game_object) const
 {
+	if ( Actor()->Holder() && smart_cast<const CActor*>( game_object ) )
+	  game_object = smart_cast<const CGameObject*>( Actor()->Holder() );
+
 	VISIBLES::const_iterator		I = std::find(objects().begin(),objects().end(),object_id(game_object));
 	if ((objects().end() == I))
 		return						(false);
@@ -184,6 +203,9 @@ bool CVisualMemoryManager::visible_right_now	(const CGameObject *game_object) co
 
 bool CVisualMemoryManager::visible_now	(const CGameObject *game_object) const
 {
+	if ( Actor()->Holder() && smart_cast<const CActor*>( game_object ) )
+	  game_object = smart_cast<const CGameObject*>( Actor()->Holder() );
+
 	VISIBLES::const_iterator		I = std::find(objects().begin(),objects().end(),object_id(game_object));
 	return							((objects().end() != I) && (*I).visible(mask()));
 }
@@ -721,9 +743,7 @@ void CVisualMemoryManager::load	(IReader &packet)
 	if (!m_object->g_Alive())
 		return;
 
-	typedef CClientSpawnManager::CALLBACK_TYPE	CALLBACK_TYPE;
-	CALLBACK_TYPE					callback;
-	callback.bind					(&m_object->memory(),&CMemoryManager::on_requested_spawn);
+	auto callback = fastdelegate::MakeDelegate(&m_object->memory(), &CMemoryManager::on_requested_spawn);
 
 	int								count = packet.r_u8();
 	for (int i=0; i<count; ++i) {

@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "../../xr_3da/igame_persistent.h"
 #include "../../xr_3da/environment.h"
+
 #include "../xrRender/dxEnvironmentRender.h"
-#include "../xrRender/Debug/dxPixEventWrapper.h"
 
 #define STENCIL_CULL 0
 
@@ -115,7 +115,7 @@ void	CRenderTarget::phase_combine	()
 		Fmatrix		m_v2w;			m_v2w.invert				(Device.mView		);
 		CEnvDescriptorMixer& envdesc= *g_pGamePersistent->Environment().CurrentEnv		;
 		const float minamb			= 0.001f;
-		Fvector4	ambclr			= { _max(envdesc.ambient.x*2,minamb),	_max(envdesc.ambient.y*2,minamb),			_max(envdesc.ambient.z*2,minamb),	0	};
+		Fvector4 ambclr = { std::max(envdesc.ambient.x * 2, minamb), std::max(envdesc.ambient.y * 2, minamb), std::max(envdesc.ambient.z * 2, minamb), 0 };
 					ambclr.mul		(ps_r2_sun_lumscale_amb);
 #ifndef USE_COP_WEATHER_CONFIGS
 		Fvector4	envclr			= { envdesc.sky_color.x*2+EPS,	envdesc.sky_color.y*2+EPS,	envdesc.sky_color.z*2+EPS,	envdesc.weight					};
@@ -234,24 +234,23 @@ void	CRenderTarget::phase_combine	()
 		}
 	}
 
-	//FXAA
-	if (ps_r2_ls_flags.test(R2FLAG_FXAA))
-	{
-		PIX_EVENT(FXAA);
-		phase_fxaa();
-		RCache.set_Stencil(FALSE);
-	}
+	// Screen space sunshafts
+	PhaseSSSS();
 
 	// PP enabled ?
 	//	Render to RT texture to be able to copy RT even in windowed mode.
 	BOOL	PP_Complex		= u_need_PP	() | (BOOL)RImplementation.m_bMakeAsyncSS;
 	if (_menu_pp)			PP_Complex	= FALSE;
 
-	if (!_menu_pp)
-	{
-		if (ps_r2_ls_flags_ext.test(R2FLAGEXT_RAIN_DROPS))
-			PhaseRainDrops();
-	}
+
+	// Postprocess anti-aliasing
+	if (ps_r_pp_aa_mode)
+		PhaseAA();
+
+	// Rain droplets on screen
+	if (ps_r2_ls_flags_ext.test(R2FLAGEXT_RAIN_DROPS))
+		PhaseRainDrops();
+
 
 	// Combine everything + perform AA
 	if		(PP_Complex)	u_setrt		( rt_Color,0,0,HW.pBaseZB );			// LDR RT
@@ -470,7 +469,7 @@ void CRenderTarget::phase_combine_volumetric()
 		Fmatrix		m_v2w;			m_v2w.invert				(Device.mView		);
 		CEnvDescriptorMixer& envdesc= *g_pGamePersistent->Environment().CurrentEnv		;
 		const float minamb			= 0.001f;
-		Fvector4	ambclr			= { _max(envdesc.ambient.x*2,minamb),	_max(envdesc.ambient.y*2,minamb),			_max(envdesc.ambient.z*2,minamb),	0	};
+		Fvector4 ambclr = { std::max(envdesc.ambient.x * 2, minamb), std::max(envdesc.ambient.y * 2, minamb), std::max(envdesc.ambient.z * 2, minamb), 0 };
 		ambclr.mul		(ps_r2_sun_lumscale_amb);
 #ifndef USE_COP_WEATHER_CONFIGS
 		Fvector4	envclr			= { envdesc.sky_color.x*2+EPS,	envdesc.sky_color.y*2+EPS,	envdesc.sky_color.z*2+EPS,	envdesc.weight					};

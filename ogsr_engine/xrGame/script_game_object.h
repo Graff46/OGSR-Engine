@@ -134,7 +134,7 @@ struct CSightParams {
 
 class CScriptGameObject {
 	mutable CGameObject		*m_game_object;
-	mutable lua_State		*m_lua_state;
+	mutable lua_State* m_lua_state{};
 public:
 
 							CScriptGameObject		(CGameObject *tpGameObject);
@@ -321,7 +321,8 @@ public:
 			void				TransferMoney		(int money, CScriptGameObject* pForWho);
 			void				GiveMoney			(int money);
 			u32					Money				();
-			
+			void				SetMoney(u32 money);
+
 			void				SetRelation			(ALife::ERelationType relation, CScriptGameObject* pWhoToSet);
 	
 			int					GetAttitude			(CScriptGameObject* pToWho);
@@ -415,6 +416,8 @@ public:
 			CScriptGameObject		*best_weapon	();
 			void					explode			(u32 level_time);
 			void explode_initiator( u16 );
+			bool is_exploded();
+			bool is_ready_to_explode();
 			CScriptGameObject		*GetEnemy		() const;
 			CScriptGameObject		*GetCorpse		() const;
 			CScriptSoundInfo		GetSoundInfo	();
@@ -489,6 +492,7 @@ public:
 			void				extrapolate_length		(float extrapolate_length);
 			float				extrapolate_length		() const;
 			void				enable_memory_object	(CScriptGameObject *object, bool enable);
+			void remove_memory_object( CScriptGameObject* );
 			int					active_sound_count		();
 			int					active_sound_count		(bool only_playing);
 			const CCoverPoint	*best_cover				(const Fvector &position, const Fvector &enemy_position, float radius, float min_enemy_distance, float max_enemy_distance);
@@ -794,12 +798,18 @@ public:
 	bool throw_target( const Fvector&, u32 const, CScriptGameObject* = nullptr );
 
 	void g_fireParams( const CScriptGameObject*, Fvector&, Fvector& );
+	bool can_fire_to_enemy( const CScriptGameObject* );
+
+	void register_in_combat();
+	void unregister_in_combat();
 
 	float stalker_disp_base();
 	void  stalker_disp_base( float );
 	void  stalker_disp_base( float, float );
 
 	bool controller_psy_hit_active();
+
+	bool can_kill_enemy();
 
 	DECLARE_SCRIPT_REGISTER_FUNCTION
 };

@@ -44,8 +44,7 @@ CStalkerCombatPlanner::CStalkerCombatPlanner	(CAI_Stalker *object, LPCSTR action
 
 CStalkerCombatPlanner::~CStalkerCombatPlanner	()
 {
-	CAI_Stalker::on_best_cover_changed_delegate	temp;
-	temp.bind									(this,&CStalkerCombatPlanner::on_best_cover_changed);
+	auto temp = fastdelegate::MakeDelegate(this, &CStalkerCombatPlanner::on_best_cover_changed);
 	object().unsubscribe_on_best_cover_changed	(temp);
 }
 
@@ -75,8 +74,7 @@ void CStalkerCombatPlanner::setup				(CAI_Stalker *object, CPropertyStorage *sto
 	add_evaluators			();
 	add_actions				();
 
-	CAI_Stalker::on_best_cover_changed_delegate		temp;
-	temp.bind										(this,&CStalkerCombatPlanner::on_best_cover_changed);
+	auto temp = fastdelegate::MakeDelegate(this, &CStalkerCombatPlanner::on_best_cover_changed);
 	this->object().subscribe_on_best_cover_changed	(temp);
 }
 
@@ -182,6 +180,7 @@ void CStalkerCombatPlanner::add_evaluators		()
 	add_evaluator			(eWorldPropertyPanic			,xr_new<CStalkerPropertyEvaluatorPanic>				(m_object,"panic"));
 	add_evaluator			(eWorldPropertyDangerGrenade	,xr_new<CStalkerPropertyEvaluatorGrenadeToExplode>	(m_object,"is there grenade to explode"));
 	add_evaluator			(eWorldPropertyEnemyWounded		,xr_new<CStalkerPropertyEvaluatorEnemyWounded>		(m_object,"is enemy wounded"));
+	add_evaluator			(eWorldPropertyEnemyWoundedAssigned	,xr_new<CStalkerPropertyEvaluatorEnemyWoundedAssigned>	(m_object,"is enemy wounded and assigned"));
 	add_evaluator			(eWorldPropertyPlayerOnThePath	,xr_new<CStalkerPropertyEvaluatorPlayerOnThePath>	(m_object,"player on the path"));
 	add_evaluator			(eWorldPropertyEnemyCriticallyWounded	,xr_new<CStalkerPropertyEvaluatorEnemyCriticallyWounded>	(m_object,"enemy_critically_wounded"));
 	
@@ -427,7 +426,7 @@ void CStalkerCombatPlanner::add_actions			()
 	CStalkerKillWoundedPlanner	*planner = xr_new<CStalkerKillWoundedPlanner>	(m_object,"kill wounded enemy");
 	add_condition			(planner,eWorldPropertyCriticallyWounded,false);
 	add_condition			(planner,eWorldPropertyDangerGrenade,	false);
-	add_condition			(planner,eWorldPropertyEnemyWounded,	true);
+	add_condition			(planner,eWorldPropertyEnemyWoundedAssigned,	true);
 	add_condition			(planner,eWorldPropertyItemToKill,		true);
 	add_condition			(planner,eWorldPropertyItemCanKill,		true);
 	add_condition			(planner,eWorldPropertyEnemy,			true);

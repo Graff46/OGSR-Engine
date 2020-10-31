@@ -50,6 +50,8 @@
 #include "../../stalker_decision_space.h"
 #include "../../script_game_object.h"
 #include "../../inventory.h"
+#include "../../game_object_space.h"
+#include "../../holder_custom.h"
 
 using namespace StalkerSpace;
 
@@ -60,6 +62,8 @@ const float PRECISE_DISTANCE			= 2.5f;
 const float FLOOR_DISTANCE				= 2.f;
 const float NEAR_DISTANCE				= 2.5f;
 const u32	FIRE_MAKE_SENSE_INTERVAL	= 10000;
+
+constexpr float start_fire_angle_difference	= PI_DIV_8;
 
 float CAI_Stalker::GetWeaponAccuracy	() const
 {
@@ -190,8 +194,11 @@ void			CAI_Stalker::Hit					(SHit* pHDS)
 
 //	pHDS->power						*= .1f;
 
-	//хит может меняться в зависимости от ранга (новички получают больше хита, чем ветераны)
 	SHit							HDS = *pHDS;
+	callback( GameObject::entity_alive_before_hit )( &HDS );
+	if ( HDS.ignore_flag )
+	  return;
+	//хит может меняться в зависимости от ранга (новички получают больше хита, чем ветераны)
 	HDS.power						*= m_fRankImmunity;
 	if (m_boneHitProtection && HDS.hit_type == ALife::eHitTypeFireWound){
 #ifdef APPLY_ARMOR_PIERCING_TO_NPC
@@ -230,6 +237,7 @@ void			CAI_Stalker::Hit					(SHit* pHDS)
 			weapon_type				= best_weapon()->object().ef_weapon_type();
 
 		if	(
+				( HDS.hit_type == ALife::eHitTypeFireWound || HDS.hit_type == ALife::eHitTypeExplosion ) &&
 				!wounded() &&
 				!already_critically_wounded)
 		{
@@ -541,6 +549,12 @@ IC BOOL ray_query_callback	(collide::rq_result& result, LPVOID params)
 	}
 
 	CEntityAlive						*entity_alive = smart_cast<CEntityAlive*>(result.O);
+	if ( !entity_alive ) {
+	  CHolderCustom* holder = smart_cast<CHolderCustom*>( result.O );
+	  if ( holder && holder->Owner() )
+	    entity_alive = smart_cast<CEntityAlive*>( holder->Owner() );
+	}
+
 	if (!entity_alive) {
 		if (param->m_power > param->m_power_threshold)
 			return TRUE;
@@ -1160,7 +1174,7 @@ void CAI_Stalker::remove_critical_hit			()
 	);
 
 	animation().global().remove_callback(
-		CStalkerAnimationPair::CALLBACK_ID(
+		fastdelegate::MakeDelegate(
 			this,
 			&CAI_Stalker::remove_critical_hit
 		)
@@ -1175,7 +1189,7 @@ void CAI_Stalker::critical_wounded_state_start	()
 	);
 
 	animation().global().add_callback	(
-		CStalkerAnimationPair::CALLBACK_ID(
+		fastdelegate::MakeDelegate(
 			this,
 			&CAI_Stalker::remove_critical_hit
 		)
@@ -1252,4 +1266,18 @@ bool CAI_Stalker::can_kill_enemy							()
 	VERIFY					(inventory().ActiveItem());
 	update_can_kill_info	();
 	return					(m_can_kill_enemy);
+}
+
+
+bool CAI_Stalker::can_fire_to_enemy( const CEntityAlive *enemy ) {
+  Fvector enemy_position  = enemy->Position();
+  Fvector object_position = Position();
+  Fvector direction       = Fvector().sub( enemy_position, object_position );
+  float yaw, pitch;
+  direction.getHP( yaw, pitch );
+  const MonsterSpace::SBoneRotation &current_angles = movement().head_orientation();
+  if ( angle_difference( -yaw, current_angles.current.yaw ) > start_fire_angle_difference ) {
+    return false;
+  }
+  return true;
 }

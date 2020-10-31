@@ -151,31 +151,6 @@ void CLevel::ClientReceive()
 			game_configured			= TRUE;
 			Msg("- Game configuring : Finished ");
 			break;		
-		case M_MIGRATE_DEACTIVATE:	// TO:   Changing server, just deactivate
-			{
-				P->r_u16		(ID);
-				CObject*	O	= Objects.net_Find		(ID);
-				if (0 == O)		break;
-				O->net_MigrateInactive	(*P);
-				if (bDebug)		Log("! MIGRATE_DEACTIVATE",*O->cName());
-			}
-			break;
-		case M_MIGRATE_ACTIVATE:	// TO:   Changing server, full state
-			{
-				P->r_u16		(ID);
-				CObject*	O	= Objects.net_Find		(ID);
-				if (0 == O)		break;
-				O->net_MigrateActive	(*P);
-				if (bDebug)		Log("! MIGRATE_ACTIVATE",*O->cName());
-			}
-			break;
-		case M_CHAT:
-			{
-				char	buffer[256];
-				P->r_stringZ(buffer);
-				Msg		("- %s",buffer);
-			}
-			break;
 		case M_GAMEMESSAGE:
 			{
 				if (!game) break;
@@ -257,10 +232,10 @@ void CLevel::ClientReceive()
 					P->r_stringZ(LevelName);
 					P->r_stringZ(GameType);
 
-					string4096 NewServerOptions = "";
+					string4096 NewServerOptions{};
 					sprintf_s(NewServerOptions, "%s/%s", LevelName, GameType);
 
-					if (m_SO) strcat(NewServerOptions, m_SO);
+					if (m_SO) strcat_s(NewServerOptions, m_SO);
 					m_caServerOptions = NewServerOptions;
 
 					Engine.Event.Defer	("KERNEL:disconnect");

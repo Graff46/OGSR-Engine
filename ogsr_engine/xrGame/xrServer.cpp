@@ -43,7 +43,7 @@ xrClientData::~xrClientData()
 xrServer::xrServer():IPureServer(Device.GetTimerGlobal())
 {
 	m_iCurUpdatePacket = 0;
-	m_aUpdatePackets.push_back(NET_Packet());
+	m_aUpdatePackets.emplace_back();
 	m_aDelayedPackets.clear();
 }
 
@@ -316,7 +316,7 @@ void xrServer::SendUpdatesToAll()
 					{
 						m_iCurUpdatePacket++;
 
-						if (m_aUpdatePackets.size() == m_iCurUpdatePacket) m_aUpdatePackets.push_back(NET_Packet());
+						if (m_aUpdatePackets.size() == m_iCurUpdatePacket) m_aUpdatePackets.emplace_back();
 
 						PacketType = M_UPDATE_OBJECTS;
 						pCurUpdatePacket = &(m_aUpdatePackets[m_iCurUpdatePacket]);
@@ -587,7 +587,7 @@ u32 xrServer::OnMessage	(NET_Packet& P, ClientID sender)			// Non-Zero means bro
 			if(0==stricmp(user.c_str(),"logoff"))
 			{
 				CL->m_admin_rights.m_has_admin_rights	= FALSE;
-				strcpy				(reason,"logged off");
+				strcpy_s(reason,"logged off");
 				Msg("# Remote administrator logged off.");
 			}else
 			{
@@ -847,8 +847,7 @@ void xrServer::AddDelayedPacket	(NET_Packet& Packet, ClientID Sender)
 {
 	DelayedPackestCS.Enter();
 
-	m_aDelayedPackets.push_back(DelayedPacket());
-	DelayedPacket* NewPacket = &(m_aDelayedPackets.back());
+	DelayedPacket* NewPacket = &(m_aDelayedPackets.emplace_back());
 	NewPacket->SenderID = Sender;
 	CopyMemory	(&(NewPacket->Packet),&Packet,sizeof(NET_Packet));	
 

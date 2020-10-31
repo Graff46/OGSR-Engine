@@ -21,10 +21,9 @@ struct SPrimitiveBuffer{
     u32						i_cnt;
     D3DPRIMITIVETYPE 		p_type;
     u32						p_cnt;
-	typedef fastdelegate::FastDelegate0<> TOnRender;
-    TOnRender				OnRender;
-    void xr_stdcall			RenderDIP()	{DU_DRAW_DIP(p_type,pGeom,0,0,v_cnt,0,p_cnt);}
-    void xr_stdcall			RenderDP()	{DU_DRAW_DP	(p_type,pGeom,0,p_cnt);}
+    fastdelegate::FastDelegate<void()> OnRender;
+    void 			RenderDIP()	{DU_DRAW_DIP(p_type,pGeom,0,0,v_cnt,0,p_cnt);}
+    void 			RenderDP()	{DU_DRAW_DP	(p_type,pGeom,0,p_cnt);}
 public:
                             SPrimitiveBuffer():OnRender(0),pGeom(0){;}
     void					CreateFromData(D3DPRIMITIVETYPE _pt, u32 _p_cnt, u32 FVF, LPVOID vertices, u32 _v_cnt, u16* indices=0, u32 _i_cnt=0);
@@ -55,7 +54,7 @@ protected:
     FVF::L*		m_DD_pv;
     FVF::L*		m_DD_pv_start;
     u32 		m_DD_base;
-    BOOL		m_DD_wire;
+    BOOL		m_DD_wire{};
 	void 		DD_DrawFace_flush		(BOOL try_again);
 public:
 	void 		DD_DrawFace_begin		(BOOL bWire);

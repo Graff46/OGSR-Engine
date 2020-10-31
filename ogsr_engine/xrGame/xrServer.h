@@ -101,12 +101,11 @@ protected:
 	void					Server_Client_Check				(IClient* CL);
 	void					PerformCheckClientsForMaxPing	();
 public:
-	game_sv_GameState*		game;
+	game_sv_GameState* game{};
 
 	void					Export_game_type		(IClient* CL);
 	void					Perform_game_export		();
 	BOOL					PerformRP				(CSE_Abstract* E);
-	void					PerformMigration		(CSE_Abstract* E, xrClientData* from, xrClientData* to);
 	
 	IC void					clear_ids				()
 	{

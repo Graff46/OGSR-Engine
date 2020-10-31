@@ -51,6 +51,7 @@ CWeaponMagazined::~CWeaponMagazined()
 	HUD_SOUND::DestroySound(sndShow);
 	HUD_SOUND::DestroySound(sndHide);
 	HUD_SOUND::DestroySound(sndShot);
+	HUD_SOUND::DestroySound(sndSilencerShot);
 	HUD_SOUND::DestroySound(sndEmptyClick);
 	HUD_SOUND::DestroySound(sndReload);
 	HUD_SOUND::DestroySound(sndFireModes);
@@ -71,8 +72,7 @@ void CWeaponMagazined::StopHUDSounds		()
 	HUD_SOUND::StopSound(sndZoomChange);
 
 	HUD_SOUND::StopSound(sndShot);
-//.	if(sndShot.enable && sndShot.snd.feedback)
-//.		sndShot.snd.feedback->switch_to_3D();
+	HUD_SOUND::StopSound(sndSilencerShot);
 
 	inherited::StopHUDSounds();
 }
@@ -89,6 +89,15 @@ BOOL CWeaponMagazined::net_Spawn(CSE_Abstract* DC)
 	BOOL bRes = inherited::net_Spawn(DC);
 	const auto wpn = smart_cast<CSE_ALifeItemWeaponMagazined*>(DC);
 	m_iCurFireMode = wpn->m_u8CurFireMode;
+	if ( HasFireModes() && m_iCurFireMode >= m_aFireModes.size() ) {
+	  Msg( "! [%s]: %s: wrong m_iCurFireMode[%u/%u]", __FUNCTION__, cName().c_str(), m_iCurFireMode, m_aFireModes.size() - 1 );
+	  m_iCurFireMode = m_aFireModes.size() - 1;
+	  auto se_obj = alife_object();
+	  if ( se_obj ) {
+	    auto W = smart_cast<CSE_ALifeItemWeaponMagazined*>( se_obj );
+	    W->m_u8CurFireMode = m_iCurFireMode;
+	  }
+	}
 	SetQueueSize(GetCurrentFireMode());
 	return bRes;
 }
@@ -123,7 +132,8 @@ void CWeaponMagazined::Load	(LPCSTR section)
 
 	if(IsZoomEnabled())
 		animGetEx( mhud.mhud_idle_aim, "anim_idle_aim" );
-	
+
+	animGetEx( mhud.mhud_reload_partly, "anim_reload_partly", nullptr, "anim_reload" );
 
 	//звуки и партиклы глушителя, еслит такой есть
 	if(m_eSilencerStatus == ALife::eAddonAttachable)
@@ -184,7 +194,14 @@ void CWeaponMagazined::FireStart		()
 			else
 				SwitchState(eFire);
 		}
-	} 
+	}
+	else if ( IsMisfire() ) {
+	  if ( smart_cast<CActor*>( this->H_Parent() ) && Level().CurrentViewEntity() == H_Parent() )
+	    HUD().GetUI()->AddInfoMessage( "gun_jammed" );
+	  OnEmptyClick();
+	  // Callbacks added by Cribbledirge.
+	  StateSwitchCallback( GameObject::eOnActorWeaponJammed, GameObject::eOnNPCWeaponJammed );
+	}
 	else 
 		if(eReload!=GetState() && eMisfire!=GetState()) 
             OnMagazineEmpty();
@@ -216,7 +233,7 @@ bool CWeaponMagazined::TryReload()
 
 		m_pAmmo = smart_cast<CWeaponAmmo*>(m_pCurrentInventory->GetAmmo(*m_ammoTypes[m_ammoType], forActor));
 
-		if(m_pAmmo || unlimited_ammo() || (IsMisfire() && iAmmoElapsed))
+		if((m_pAmmo || m_set_next_ammoType_on_reload != u32(-1)) || unlimited_ammo() || (IsMisfire() && iAmmoElapsed))
 		{
 			m_bPending = true;
 			SwitchState(eReload); 
@@ -536,6 +553,7 @@ void CWeaponMagazined::UpdateSounds	()
 	if (sndShow.playing			())	sndShow.set_position		(get_LastFP());
 	if (sndHide.playing			())	sndHide.set_position		(get_LastFP());
 	if (sndShot.playing			()) sndShot.set_position		(get_LastFP());
+	if (sndSilencerShot.playing ()) sndSilencerShot.set_position(get_LastFP());
 	if (sndReload.playing		()) sndReload.set_position		(get_LastFP());
 	if (sndEmptyClick.playing	())	sndEmptyClick.set_position	(get_LastFP());
 	if (sndFireModes.playing	())	sndFireModes.set_position	(get_LastFP());
@@ -575,6 +593,12 @@ void CWeaponMagazined::state_Fire	(float dt)
 //	Msg("%d && %d && (%d || %d) && (%d || %d)", !m_magazine.empty(), fTime<=0, IsWorking(), m_bFireSingleShot, m_iQueueSize < 0, m_iShotNum < m_iQueueSize);
 	while (!m_magazine.empty() && fTime<=0 && (IsWorking() || m_bFireSingleShot) && (m_iQueueSize < 0 || m_iShotNum < m_iQueueSize))
 	{
+		if ( CheckForMisfire() ) {
+			OnEmptyClick();
+			StopShooting();
+			return;
+		}
+
 		m_bFireSingleShot = false;
 
 		VERIFY(fTimeToFire>0.f);
@@ -661,7 +685,11 @@ void CWeaponMagazined::OnAnimationEnd(u32 state)
 {
 	switch(state) 
 	{
-		case eReload:	ReloadMagazine();	SwitchState(eIdle);	break;	// End of reload animation
+		case eReload:
+		  ReloadMagazine();
+		  HUD_SOUND::StopSound( sndReload );
+		  SwitchState( eIdle );
+		  break;	// End of reload animation
 		case eHiding:	SwitchState(eHidden);   break;	// End of Hide
 		case eShowing:	SwitchState(eIdle);		break;	// End of Show
 		case eIdle:		switch2_Idle();			break;  // Keep showing idle
@@ -762,7 +790,7 @@ void CWeaponMagazined::switch2_Hiding()
 {
 	CWeapon::FireEnd();
 
-	HUD_SOUND::StopSound( sndReload );
+	StopHUDSounds();
 	PlaySound	(sndHide,get_LastFP());
 
 	PlayAnimHide();
@@ -794,7 +822,7 @@ bool CWeaponMagazined::Action(s32 cmd, u32 flags)
 	if(inherited::Action(cmd, flags)) return true;
 	
 	//если оружие чем-то занято, то ничего не делать
-	if(IsPending()) return false;
+	if ( IsPending() && cmd != kWPN_FIREMODE_PREV && cmd != kWPN_FIREMODE_NEXT ) return false;
 	
 	switch(cmd) 
 	{
@@ -1164,10 +1192,12 @@ void CWeaponMagazined::PlayAnimHide()
 }
 
 
-void CWeaponMagazined::PlayAnimReload()
-{
-	VERIFY(GetState()==eReload);
-	m_pHUD->animPlay(random_anim(mhud.mhud_reload),TRUE,this,GetState());
+void CWeaponMagazined::PlayAnimReload() {
+  VERIFY( GetState() == eReload );
+  if ( IsPartlyReloading() )
+    m_pHUD->animPlay( random_anim( mhud.mhud_reload_partly ), TRUE, this, GetState() );
+  else
+    m_pHUD->animPlay( random_anim( mhud.mhud_reload ), TRUE, this, GetState() );
 }
 
 
@@ -1222,6 +1252,10 @@ void CWeaponMagazined::OnZoomIn			()
 	CActor* pActor = smart_cast<CActor*>(H_Parent());
 	if(pActor)
 	{
+		CEffectorCam* ec = pActor->Cameras().GetCamEffector( eCEActorMoving );
+		if ( ec )
+		  pActor->Cameras().RemoveCamEffector( eCEActorMoving );
+
 		CEffectorZoomInertion* S = smart_cast<CEffectorZoomInertion*>	(pActor->Cameras().GetCamEffector(eCEZoom));
 		if (!S)	
 		{
@@ -1295,7 +1329,6 @@ void CWeaponMagazined::onMovementChanged( ACTOR_DEFS::EMoveCommand cmd ) {
 void	CWeaponMagazined::OnNextFireMode		()
 {
 	if (!m_bHasDifferentFireModes) return;
-	if (GetState() != eIdle) return;
 	m_iCurFireMode = (m_iCurFireMode+1+m_aFireModes.size()) % m_aFireModes.size();
 	SetQueueSize(GetCurrentFireMode());
 	PlaySound( sndFireModes, get_LastFP() );
@@ -1304,7 +1337,6 @@ void	CWeaponMagazined::OnNextFireMode		()
 void	CWeaponMagazined::OnPrevFireMode		()
 {
 	if (!m_bHasDifferentFireModes) return;
-	if (GetState() != eIdle) return;
 	m_iCurFireMode = (m_iCurFireMode-1+m_aFireModes.size()) % m_aFireModes.size();
 	SetQueueSize(GetCurrentFireMode());	
 	PlaySound( sndFireModes, get_LastFP() );

@@ -15,7 +15,7 @@
 #include "weaponhud.h"
 #include "stalker_animation_data_storage.h"
 #include "stalker_velocity_holder.h"
-#include "../xr_3da/cameramanager.h"
+#include "ActorEffector.h"
 #include "actor.h"
 #include "ui/UILoadingScreen.h"
 #include "../xr_3da/x_ray.h"
@@ -214,7 +214,7 @@ void CGamePersistent::WeathersUpdate()
 	{
 		CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
 		BOOL bIndoor = TRUE;
-		if (actor) bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.05f;
+		if (actor) bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.04f; //--#SM+#-- [0.05f слишком завышен был]
 
 		int data_set = (Random.randF() < (1.f - Environment().CurrentEnv->weight)) ? 0 : 1;
 
@@ -313,6 +313,11 @@ void CGamePersistent::WeathersUpdate()
 					Environment().wind_blast_stop_time.set(0.f, eff->wind_blast_direction.x, eff->wind_blast_direction.y, eff->wind_blast_direction.z);
 				}
 			}
+			else if ( !ambient_particles && Device.dwTimeGlobal > ambient_effect_next_time ) {
+				CEnvAmbient::SEffect* eff = env_amb->get_rnd_effect();
+				if ( eff )
+					ambient_effect_next_time = Device.dwTimeGlobal + env_amb->get_rnd_effect_time();
+			}
 		}
 		if (Device.fTimeGlobal >= ambient_effect_wind_start && Device.fTimeGlobal <= ambient_effect_wind_in_time && ambient_effect_wind_on)
 		{
@@ -381,7 +386,7 @@ void CGamePersistent::WeathersUpdate()
 	{
 		CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
 		BOOL bIndoor = TRUE;
-		if (actor) bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.05f;
+		if (actor) bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.04f; //--#SM+#-- [0.05f слишком завышен был]
 
 		int data_set = (Random.randF() < (1.f - Environment().CurrentEnv->weight)) ? 0 : 1;
 
@@ -422,6 +427,11 @@ void CGamePersistent::WeathersUpdate()
 					ambient_particles->play_at_pos(pos);
 					if (eff->sound._handle())		eff->sound.play_at_pos(0, pos);
 				}
+			}
+			else if ( !ambient_particles && Device.dwTimeGlobal > ambient_effect_next_time ) {
+				CEnvAmbient::SEffect* eff = env_amb->get_rnd_effect();
+				if ( eff )
+					ambient_effect_next_time = Device.dwTimeGlobal + env_amb->get_rnd_effect_time();
 			}
 		}
 		// stop if time exceed or indoor
@@ -549,8 +559,8 @@ void CGamePersistent::OnFrame	()
 					else
 						C = Actor()->Holder()->Camera();
 
-				Actor()->Cameras().Update		(C);
-				Actor()->Cameras().ApplyDevice	(VIEWPORT_NEAR);
+				Actor()->Cameras().UpdateFromCamera(C);
+				Actor()->Cameras().ApplyDevice();
 				}
 			}
 		}
@@ -563,8 +573,8 @@ void CGamePersistent::OnFrame	()
 			else
 				C = Actor()->Holder()->Camera();
 
-			Actor()->Cameras().Update		(C);
-			Actor()->Cameras().ApplyDevice	(VIEWPORT_NEAR);
+			Actor()->Cameras().UpdateFromCamera(C);
+			Actor()->Cameras().ApplyDevice();
 		}
 #endif // MASTER_GOLD
 	}

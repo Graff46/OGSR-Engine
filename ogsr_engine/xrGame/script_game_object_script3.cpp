@@ -53,6 +53,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("path_completed",				&CScriptGameObject::path_completed)
 		.def("patrol_path_make_inactual",	&CScriptGameObject::patrol_path_make_inactual)
 		.def("enable_memory_object",		&CScriptGameObject::enable_memory_object)
+		.def( "remove_memory_object", &CScriptGameObject::remove_memory_object )
 		.def("active_sound_count",			(int (CScriptGameObject::*)())(&CScriptGameObject::active_sound_count))
 		.def("active_sound_count",			(int (CScriptGameObject::*)(bool))(&CScriptGameObject::active_sound_count))
 		.def( "best_cover",   ( const CCoverPoint* ( CScriptGameObject::* ) ( const Fvector&, const Fvector&, float, float, float ) ) ( &CScriptGameObject::best_cover ) )
@@ -165,6 +166,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("transfer_money",				&CScriptGameObject::TransferMoney)
 		.def("give_money",					&CScriptGameObject::GiveMoney)
 		.def("money",						&CScriptGameObject::Money)
+		.def("set_money",					&CScriptGameObject::SetMoney)
 
 		.def("switch_to_trade",				&CScriptGameObject::SwitchToTrade)
 		.def("switch_to_talk",				&CScriptGameObject::SwitchToTalk)
@@ -193,6 +195,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("character_name",				&CScriptGameObject::CharacterName)
 		.def("character_rank",				&CScriptGameObject::CharacterRank)
 		.def("set_character_rank",			&CScriptGameObject::SetCharacterRank)
+		.def("change_character_rank",			&CScriptGameObject::ChangeCharacterRank)
 		.def("character_reputation",		&CScriptGameObject::CharacterReputation)
 		.def("change_character_reputation",	&CScriptGameObject::ChangeCharacterReputation)
 		.def("character_community",			&CScriptGameObject::CharacterCommunity)
@@ -277,16 +280,6 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def("critically_wounded",			&CScriptGameObject::critically_wounded)
 		
 		/************************************************** added by Ray Twitty (aka Shadows) START **************************************************/
-		// фонарь
-		/* alpet: с разрешение автора утащено в torch_script.cpp. Исходный вариант остался в ревизии 110 на xp-dev.com
-		.def("enable_torch",				&CScriptGameObject::EnableTorch)
-		.def("switch_torch",				&CScriptGameObject::SwitchTorch)
-		.def("torch_enabled",				&CScriptGameObject::TorchEnabled)
-		// ПНВ
-		.def("enable_night_vision",			&CScriptGameObject::EnableNightVision)
-		.def("switch_night_vision",			&CScriptGameObject::SwitchNightVision)
-		.def("night_vision_enabled",		&CScriptGameObject::NightVisionEnabled)
-		//*/
 		// инвентарь
 		.def("get_actor_max_weight",			&CScriptGameObject::GetActorMaxWeight)
 		.def("set_actor_max_weight",			&CScriptGameObject::SetActorMaxWeight)

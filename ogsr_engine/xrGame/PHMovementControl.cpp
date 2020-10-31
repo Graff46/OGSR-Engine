@@ -120,8 +120,8 @@ void CPHMovementControl::in_shedule_Update(u32 DT)
 
 void CPHMovementControl::Calculate(Fvector& vAccel,const Fvector& camDir,float /**ang_speed/**/,float jump,float /**dt/**/,bool /**bLight/**/)
 {
-	Fvector previous_position{ vPosition };
-	m_character->GetPosition(vPosition);
+	Fvector previous_position; previous_position.set(vPosition);
+	m_character->IPosition(vPosition);
 
 	if (bExernalImpulse)
 	{
@@ -153,10 +153,15 @@ void CPHMovementControl::Calculate(Fvector& vAccel,const Fvector& camDir,float /
 		}
 	}
 
-	ICollisionDamageInfo	*cdi = CollisionDamageInfo();
-	if (cdi->HitCallback())
-		cdi->HitCallback()->call((m_character->PhysicsRefObject()), fMinCrashSpeed, fMaxCrashSpeed, fContactSpeed, gcontact_HealthLost, CollisionDamageInfo());
-	////////
+#pragma todo("KRodin: починить этот чертов код, вылетает в Х-18 из за кидающихся полтергейстов. Редко, но не настолько, чтобы это было незаметно.")
+	/*
+	auto* cdi = CollisionDamageInfo();
+
+	if (auto* hcb = cdi->HitCallback())
+	{
+		hcb->call(nullptr, fMinCrashSpeed, fMaxCrashSpeed, fContactSpeed, gcontact_HealthLost, cdi);
+	}
+	*/
 
 	TraceBorder(previous_position);
 	CheckEnvironment(vPosition);
@@ -362,8 +367,9 @@ void CPHMovementControl::PathNearestPoint(const xr_vector<DetailPathManager::STr
 
 	Fvector path_point,vtemp;
 	float temp;
+	int i = 0;
 
-	for(int i=0;i<m_path_size-1;++i)
+	for(;i<m_path_size-1;++i)
 	{
 		const Fvector &first=path[i].position, &second=path[i+1].position;
 		from_first.sub(new_position,first);
@@ -454,8 +460,9 @@ void CPHMovementControl::PathNearestPointFindUp(const xr_vector<DetailPathManage
 	Fvector path_point,vtemp;
 	float temp;
 	dir.set		(0,0,1);
+	int i = m_start_index;
 
-	for(int i=m_start_index;i<m_path_size-1;++i)
+	for(;i<m_path_size-1;++i)
 	{
 		const Fvector &first=path[i].position, &second=path[i+1].position;
 		from_first.sub(new_position,first);
@@ -543,7 +550,9 @@ void CPHMovementControl::PathNearestPointFindDown(const xr_vector<DetailPathMana
 	float temp;
 	//(going down)
 	dir.set(0,0,1);
-	for(int i=m_start_index;i>1;--i)
+	int i = m_start_index;
+
+	for(;i>1;--i)
 	{
 		const Fvector &first=path[i-1].position, &second=path[i].position;
 		from_first.sub(new_position,first);

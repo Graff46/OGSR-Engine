@@ -265,6 +265,7 @@ void CCustomZone::Load(LPCSTR section)
 	if( m_zone_flags.test(eIdleLight) )
 	{
 		m_fIdleLightRange = pSettings->r_float(section,"idle_light_range");
+		m_fIdleLightRange = m_fIdleLightRange * 2.0;
 		m_fIdleLightRangeDelta = pSettings->r_float(section,"idle_light_range_delta");
 		LPCSTR light_anim = pSettings->r_string(section,"idle_light_anim");
 		m_pIdleLAnim	 = LALib.FindItem(light_anim);

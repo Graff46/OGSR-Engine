@@ -96,7 +96,7 @@ public:
 FS_file_list_ex::FS_file_list_ex(LPCSTR path, u32 flags, LPCSTR mask)
 {
 	FS_Path* P = FS.get_path(path);
-	P->m_Flags.set	(FS_Path::flNeedRescan,TRUE);
+	P->m_Flags.set(FS_Path::flNeedRescan, TRUE);
 	FS.m_Flags.set	(CLocatorAPI::flNeedCheck,TRUE);
 	FS.rescan_pathes();
 
@@ -147,14 +147,13 @@ LPCSTR get_file_age_str(CLocatorAPI* fs, LPCSTR nm)
 	return asctime( newtime );
 }
 
-CLocatorAPI* set_new_path(CLocatorAPI* fs, LPCSTR initial, string_path newpath)
+CLocatorAPI* set_new_path(CLocatorAPI* fs, LPCSTR initial, LPCSTR newpath)
 {
-	FS_Path* fpath = FS.get_path(initial);
-	fpath->_set(newpath);
-	FS.rescan_path(fpath->m_Path, TRUE);
+	FS_Path* fpath = fs->get_path(initial);
+	fpath->_set((LPSTR) newpath);
+	fs->rescan_path(fpath->m_Path, TRUE);
 	return fs;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////// SCRIPT C++17 FILESYSTEM - START ///////////////////////////////

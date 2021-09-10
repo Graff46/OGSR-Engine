@@ -34,7 +34,8 @@ void CSavedGameWrapper::script_register	(lua_State *L)
 			.def("game_time",		&CSavedGameWrapper__game_time)
 			.def("level_name",		&CSavedGameWrapper__level_name)
 			.def("level_id",		&CSavedGameWrapper::level_id)
-			.def("actor_health",	&CSavedGameWrapper::actor_health),
+			.def("actor_health",	&CSavedGameWrapper::actor_health)
+			.def("get_season",		&CSavedGameWrapper::get_season),
 
 		def("valid_saved_game",		(bool (*)(LPCSTR))(&valid_saved_game))
 	];

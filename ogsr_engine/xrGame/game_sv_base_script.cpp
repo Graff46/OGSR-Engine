@@ -46,6 +46,11 @@ bool has_active_tutotial()
 	return (g_tutorial!=NULL);
 }
 
+void setSeason(LPCSTR seasonName)
+{
+	Device.season = (LPSTR) seasonName;
+}
+
 #pragma optimize("s",on)
 void game_sv_GameState::script_register(lua_State *L)
 {
@@ -100,6 +105,7 @@ void game_sv_GameState::script_register(lua_State *L)
 	
 	def("start_tutorial",		&start_tutorial),
 	def("has_active_tutorial",	&has_active_tutotial),
+	def("set_season",			&setSeason),
 	def("translate_string",		&translate_string)
 
 	];

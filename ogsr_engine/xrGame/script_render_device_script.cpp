@@ -33,6 +33,11 @@ u32 time_global(const CRenderDevice *self)
 	return		(self->dwTimeGlobal);
 }
 
+void texture_reload(CRenderDevice* d) {
+	Device.m_pRender->DeferredLoad(FALSE);
+	Device.m_pRender->ResourcesDeferredUpload();
+}
+
 #pragma optimize("s",on)
 void CScriptRenderDevice::script_register(lua_State *L)
 {
@@ -56,6 +61,7 @@ void CScriptRenderDevice::script_register(lua_State *L)
 			.def_readonly("precache_frame",			&CRenderDevice::dwPrecacheFrame)
 			.def_readonly("frame",					&CRenderDevice::dwFrame)
 			.def("is_paused",						&is_device_paused)
+			.def("texture_reload",					&texture_reload)
 			.def("pause",							&set_device_paused),
 			def("app_ready",						&is_app_ready)
 	];

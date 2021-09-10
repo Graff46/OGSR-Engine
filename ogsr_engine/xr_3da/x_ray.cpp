@@ -696,6 +696,7 @@ void CApplication::Level_Set(u32 L)
 
 	Level_Current = L;
 	FS.get_path("$level$")->_set(Levels[L].folder);
+	FS.get_path("$level_textures_ex$")->_set(Levels[L].folder);
 
 	string_path temp, temp2;
 	strconcat(sizeof(temp), temp, "intro\\intro_", Levels[L].folder);

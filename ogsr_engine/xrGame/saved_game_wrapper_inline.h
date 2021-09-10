@@ -22,3 +22,8 @@ inline const float &CSavedGameWrapper::actor_health						() const
 {
 	return	(m_actor_health);
 }
+
+inline const LPCSTR &CSavedGameWrapper::get_season						() const
+{
+	return season.c_str();
+}

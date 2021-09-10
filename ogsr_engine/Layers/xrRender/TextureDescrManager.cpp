@@ -199,6 +199,8 @@ void CTextureDescrMngr::Load()
 	LoadLTX();
 #endif
 	LoadTHM					("$game_textures$");
+	LoadTHM					("$game_textures_ex$");
+	LoadTHM					("$level_textures_ex$");
 	LoadTHM					("$level$");
 
 #ifdef DEBUG

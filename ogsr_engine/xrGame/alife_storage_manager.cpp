@@ -54,6 +54,7 @@ void CALifeStorageManager::save	(LPCSTR save_name, bool update_name)
 		CMemoryWriter			stream;
 		header().save			(stream);
 		time_manager().save		(stream);
+		stream.w_stringZ(Device.season);
 		spawns().save			(stream);
 		objects().save			(stream);
 		registry().save			(stream);
@@ -92,6 +93,8 @@ void CALifeStorageManager::load	(void *buffer, const u32 &buffer_size, LPCSTR fi
 	IReader						source(buffer,buffer_size);
 	header().load				(source);
 	time_manager().load			(source);
+	shared_str empty;
+	source.r_stringZ(empty);
 	spawns().load				(source,file_name);
 
 	objects().load				(source);

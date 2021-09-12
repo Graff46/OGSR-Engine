@@ -68,7 +68,7 @@ CSavedGameWrapper::CSavedGameWrapper		(LPCSTR saved_game_name)
 		FS.r_close				(stream);
 		CALifeTimeManager		time_manager(alife_section);
 		m_game_time				= time_manager.game_time();
-		season					= Device.season;
+		seasonNameStr			= Device.seasonName;
 		m_actor_health			= 1.f;
 		m_level_id				= ai().game_graph().header().levels().begin()->first;
 		return;
@@ -85,7 +85,11 @@ CSavedGameWrapper::CSavedGameWrapper		(LPCSTR saved_game_name)
 		CALifeTimeManager		time_manager(alife_section);
 		time_manager.load		(reader);
 		m_game_time				= time_manager.game_time();
-		reader.r_stringZ(season);
+	}
+
+	{
+		R_ASSERT2(reader.find_chunk(SEASON_CHUNK_DATA), "Can't find chunk SEASON_CHUNK_DATA");
+		reader.r_stringZ(seasonNameStr);
 	}
 
 	{

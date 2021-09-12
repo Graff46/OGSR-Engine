@@ -54,12 +54,15 @@ void CALifeStorageManager::save	(LPCSTR save_name, bool update_name)
 		CMemoryWriter			stream;
 		header().save			(stream);
 		time_manager().save		(stream);
-		stream.w_stringZ(Device.season);
 		spawns().save			(stream);
 		objects().save			(stream);
 		registry().save			(stream);
 
 		g_ScriptVars.save		(stream);
+
+		stream.open_chunk(SEASON_CHUNK_DATA);
+		stream.w_stringZ(Device.seasonName);
+		stream.close_chunk();
 
 		source_count			= stream.tell();
 		void					*source_data = stream.pointer();
@@ -93,8 +96,6 @@ void CALifeStorageManager::load	(void *buffer, const u32 &buffer_size, LPCSTR fi
 	IReader						source(buffer,buffer_size);
 	header().load				(source);
 	time_manager().load			(source);
-	shared_str empty;
-	source.r_stringZ(empty);
 	spawns().load				(source,file_name);
 
 	objects().load				(source);
@@ -114,6 +115,20 @@ void CALifeStorageManager::load	(void *buffer, const u32 &buffer_size, LPCSTR fi
 	registry().load				(source);
 
 	g_ScriptVars.load(source);
+	R_ASSERT2(source.find_chunk(SEASON_CHUNK_DATA), "Can't find chunk SEASON_CHUNK_DATA");
+	shared_str saveSeason;
+	string_path tmp, tmp2;
+	source.r_stringZ(saveSeason);
+
+	if (xr_strcmp(saveSeason, Device.seasonName)) {
+		FS_Path* p1 = FS.get_path("$game_textures_ex$");
+		FS_Path* p2 = FS.get_path("$level_textures_ex$");
+		p1->_set(xr_strconcat(tmp, "textures_ex\\", saveSeason.c_str(), "\\textures"));
+		p2->_set(xr_strconcat(tmp2, "textures_ex\\", saveSeason.c_str(), "\\levels", level_name().c_str()));
+		FS.rescan_path(p1->m_Path, TRUE);
+		FS.rescan_path(p2->m_Path, TRUE);
+		Device.seasonName = saveSeason.c_str();
+	}
 
 	can_register_objects		(true);
 

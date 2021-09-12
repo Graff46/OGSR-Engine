@@ -209,7 +209,7 @@ public:
 	SGeometry*		CreateGeom				(u32 FVF				, ID3DVertexBuffer* vb, ID3DIndexBuffer* ib);
 	void			DeleteGeom				(const SGeometry* VS		);
 	void			DeferredLoad			(BOOL E)					{ bDeferredLoad=E;	}
-	void			DeferredUpload			();
+	void			DeferredUpload			(BOOL needUnload);
 //.	void			DeferredUnload			();
 	void			Evict					();
 	void			StoreNecessaryTextures	();

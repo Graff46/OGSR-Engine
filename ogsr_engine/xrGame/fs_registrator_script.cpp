@@ -250,6 +250,12 @@ static std::string get_last_write_time_string_short(const stdfs::directory_entry
 	return format_last_write_time(file, "[%d:%m:%Y %T]");
 }
 
+void rescan_path(CLocatorAPI* fs, PCSTR initial, bool recurse)
+{
+	FS_Path* fpath = fs->get_path(initial);
+	fs->rescan_path(fpath->m_Path, recurse);
+}
+
 
 #pragma optimize("s",on)
 void script_register_stdfs(lua_State *L)
@@ -373,7 +379,8 @@ void fs_registrator::script_register(lua_State *L)
 			.def("file_list_open",						&file_list_open_script)
 			.def("file_list_open",						&file_list_open_script_2)
 			.def("file_list_open_ex",					&file_list_open_ex)
-			.def("set_path",							&set_new_path),
+			.def("set_path",							&set_new_path)
+			.def("rescan_path",							&rescan_path),
 
 		def("getFS", [] { return &FS; })
 	];

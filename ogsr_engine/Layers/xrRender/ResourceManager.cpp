@@ -334,11 +334,12 @@ void CResourceManager::Delete(const Shader* S)
 	Msg	("! ERROR: Failed to find complete shader");
 }
 
-void CResourceManager::DeferredUpload()
+void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
 {
 	if (!RDEVICE.b_is_Ready) return;
 	for (map_TextureIt t=m_textures.begin(); t!=m_textures.end(); t++)
 	{
+		if (needUnload) t->second->Unload();
 		t->second->Load();
 	}
 }

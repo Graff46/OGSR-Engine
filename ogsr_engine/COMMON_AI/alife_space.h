@@ -10,7 +10,7 @@
 #define XRAY_ALIFE_SPACE
 
 // ALife objects, events and tasks
-#define ALIFE_VERSION				0x0010
+#define ALIFE_VERSION				0x0009
 #define ALIFE_CHUNK_DATA			0x0000
 #define SPAWN_CHUNK_DATA			0x0001
 #define OBJECT_CHUNK_DATA			0x0002
@@ -18,6 +18,7 @@
 #define REGISTRY_CHUNK_DATA			0x0009
 // alpet: для сохранения переменных
 #define SCRIPT_VARS_CHUNK_DATA			0x000D
+#define SEASON_CHUNK_DATA				0x000E
 #define SECTION_HEADER				"location_"
 #define SAVE_EXTENSION				".sav"
 #define SPAWN_NAME					"game.spawn"

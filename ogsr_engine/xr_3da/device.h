@@ -268,7 +268,6 @@ public:
 		VERIFY(Timer.time_factor() == TimerGlobal.time_factor());
 		return (Timer.time_factor());
 	}
-	LPCSTR seasonName = "default";
 
 private:
 	// Multi-threading

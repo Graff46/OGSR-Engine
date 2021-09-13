@@ -65,7 +65,8 @@ public:
 	virtual void						_restart();
 
 	// Sound interface
-	void						verify_refsound(ref_sound& S);
+	void								verify_refsound(ref_sound& S);
+	XRSOUND_API void					reload();
 	virtual void						create(ref_sound& S, LPCSTR fName, esound_type sound_type, int	game_type);
 	virtual void						attach_tail(ref_sound& S, LPCSTR fName);
 

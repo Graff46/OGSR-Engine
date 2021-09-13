@@ -504,3 +504,12 @@ void CSoundRender_Core::object_relcase(CObject* obj)
 		}
 	}
 }
+
+void CSoundRender_Core::reload()
+{
+	for (u32 it = 0; it < s_sources.size(); it++) {
+		LPCSTR name = s_sources[it]->fname.c_str();
+		s_sources[it]->unload();
+		s_sources[it]->load(name);
+	}
+}

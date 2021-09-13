@@ -2,6 +2,7 @@
 #include "Seasons.h"
 #include "alife_space.h"
 #include "level.h"
+#include "..\xrSound\SoundRender_Core.h"
 
 LPCSTR Seasons::currentSeason = "default";
 void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload)
@@ -25,6 +26,8 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload)
 			Device.m_pRender->ResourcesDeferredUpload(TRUE);
 			if (Device.b_is_Ready) Device.Reset();
 
+			//SoundRender->reload();// Нормально не работает
+
 #pragma todo("create reload all sounds from FS")
 		}
 	}
@@ -40,9 +43,9 @@ void Seasons::save(IWriter& stream)
 void Seasons::load(IReader& stream)
 {
 	R_ASSERT2(stream.find_chunk(SEASON_CHUNK_DATA), "Can't find chunk SEASON_CHUNK_DATA");
-	shared_str saveSeason;
-	stream.r_stringZ(saveSeason);
+		shared_str saveSeason;
+		stream.r_stringZ(saveSeason);
 
-	swithSeason(saveSeason.c_str(), TRUE);
-	currentSeason = saveSeason.c_str();
+		swithSeason(saveSeason.c_str(), TRUE);
+		currentSeason = saveSeason.c_str();	
 };

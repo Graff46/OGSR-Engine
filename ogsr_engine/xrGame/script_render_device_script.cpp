@@ -61,7 +61,6 @@ void CScriptRenderDevice::script_register(lua_State *L)
 			.def("time_global",						&time_global)
 			.def_readonly("precache_frame",			&CRenderDevice::dwPrecacheFrame)
 			.def_readonly("frame",					&CRenderDevice::dwFrame)
-			.def_readwrite("season_name",			&CRenderDevice::seasonName)
 			.def("is_paused",						&is_device_paused)
 			.def("texture_reload",					&texture_reload)
 			.def("pause",							&set_device_paused),

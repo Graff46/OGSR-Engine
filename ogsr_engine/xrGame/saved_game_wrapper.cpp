@@ -14,6 +14,7 @@
 #include "ai_space.h"
 #include "game_graph.h"
 #include "alife_simulator_header.h"
+#include "Seasons.h"
 
 extern LPCSTR alife_section;
 
@@ -68,7 +69,7 @@ CSavedGameWrapper::CSavedGameWrapper		(LPCSTR saved_game_name)
 		FS.r_close				(stream);
 		CALifeTimeManager		time_manager(alife_section);
 		m_game_time				= time_manager.game_time();
-		seasonNameStr			= Device.seasonName;
+		seasonNameStr			= Seasons::currentSeason;
 		m_actor_health			= 1.f;
 		m_level_id				= ai().game_graph().header().levels().begin()->first;
 		return;

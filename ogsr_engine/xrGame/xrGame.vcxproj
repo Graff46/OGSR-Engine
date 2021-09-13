@@ -451,6 +451,7 @@
     <ClInclude Include="script_game_object_impl.h" />
     <ClInclude Include="script_rq_result.h" />
     <ClInclude Include="script_vars_storage.h" />
+    <ClInclude Include="Seasons.h" />
     <ClInclude Include="steering_behaviour.h" />
     <ClInclude Include="steering_behaviour_alignment.h" />
     <ClInclude Include="steering_behaviour_base.h" />
@@ -1689,6 +1690,7 @@
     <ClCompile Include="hit_memory_manager.cpp" />
     <ClCompile Include="script_rq_result.cpp" />
     <ClCompile Include="script_vars_storage.cpp" />
+    <ClCompile Include="Seasons.cpp" />
     <ClCompile Include="sound_memory_manager.cpp" />
     <ClCompile Include="steering_behaviour.cpp" />
     <ClCompile Include="trajectories.cpp" />

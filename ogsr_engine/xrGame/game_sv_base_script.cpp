@@ -15,6 +15,7 @@
 #include "UI/UIGameTutorial.h"
 #include "string_table.h"
 #include "object_broker.h"
+#include "Seasons.h"
 
 using namespace luabind;
 
@@ -44,6 +45,16 @@ LPCSTR translate_string(LPCSTR str)
 bool has_active_tutotial()
 {
 	return (g_tutorial!=NULL);
+}
+
+void changeSeason(LPCSTR seasonName, bool needRreload)
+{
+	Seasons::swithSeason(seasonName, needRreload);
+}
+
+LPCSTR getSeason()
+{
+	return Seasons::currentSeason;
 }
 
 #pragma optimize("s",on)
@@ -100,7 +111,9 @@ void game_sv_GameState::script_register(lua_State *L)
 	
 	def("start_tutorial",		&start_tutorial),
 	def("has_active_tutorial",	&has_active_tutotial),
-	def("translate_string",		&translate_string)
+	def("translate_string",		&translate_string),
+	def("change_season",		&changeSeason),
+	def("get_season",			&getSeason)
 
 	];
 	

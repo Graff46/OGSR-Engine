@@ -6107,6 +6107,7 @@
     <ClInclude Include="matrix_utils.h">
       <Filter>Core\Client\Objects\physics\IK</Filter>
     </ClInclude>
+    <ClInclude Include="Seasons.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -8912,6 +8913,7 @@
     <ClCompile Include="pose_extrapolation.cpp">
       <Filter>Core\Client\Objects\physics\IK</Filter>
     </ClCompile>
+    <ClCompile Include="Seasons.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuildStep Include="Explosive.h">

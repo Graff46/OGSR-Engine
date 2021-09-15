@@ -4,7 +4,7 @@
 #include "level.h"
 #include "..\xrSound\SoundRender_Core.h"
 
-LPCSTR Seasons::currentSeason = "default";
+LPSTR Seasons::currentSeason = "default";
 void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload)
 {
 	if (xr_strcmp(newSeason, currentSeason)) {
@@ -14,12 +14,15 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload)
 		FS_Path* p3 = FS.get_path("$sound_ex$");
 		p1->_set(xr_strconcat(tmp,  "seasons\\", newSeason, "\\textures"));
 		p3->_set(xr_strconcat(tmp3, "seasons\\", newSeason, "\\sounds"));
-		p2->_set(xr_strconcat(tmp2, "seasons\\", newSeason, "\\levels\\", Level().name().c_str()));
+		if ((&Level()) && (Level().bReady))
+			p2->_set(xr_strconcat(tmp2, "seasons\\", newSeason, "\\levels\\", Level().name().c_str()));
+		else
+			p2->_set(xr_strconcat(tmp2, "seasons\\", newSeason, "\\levels"));
 		FS.rescan_path(p1->m_Path, TRUE);
 		FS.rescan_path(p2->m_Path, TRUE);
 		FS.rescan_path(p3->m_Path, TRUE);
 
-		currentSeason = newSeason;
+		currentSeason = (LPSTR) newSeason;
 
 		if (needReload) {
 			Device.m_pRender->DeferredLoad(FALSE);
@@ -46,6 +49,6 @@ void Seasons::load(IReader& stream)
 		shared_str saveSeason;
 		stream.r_stringZ(saveSeason);
 
-		swithSeason(saveSeason.c_str(), TRUE);
-		currentSeason = saveSeason.c_str();	
+		swithSeason(saveSeason.c_str(), FALSE);
+		currentSeason = (LPSTR) saveSeason.c_str();	
 };

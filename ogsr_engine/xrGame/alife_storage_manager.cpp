@@ -115,7 +115,7 @@ void CALifeStorageManager::load	(void *buffer, const u32 &buffer_size, LPCSTR fi
 
 	g_ScriptVars.load			(source);
 	
-	Seasons::load				(source);
+	Seasons::load				(source, level_name());
 
 	can_register_objects		(true);
 

@@ -1,26 +1,25 @@
 #include "stdafx.h"
 #include "Seasons.h"
-#include "alife_space.h"
 #include "level.h"
 #include "..\xrSound\SoundRender_Core.h"
+#include "ui/UILoadingScreen.h"
+#include "..\xr_3da\x_ray.h"
 
 LPSTR Seasons::currentSeason = "default";
-void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload)
+void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelName)
 {
 	if (xr_strcmp(newSeason, currentSeason)) {
-		string_path tmp, tmp2, tmp3;
-		FS_Path* p1 = FS.get_path("$game_textures_ex$");
-		FS_Path* p2 = FS.get_path("$level_textures_ex$");
-		FS_Path* p3 = FS.get_path("$sound_ex$");
-		p1->_set(xr_strconcat(tmp,  "seasons\\", newSeason, "\\textures"));
-		p3->_set(xr_strconcat(tmp3, "seasons\\", newSeason, "\\sounds"));
-		if ((&Level()) && (Level().bReady))
-			p2->_set(xr_strconcat(tmp2, "seasons\\", newSeason, "\\levels\\", Level().name().c_str()));
-		else
-			p2->_set(xr_strconcat(tmp2, "seasons\\", newSeason, "\\levels"));
-		FS.rescan_path(p1->m_Path, TRUE);
-		FS.rescan_path(p2->m_Path, TRUE);
-		FS.rescan_path(p3->m_Path, TRUE);
+		LPCSTR locName = Level().bReady ? Level().name().c_str() : levelName.c_str();
+		string_path tmp;
+		FS_Path* gte = FS.get_path("$game_textures_ex$");
+		FS_Path* lte = FS.get_path("$level_textures_ex$");
+		FS_Path* snd = FS.get_path("$sound_ex$");
+		gte->_set(xr_strconcat(tmp,  "seasons\\", newSeason, "\\textures"));
+		snd->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\sounds"));
+		lte->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\levels\\", locName));
+		FS.rescan_path(gte->m_Path, TRUE);
+		FS.rescan_path(lte->m_Path, TRUE);
+		FS.rescan_path(snd->m_Path, TRUE);
 
 		currentSeason = (LPSTR) newSeason;
 
@@ -43,12 +42,12 @@ void Seasons::save(IWriter& stream)
 	stream.close_chunk();
 };
 
-void Seasons::load(IReader& stream)
+void Seasons::load(IReader& stream, shared_str levelName)
 {
 	R_ASSERT2(stream.find_chunk(SEASON_CHUNK_DATA), "Can't find chunk SEASON_CHUNK_DATA");
-		shared_str saveSeason;
-		stream.r_stringZ(saveSeason);
+	shared_str saveSeason;
+	stream.r_stringZ(saveSeason);
 
-		swithSeason(saveSeason.c_str(), FALSE);
-		currentSeason = (LPSTR) saveSeason.c_str();	
+	swithSeason(saveSeason.c_str(), FALSE, levelName);
+	currentSeason = (LPSTR) saveSeason.c_str();	
 };

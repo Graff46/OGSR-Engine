@@ -51,3 +51,8 @@ void Seasons::load(IReader& stream, shared_str levelName)
 	swithSeason(saveSeason.c_str(), FALSE, levelName);
 	currentSeason = (LPSTR) saveSeason.c_str();	
 };
+
+void Seasons::reset()
+{
+	currentSeason = "default";
+}

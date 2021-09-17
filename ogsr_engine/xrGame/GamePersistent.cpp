@@ -22,6 +22,7 @@
 #include "string_table.h"
 #include "HUDManager.h"
 #include "..\xr_3da\DiscordRPC.hpp"
+#include "Seasons.h"
 
 #ifndef MASTER_GOLD
 #	include "custommonster.h"
@@ -168,6 +169,7 @@ void CGamePersistent::Start		(LPCSTR op)
 void CGamePersistent::Disconnect()
 {
 	CWeaponHUD::CleanSharedContainer();
+	Seasons::reset();
 
 	// destroy ambient particles
 	CParticlesObject::Destroy(ambient_particles);

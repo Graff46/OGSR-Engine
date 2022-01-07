@@ -30,8 +30,21 @@
 #include "GameTask.h"
 #include "car.h"
 #include "sight_manager_space.h"
+#include "actor.h"
 
 using namespace luabind;
+
+bool exit_car(CScriptGameObject* obj) //Graff46
+{
+	CHolderCustom* holder = obj->get_current_holder();
+	bool result = false;
+	if (holder) {
+		result = holder->Use(Device.vCameraPosition, Device.vCameraDirection, obj->Center());
+		if (result) Actor()->detach_Vehicle();
+	}
+
+	return result;
+}
 
 class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>&& instance)
 {
@@ -439,5 +452,6 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
 		.def( "add_feel_touch",    ( void ( CScriptGameObject::* )( float, const luabind::object&, const luabind::functor<void>& ) )( &CScriptGameObject::addFeelTouch ) )
 		.def( "remove_feel_touch", ( void ( CScriptGameObject::* )( const luabind::object&, const luabind::functor<void>&, const luabind::functor<bool>& ) )( &CScriptGameObject::removeFeelTouch ) )
 		.def( "remove_feel_touch", ( void ( CScriptGameObject::* )( const luabind::object&, const luabind::functor<void>& ) )( &CScriptGameObject::removeFeelTouch ) )
+		.def( "exit_car", &exit_car)
 	;
 }

@@ -34,13 +34,18 @@
 
 using namespace luabind;
 
-bool exit_car(CScriptGameObject* obj) //Graff46
+bool exit_car(CScriptGameObject* obj, const float angle) //Graff46
 {
 	CHolderCustom* holder = obj->get_current_holder();
 	bool result = false;
 	if (holder) {
-		result = holder->Use(Device.vCameraPosition, Device.vCameraDirection, obj->Center());
-		if (result) Actor()->detach_Vehicle();
+		CCar* car = smart_cast<CCar*>(holder);
+		if (car) {
+			Fvector dir = Fvector().set(car->Direction());
+			dir.setHP(dir.getH() + deg2rad(angle), 0);
+			result = car->Exit(Device.vCameraPosition, dir);
+			if (result) Actor()->detach_Vehicle();
+		}
 	}
 
 	return result;

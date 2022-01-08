@@ -1045,6 +1045,8 @@ void CCar::ReleaseHandBreak()
 		i->Neutral();
 	if(e_state_drive==drive) 
 		Drive();
+
+	if (OwnerActor()) car_panel->SetCarGear("");
 }
 void CCar::Drive()
 {
@@ -1271,8 +1273,11 @@ void CCar::PressBack()
 }
 void CCar::PressBreaks()
 {
-	HandBreak();
-	brp=true;
+	if (brp)
+		ReleaseHandBreak();
+	else
+		HandBreak();
+	brp = !brp;
 }
 
 void CCar::DriveBack()
@@ -1318,8 +1323,9 @@ void CCar::ReleaseForward()
 	}
 	else
 	{
-		Unclutch();
-		NeutralDrive();
+		//Unclutch();
+		//NeutralDrive();
+		e_state_drive = neutral;
 	}
 
 	fwp=false;
@@ -1339,8 +1345,9 @@ void CCar::ReleaseBack()
 	}
 	else
 	{
-		Unclutch();
-		NeutralDrive();
+		//Unclutch();
+		//NeutralDrive();
+		e_state_drive = neutral;
 	}
 	bkp=false;
 }
@@ -1348,8 +1355,8 @@ void CCar::ReleaseBack()
 
 void CCar::ReleaseBreaks()
 {
-	ReleaseHandBreak();
-	brp=false;
+	//ReleaseHandBreak();
+	//brp=false;
 }
 
 void CCar::Transmission(size_t num)
@@ -1364,7 +1371,7 @@ void CCar::Transmission(size_t num)
 			m_current_transmission_num	=num						;
 			m_current_gear_ratio		=m_gear_ratious[num][0]		;
 			b_transmission_switching	=true						;
-			Drive						()							;
+			if (e_state_drive != neutral) Drive()					;
 
 			if (OwnerActor()) car_panel->SetCarGear(m_current_transmission_num);
 		}
@@ -1637,6 +1644,7 @@ float CCar::EnginePower()
 		}
 		else if(Device.dwTimeGlobal-m_dwStartTime>1000) b_starting=false;
 	}
+	//if (e_state_drive == neutral) return value;
 	if(value>m_current_engine_power)
 		return value * m_power_increment_factor+m_current_engine_power*(1.f-m_power_increment_factor);
 	else
@@ -1659,6 +1667,11 @@ float CCar::EngineDriveSpeed()
 {
 	//float wheel_speed,drive_speed=dInfinity;
 	float calc_rpm=0.f;
+	if (e_state_drive == neutral) {
+		calc_rpm = EngineRpmFromWheels();
+		limit_above(calc_rpm, m_max_rpm * m_power_neutral_factor);
+		return calc_rpm;
+	}
 	if(b_transmission_switching)
 	{
 		calc_rpm=m_max_rpm;

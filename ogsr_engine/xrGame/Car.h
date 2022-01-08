@@ -16,6 +16,8 @@
 #include "Explosive.h"
 #include "PHDestroyable.h"
 #include "DelayedActionFuse.h"
+#include "ui/UICarPanel.h"
+
 // refs
 class ENGINE_API			CBoneInstance;
 class						CActor;
@@ -377,6 +379,7 @@ private:
 	typedef CEntity			inherited;
 private:
 	CCarWeapon*				m_car_weapon;
+	CUICarPanel*			car_panel;
 	float					m_steer_angle;
 	bool					m_repairing;
 	u16						m_bone_steer;

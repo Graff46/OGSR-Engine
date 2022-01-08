@@ -91,6 +91,7 @@ CCar::CCar()
 	m_steer_angle=0.f;
 	m_current_rpm = 0.f;
 	m_current_engine_power = 0.f;
+	car_panel = NULL;
 
 #ifdef DEBUG
 	InitDebug();
@@ -501,13 +502,21 @@ void CCar::UpdateCL				( )
 		{
 			Owner()->XFORM().mul_43	(XFORM(),m_sits_transforms[0]);
 		}
-
-		if(HUD().GetUI())//
+		
+		/*if (HUD().GetUI())
 		{
 			HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(true);
-			HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth()/* /100.f*/);
-			HUD().GetUI()->UIMainIngameWnd->CarPanel().SetSpeed(lin_vel.magnitude()/1000.f*3600.f/100.f);
-			HUD().GetUI()->UIMainIngameWnd->CarPanel().SetRPM(m_current_rpm/m_max_rpm/2.f);
+			HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth());
+			HUD().GetUI()->UIMainIngameWnd->CarPanel().SetSpeed(lin_vel.magnitude());
+			HUD().GetUI()->UIMainIngameWnd->CarPanel().SetRPM(m_current_rpm / m_max_rpm);
+		}*/
+		
+		if ((OwnerActor()) && (car_panel))
+		{
+			car_panel->Show(true);
+			car_panel->SetCarHealth(GetfHealth());
+			car_panel->SetSpeed(lin_vel.magnitude());
+			car_panel->SetRPM(m_current_rpm / m_max_rpm);
 		}
 	}
 
@@ -579,7 +588,7 @@ void	CCar::Hit							(SHit* pHDS)
 	}
 	CDamagableItem::HitEffect();
 	if(Owner()&&Owner()->ID()==Level().CurrentEntity()->ID())
-		HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth()/* /100.f */);
+		car_panel->SetCarHealth(GetfHealth()/* /100.f */);
 }
 
 void CCar::ChangeCondition	(float fDeltaCondition)	
@@ -590,7 +599,7 @@ void CCar::ChangeCondition	(float fDeltaCondition)
 	if (Local() && !g_Alive() && !AlreadyDie())
 		KillEntity	(Initiator());
 	if(Owner()&&Owner()->ID()==Level().CurrentEntity()->ID())
-		HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth()/* /100.f */);
+		car_panel->SetCarHealth(GetfHealth()/* /100.f */);
 }
 
 void CCar::PHHit(float P,Fvector &dir, CObject *who,s16 element,Fvector p_in_object_space, float impulse, ALife::EHitType hit_type)
@@ -646,7 +655,7 @@ void CCar::detach_Actor()
 	Unclutch();
 	ResetKeys();
 	m_current_rpm=m_min_rpm;
-	HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(false);
+	car_panel->Show(false);
 	///Break();
 	//H_SetParent(NULL);
 	HandBreak();
@@ -680,8 +689,9 @@ bool CCar::attach_Actor(CGameObject* actor)
 //	VisualUpdate();
 	processing_activate();
 	ReleaseHandBreak();
-//	HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(true);
-//	HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(fEntityHealth/100.f);
+	car_panel->Show(true);
+	car_panel->SetCarHealth(Health());
+	car_panel->SetCarGear(CurrentTransmission());
 	//HUD().GetUI()->UIMainIngameWnd.ShowBattery(true);
 	//CBoneData&	bone_data=K->LL_GetData(id);
 	//Fmatrix driver_pos_tranform;
@@ -1008,6 +1018,7 @@ void CCar::Init()
 	HandBreak();
 	Transmission(1);
 
+	car_panel = &HUD().GetUI()->UIMainIngameWnd->CarPanel();
 }
 
 void CCar::Revert()
@@ -1185,6 +1196,8 @@ void CCar::HandBreak()
 	e=m_breaking_wheels.end();
 	for(;i!=e;++i)
 		i->HandBreak();
+
+	if (OwnerActor()) car_panel->SetCarGear("P");
 }
 
 void CCar::StartBreaking()
@@ -1236,6 +1249,7 @@ void CCar::PressForward()
 	else 
 	{
 		DriveForward();
+		if (OwnerActor()) car_panel->SetCarGear(CurrentTransmission());
 	}
 	fwp=true;
 }
@@ -1267,6 +1281,8 @@ void CCar::DriveBack()
 	Transmission(0);
 	if(1==CurrentTransmission()||0==CurrentTransmission())Starter();
 	Drive();
+
+	if (OwnerActor()) car_panel->SetCarGear("R");
 }
 void CCar::DriveForward()
 {
@@ -1310,10 +1326,10 @@ void CCar::ReleaseForward()
 }
 void CCar::ReleaseBack()
 {
-	if(b_breaks)
+	/*if (b_breaks)
 	{
 		StopBreaking();
-	}
+	}*/
 	if(fwp)
 	{
 		Clutch();
@@ -1343,12 +1359,14 @@ void CCar::Transmission(size_t num)
 	{
 		if(CurrentTransmission()!=num)
 		{
-			//m_car_sound					->TransmissionSwitch()		;
+			m_car_sound					->TransmissionSwitch()		;
 			AscCall(ascSndTransmission)								;
 			m_current_transmission_num	=num						;
 			m_current_gear_ratio		=m_gear_ratious[num][0]		;
 			b_transmission_switching	=true						;
 			Drive						()							;
+
+			if (OwnerActor()) car_panel->SetCarGear(m_current_transmission_num);
 		}
 	}
 #ifdef DEBUG
@@ -1372,7 +1390,6 @@ void CCar::TransmissionUp()
 	size_t max_transmition_num=m_gear_ratious.size()-1;
 	transmission>max_transmition_num ? transmission=max_transmition_num :transmission;
 	Transmission(transmission);
-
 }
 
 void CCar::TransmissionDown()
@@ -1381,7 +1398,6 @@ void CCar::TransmissionDown()
 	size_t transmission=CurrentTransmission()-1;
 	transmission<1 ? transmission=1 : transmission;
 	Transmission(transmission);
-
 }
 
 
@@ -1767,7 +1783,7 @@ void CCar::PhDataUpdate(dReal step)
 		UpdateFuel(step);
 
 	
-		//if(fwp)
+		//if(fwp || bkp)
 		{	
 			UpdatePower();
 			if(b_engine_on&&!b_starting && m_current_rpm<m_min_rpm)Stall();

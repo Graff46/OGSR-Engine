@@ -1283,11 +1283,11 @@ void CCar::PressBack()
 }
 void CCar::PressBreaks()
 {
-	if (brp)
-		ReleaseHandBreak();
-	else
-		HandBreak();
-	brp = !brp;
+	if ((!brpOn) && ((Device.dwTimeGlobal - lastPressBreaks) < 750)) brpOn = true;
+	
+	lastPressBreaks = Device.dwTimeGlobal;
+	HandBreak();
+	brp = true;
 }
 
 void CCar::DriveBack()
@@ -1371,8 +1371,13 @@ void CCar::ReleaseBack()
 
 void CCar::ReleaseBreaks()
 {
-	//ReleaseHandBreak();
-	//brp=false;
+	if (brpOn) {
+		brpOn = false;
+		return;
+	}
+
+	ReleaseHandBreak();
+	brp=false;
 }
 
 void CCar::Transmission(size_t num)
@@ -1645,7 +1650,7 @@ float CCar::Parabola(float rpm)
 	float value=m_a*expf(-ex*ex)*rpm;
 	if(value<0.f) return 0.f;
 	if ((e_state_drive == neutral) && (m_current_engine_power > m_max_power * m_power_neutral_factor))
-		value *= m_power_decrement_factor;
+		value = -value;
 
 	return value;
 }

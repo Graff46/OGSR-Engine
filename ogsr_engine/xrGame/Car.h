@@ -105,7 +105,7 @@ protected:
 public:
 
 
-	bool rsp,lsp,fwp,bkp,brp;
+	bool rsp,lsp,fwp,bkp,brp, brpOn;
 	Fmatrix m_root_transform;
 	Fvector m_exit_position;
 
@@ -142,6 +142,7 @@ public:
 
 	float   m_break_start;
 	float	m_break_time;
+	float	lastPressBreaks;
 	float	m_breaks_to_back_rate;
 	float	m_power_neutral_factor;//multiplier for power when accelerator is not pressed (0-1,0.25)
 	bool	b_exploded;

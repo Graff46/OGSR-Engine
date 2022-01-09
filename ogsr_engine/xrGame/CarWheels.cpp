@@ -216,7 +216,7 @@ void CCar::SWheelDrive::UpdatePower()
 }
 void CCar::SWheelDrive::Neutral()
 {
-	pwheel->ApplyDriveAxisVelTorque(0.f,pwheel->car->m_axle_friction);
+	pwheel->ApplyDriveAxisVelTorque(0.f, pwheel->car->m_axle_friction);
 }
 
 float CCar::SWheelDrive::ASpeed()
@@ -361,6 +361,5 @@ void CCar::SWheelBreak::HandBreak()
 
 void CCar::SWheelBreak::Neutral()
 {
-	pwheel->ApplyDriveAxisVelTorque(0.f,pwheel->car->m_axle_friction);
+	pwheel->ApplyDriveAxisVelTorque(0.f, pwheel->car->m_axle_friction);
 }
-

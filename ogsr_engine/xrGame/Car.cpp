@@ -764,8 +764,6 @@ bool CCar::Exit(const Fvector& pos,const Fvector& dir)
 
 void CCar::ParseDefinitions()
 {
-	 
-	
 	bone_map.clear();
 
 	IKinematics* pKinematics=smart_cast<IKinematics*>(Visual());
@@ -806,6 +804,7 @@ void CCar::ParseDefinitions()
 	m_power_decrement_factor	=		READ_IF_EXISTS(ini,r_float,"car_definition","power_decrement_factor",m_power_increment_factor);
 	m_rpm_decrement_factor		=		READ_IF_EXISTS(ini,r_float,"car_definition","rpm_decrement_factor",m_rpm_increment_factor);
 	m_power_neutral_factor		=		READ_IF_EXISTS(ini,r_float,"car_definition","power_neutral_factor",m_power_neutral_factor);
+	reverse_rule				=		READ_IF_EXISTS(ini,r_bool, "car_definition", "reverse_steer", false);
 	R_ASSERT2(m_power_neutral_factor>0.1f&&m_power_neutral_factor<1.f,"power_neutral_factor must be 0 - 1 !!");
 	if(ini->line_exist("car_definition","exhaust_particles"))
 	{
@@ -1028,12 +1027,12 @@ void CCar::Revert()
 
 void CCar::NeutralDrive()
 {
-
-	xr_vector<SWheelDrive>::iterator i,e;
+	xr_vector<SWheelDrive>::iterator i, e;
 	i=m_driving_wheels.begin();
 	e=m_driving_wheels.end();
 	for(;i!=e;++i)
 		i->Neutral();
+
 	e_state_drive=neutral;
 }
 void CCar::ReleaseHandBreak()
@@ -1046,7 +1045,7 @@ void CCar::ReleaseHandBreak()
 	if(e_state_drive==drive) 
 		Drive();
 
-	if (OwnerActor()) car_panel->SetCarGear("");
+	if (OwnerActor()) car_panel->SetCarGear(CurrentTransmission());
 }
 void CCar::Drive()
 {
@@ -1066,7 +1065,6 @@ void CCar::Drive()
 
 void CCar::StartEngine()
 {
-	
 	if(m_fuel<EPS||b_engine_on) return;
 	PlayExhausts();
 	m_car_sound->Start();
@@ -1084,8 +1082,8 @@ void CCar::StopEngine()
 	AscCall(ascExhoustStop);
 	NeutralDrive();//set zero speed
 	b_engine_on=false;
-	UpdatePower();//set engine friction;
-	m_current_rpm=0.f;
+	//UpdatePower();//set engine friction;
+	//m_current_rpm=0.f;
 }
 
 void CCar::Stall()
@@ -1221,8 +1219,12 @@ void CCar::StopBreaking()
 		Drive();
 	b_breaks=false;
 }
-void CCar::PressRight()
+void CCar::PressRight(bool reverse)
 {
+	if (reverse_rule) return PressLeft(true);
+
+	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(1);
+
 	if(lsp)
 	{
 		if(!fwp)SteerIdle();
@@ -1231,8 +1233,12 @@ void CCar::PressRight()
 		SteerRight();
 	rsp=true;
 }
-void CCar::PressLeft()
+void CCar::PressLeft(bool reverse)
 {
+	if (reverse_rule) return PressRight(true);
+
+	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(-1);
+
 	if(rsp)
 	{
 		if(!fwp)SteerIdle();
@@ -1245,8 +1251,9 @@ void CCar::PressForward()
 {
 	if(bkp) 
 	{	
-		Unclutch();
+		//Unclutch();
 		NeutralDrive();
+		StartBreaking();
 	}
 	else 
 	{
@@ -1259,8 +1266,9 @@ void CCar::PressBack()
 {
 	if(fwp) 
 	{
-		Unclutch();
+		//Unclutch();
 		NeutralDrive();
+		StartBreaking();
 	}
 	else 
 	{
@@ -1296,16 +1304,24 @@ void CCar::DriveForward()
 	if(1==CurrentTransmission()||0==CurrentTransmission())Starter();
 	Drive();
 }
-void CCar::ReleaseRight()
+void CCar::ReleaseRight(bool reverse)
 {
+	if (reverse_rule) return ReleaseLeft(true);
+
+	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(0);
+
 	if(lsp)
 		SteerLeft();
 	else
 		SteerIdle();
 	rsp=false;
 }
-void CCar::ReleaseLeft()
+void CCar::ReleaseLeft(bool reverse)
 {
+	if (reverse_rule) return ReleaseRight(true);
+
+	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(0);
+
 	if(rsp)
 		SteerRight();
 	else
@@ -1324,18 +1340,17 @@ void CCar::ReleaseForward()
 	else
 	{
 		//Unclutch();
-		//NeutralDrive();
-		e_state_drive = neutral;
+		NeutralDrive();
 	}
 
 	fwp=false;
 }
 void CCar::ReleaseBack()
 {
-	/*if (b_breaks)
+	if (b_breaks)
 	{
 		StopBreaking();
-	}*/
+	}
 	if(fwp)
 	{
 		Clutch();
@@ -1346,8 +1361,7 @@ void CCar::ReleaseBack()
 	else
 	{
 		//Unclutch();
-		//NeutralDrive();
-		e_state_drive = neutral;
+		NeutralDrive();
 	}
 	bkp=false;
 }
@@ -1628,7 +1642,9 @@ float CCar::Parabola(float rpm)
 	float ex=(rpm-m_b)/m_c;
 	float value=m_a*expf(-ex*ex)*rpm;
 	if(value<0.f) return 0.f;
-	if(e_state_drive==neutral) value*=m_power_neutral_factor;
+	if ((e_state_drive == neutral) && (m_current_engine_power > m_max_power * m_power_neutral_factor))
+		value *= m_power_decrement_factor;
+
 	return value;
 }
 
@@ -1638,13 +1654,14 @@ float CCar::EnginePower()
 	float value;value = Parabola(m_current_rpm);
 	if(b_starting)
 	{
-		if(m_current_rpm<m_min_rpm)
-		{
+		if(m_current_rpm<m_min_rpm) {
 			value= Parabola(m_min_rpm);
-		}
-		else if(Device.dwTimeGlobal-m_dwStartTime>1000) b_starting=false;
+		} else {
+			if (Device.dwTimeGlobal - m_dwStartTime > 1000) b_starting = false;
+			
+		} 
 	}
-	//if (e_state_drive == neutral) return value;
+
 	if(value>m_current_engine_power)
 		return value * m_power_increment_factor+m_current_engine_power*(1.f-m_power_increment_factor);
 	else
@@ -1667,11 +1684,6 @@ float CCar::EngineDriveSpeed()
 {
 	//float wheel_speed,drive_speed=dInfinity;
 	float calc_rpm=0.f;
-	if (e_state_drive == neutral) {
-		calc_rpm = EngineRpmFromWheels();
-		limit_above(calc_rpm, m_max_rpm * m_power_neutral_factor);
-		return calc_rpm;
-	}
 	if(b_transmission_switching)
 	{
 		calc_rpm=m_max_rpm;
@@ -2026,7 +2038,7 @@ float	CCar:: EngineCurTorque()
 }
 float	CCar:: RefWheelCurTorque()
 {
-	if(b_transmission_switching) return 0.f;
+	//if(b_transmission_switching) return 0.f;
 	return EngineCurTorque()*((m_current_gear_ratio<0.f) ? -m_current_gear_ratio : m_current_gear_ratio);
 }
 void CCar::GetRayExplosionSourcePos(Fvector &pos)

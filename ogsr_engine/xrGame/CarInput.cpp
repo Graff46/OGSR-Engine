@@ -146,8 +146,8 @@ void CCar::OnKeyboardPress(int cmd)
 	case kCROUCH:	TransmissionDown();			break;
 	case kFWD:		PressForward();				break;
 	case kBACK:		PressBack();				break;
-	case kR_STRAFE:	PressRight();				if (OwnerActor()) OwnerActor()->steer_Vehicle(1);	break;
-	case kL_STRAFE:	PressLeft();				if (OwnerActor()) OwnerActor()->steer_Vehicle(-1);break;
+	case kR_STRAFE:	PressRight();				break;
+	case kL_STRAFE:	PressLeft();				break;
 	case kJUMP:		PressBreaks();				break;
 	case kENGINE:	SwitchEngine();				break;
 	case kTORCH:	m_lights.SwitchHeadLights();break;
@@ -173,8 +173,8 @@ void	CCar::OnKeyboardRelease(int cmd)
 	case kACCEL:break;
 	case kFWD:		ReleaseForward();			break;
 	case kBACK:		ReleaseBack();				break;
-	case kL_STRAFE:	ReleaseLeft();				if (OwnerActor()) OwnerActor()->steer_Vehicle(0);	break;
-	case kR_STRAFE:	ReleaseRight();				if (OwnerActor()) OwnerActor()->steer_Vehicle(0);	break;
+	case kL_STRAFE:	ReleaseLeft();				break;
+	case kR_STRAFE:	ReleaseRight();				break;
 	case kJUMP:		ReleaseBreaks();			break;
 	};
 }

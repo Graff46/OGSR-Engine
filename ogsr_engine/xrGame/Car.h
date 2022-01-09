@@ -382,6 +382,7 @@ private:
 	CUICarPanel*			car_panel;
 	float					m_steer_angle;
 	bool					m_repairing;
+	bool					reverse_rule;
 	u16						m_bone_steer;
 	CCameraBase*			camera[3];
 	CCameraBase*			active_camera;
@@ -476,14 +477,14 @@ IC	float	 			EngineRpmFromWheels					(){return dFabs(DriveWheelsMeanAngleRate()*
 	void				TransmissionUp						();
 	void				TransmissionDown					();
 IC	size_t				CurrentTransmission					(){return m_current_transmission_num;}
-	void				PressRight							();
-	void				PressLeft							();
+	void				PressRight							(bool reverse = false);
+	void				PressLeft							(bool reverse = false);
 	void				PressForward						();
 	void				PressBack							();
 	void				PressBreaks							();
 
-	void				ReleaseRight						();
-	void				ReleaseLeft							();
+	void				ReleaseRight						(bool reverse=false);
+	void				ReleaseLeft							(bool reverse=false);
 	void				ReleaseForward						();
 	void				ReleaseBack							();
 	void				ReleaseBreaks						();

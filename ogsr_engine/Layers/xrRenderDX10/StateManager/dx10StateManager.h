@@ -6,7 +6,7 @@ class dx10StateManager
 {
 public:
 	dx10StateManager();
-	~dx10StateManager();
+	~dx10StateManager() = default;
 
 	//	Set all states to default
 	void	Reset();
@@ -36,6 +36,7 @@ public:
 	void	SetDepthEnable(u32 Enable);
 	void	SetColorWriteEnable(u32 WriteMask);
 	void	SetCullMode(u32 Mode);
+	void SetFillMode(u32 Mode);
    void  SetMultisample( u32 Enable );
    void  SetSampleMask( u32 Mask );
 

@@ -13,7 +13,6 @@
 #include "xr_time.h"
 #include "character_info_defs.h"
 #include "..\xr_3da\CameraBase.h"
-#include "WeaponHUD.h"
 #include "ui/UIStatic.h"
 #include "../COMMON_AI/PATH/patrol_path.h"
 
@@ -518,9 +517,9 @@ public:
 			bool				accessible_vertex_id	(u32 level_vertex_id);
 			u32					accessible_nearest		(const Fvector &position, Fvector &result);
 
-			const xr_vector<MemorySpace::CVisibleObject>		&memory_visible_objects	() const;
-			const xr_vector<MemorySpace::CSoundObject>			&memory_sound_objects	() const;
-			const xr_vector<MemorySpace::CHitObject>			&memory_hit_objects		() const;
+			const std::deque<MemorySpace::CVisibleObject>		&memory_visible_objects	() const;
+			const std::deque<MemorySpace::CSoundObject>			&memory_sound_objects	() const;
+			const std::deque<MemorySpace::CHitObject>			&memory_hit_objects		() const;
 			const xr_vector<MemorySpace::CNotYetVisibleObject>	&not_yet_visible_objects() const;
 			float				visibility_threshold	() const;
 			void				enable_vision			(bool value);
@@ -629,6 +628,8 @@ public:
 
 			/**************************************************** added by Cribbledirge END ****************************************************/
 
+			bool				addon_IsActorHideout() const;		// проверка что актор под каким либо укрытием
+
 			// KD
 			// functions for CInventoryOwner class
 			CScriptGameObject	*ItemOnBelt(u32 item_id) const;
@@ -695,10 +696,6 @@ public:
 
 			u32					GetCurrAmmo();
 
-			void				SetHudOffset(Fvector _offset);
-//			void				SetHudRotate(float _x, float _y);
-			void				SetHudRotate(Fvector2 _v);
-
 			CScriptGameObject	*GetActorHolder();
 			CCameraBase			*GetCarCamera();
 			Fmatrix				*GetXForm();
@@ -760,6 +757,7 @@ public:
 			_DECLARE_FUNCTION10(IsInventoryBox, bool);
 			_DECLARE_FUNCTION10(IsWeaponBinoculars, bool);
 			_DECLARE_FUNCTION10(IsKnife, bool);
+			_DECLARE_FUNCTION10(IsPistol, bool);
 
 			float				GetActorJumpSpeed() const;
 			void				SetActorJumpSpeed(float _factor);
@@ -775,9 +773,6 @@ public:
 
 			// alpet: visual functions for CWeapon descedants 
 			_DECLARE_FUNCTION10 (alife_object			,			CSE_ALifeDynamicObject*);
-			_DECLARE_FUNCTION10 (GetWeaponHUD_Visual	,			IRenderVisual*);
-			_DECLARE_FUNCTION10 (GetWeaponHUD			,			CWeaponHUD*);
-			void				LoadWeaponHUD_Visual	(LPCSTR wpn_hud_section);
 
 			void play_hud_animation (LPCSTR anim, bool mix_in);
 			void play_hud_animation (LPCSTR anim);

@@ -38,8 +38,7 @@ public:
 
 	virtual BOOL			net_Spawn			(CSE_Abstract* DC);
 	virtual void			net_Destroy			();
-	virtual void			net_Export			(NET_Packet& P);	// export to server
-	virtual void			net_Import			(NET_Packet& P);	// import from server
+	virtual void net_Export( CSE_Abstract* E );
 
 	virtual void			UpdateCL			();
 
@@ -67,6 +66,7 @@ protected:
 	void					UpdateBarrelDir		();
 	virtual const Fvector&	get_CurrentFirePoint();
 	virtual const Fmatrix&	get_ParticlesXFORM	();
+	virtual bool			IsHudModeNow		() { return false; };
 
 	virtual	void			FireStart			();
 	virtual	void			FireEnd				();

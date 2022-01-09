@@ -112,8 +112,6 @@ void CObjectScript::script_register		(lua_State *L)
 			.def("_construct",			&CGameObject::_construct,&CGameObjectWrapper::_construct_static)
 			.def("Visual",				&CGameObject::Visual)
 
-			.def("net_Export",			&CGameObject::net_Export,		&CGameObjectWrapper::net_Export_static)
-			.def("net_Import",			&CGameObject::net_Import,		&CGameObjectWrapper::net_Import_static)
 			.def("net_Spawn",			&CGameObject::net_Spawn,	&CGameObjectWrapper::net_Spawn_static)
 
 			.def("use",					&CGameObject::use,	&CGameObjectWrapper::use_static)
@@ -160,13 +158,13 @@ void CObjectScript::script_register		(lua_State *L)
 			]
 			.enum_("weapon_states")
 			[
-				value("eIdle",		int(CWeapon::EWeaponStates::eIdle)),
+				value("eIdle",		int(CHudItem::EHudStates::eIdle)),
 				value("eFire",		int(CWeapon::EWeaponStates::eFire)),
 				value("eFire2",		int(CWeapon::EWeaponStates::eFire2)),
 				value("eReload",	int(CWeapon::EWeaponStates::eReload)),
-				value("eShowing",	int(CWeapon::EWeaponStates::eShowing)),
-				value("eHiding",	int(CWeapon::EWeaponStates::eHiding)),
-				value("eHidden",	int(CWeapon::EWeaponStates::eHidden)),
+				value("eShowing",	int(CHudItem::EHudStates::eShowing)),
+				value("eHiding",	int(CHudItem::EHudStates::eHiding)),
+				value("eHidden",	int(CHudItem::EHudStates::eHidden)),
 				value("eMisfire",	int(CWeapon::EWeaponStates::eMisfire)),
 				value("eMagEmpty",	int(CWeapon::EWeaponStates::eMagEmpty)),
 				value("eSwitch",	int(CWeapon::EWeaponStates::eSwitch))

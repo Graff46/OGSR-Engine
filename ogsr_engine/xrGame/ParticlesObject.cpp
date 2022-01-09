@@ -102,9 +102,10 @@ const shared_str CParticlesObject::Name()
 }
 
 //----------------------------------------------------
-void CParticlesObject::Play		()
+void CParticlesObject::Play(BOOL hudMode)
 {
 	IParticleCustom* V			= smart_cast<IParticleCustom*>(renderable.visual); VERIFY(V);
+	V->SetHudMode				(hudMode);
 	V->Play						();
 	dwLastTime					= Device.dwTimeGlobal-33ul;
 	mt_dt						= 0;
@@ -216,7 +217,7 @@ bool CParticlesObject::IsAutoRemove			()
 }
 void CParticlesObject::SetAutoRemove		(bool auto_remove)
 {
-	VERIFY(m_bStopping || !IsLooped());
+	VERIFY(/*m_bStopping || */!IsLooped());
 	m_bAutoRemove = auto_remove;
 }
 

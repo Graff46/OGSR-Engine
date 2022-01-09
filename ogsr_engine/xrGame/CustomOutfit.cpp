@@ -13,6 +13,8 @@
 #include "UIGameSP.h"
 #include "HudManager.h"
 #include "ui/UIInventoryWnd.h"
+#include "player_hud.h"
+#include "xrserver_objects_alife_items.h"
 
 CCustomOutfit::CCustomOutfit()
 {
@@ -38,16 +40,10 @@ CCustomOutfit::~CCustomOutfit()
 	xr_delete(m_boneProtection);
 }
 
-void CCustomOutfit::net_Export(NET_Packet& P)
-{
-	inherited::net_Export	(P);
-	P.w_float_q8			(m_fCondition,0.0f,1.0f);
-}
-
-void CCustomOutfit::net_Import(NET_Packet& P)
-{
-	inherited::net_Import	(P);
-	P.r_float_q8			(m_fCondition,0.0f,1.0f);
+void CCustomOutfit::net_Export( CSE_Abstract* E ) {
+  inherited::net_Export( E );
+  CSE_ALifeInventoryItem *itm = smart_cast<CSE_ALifeInventoryItem*>( E );
+  itm->m_fCondition = m_fCondition;
 }
 
 void CCustomOutfit::Load(LPCSTR section) 
@@ -146,6 +142,11 @@ void	CCustomOutfit::OnMoveToSlot		()
 				m_boneProtection->reload( pSettings->r_string(cNameSect(),"bones_koeff_protection"), smart_cast<IKinematics*>(pActor->Visual()) );
 			}
 
+			if (pSettings->line_exist(cNameSect(), "player_hud_section"))
+				g_player_hud->load(pSettings->r_string(cNameSect(), "player_hud_section"));
+			else
+				g_player_hud->load_default();
+
 			smart_cast<CUIGameSP*>(HUD().GetUI()->UIGame())->InventoryMenu->UpdateOutfit();
 		}
 	}
@@ -170,6 +171,8 @@ void CCustomOutfit::OnDropOrMoveToRuck() {
 					pActor->ChangeVisual(DefVisual);
 				}
 			}
+
+			g_player_hud->load_default();
 
 			smart_cast<CUIGameSP*>(HUD().GetUI()->UIGame())->InventoryMenu->UpdateOutfit();
 		}

@@ -53,9 +53,6 @@ extern	float	psSqueezeVelocity;
 
 extern	int		x_m_x;
 extern	int		x_m_z;
-extern	BOOL	net_cl_inputguaranteed	;
-extern	BOOL	net_sv_control_hit		;
-extern	int		g_dwInputUpdateDelta	;
 #ifdef DEBUG
 extern	BOOL	g_ShowAnimationInfo		;
 #endif // DEBUG
@@ -67,6 +64,10 @@ extern	BOOL	g_show_wnd_rect2			;
 //-----------------------------------------------------------
 extern	float	g_fTimeFactor;
 extern	BOOL	g_bCopDeathAnim;
+extern	int		g_bHudAdjustMode;
+extern	int		g_bHudAdjustItemIdx;
+extern	float	g_bHudAdjustDeltaPos;
+extern	float	g_bHudAdjustDeltaRot;
 
 //-----------------------------------------------------------
 
@@ -533,27 +534,6 @@ public:
 	  virtual void	Execute	(LPCSTR args)
 	  {
 		  CCC_Float::Execute(args);
-	  }
-};
-
-
-
-class CCC_Net_CL_InputUpdateRate : public CCC_Integer {
-protected:
-	int		*value_blin;
-public:
-	CCC_Net_CL_InputUpdateRate(LPCSTR N, int* V, int _min=0, int _max=999) :
-	  CCC_Integer(N,V,_min,_max),
-		  value_blin(V)
-	  {};
-
-	  virtual void	Execute	(LPCSTR args)
-	  {
-		  CCC_Integer::Execute(args);
-		  if ((*value_blin > 0) && g_pGameLevel)
-		  {
-			  g_dwInputUpdateDelta = 1000/(*value_blin);
-		  };
 	  }
 };
 
@@ -1196,13 +1176,8 @@ void CCC_RegisterCommands()
 	CMD3(CCC_Mask,				"hud_info",				&psHUD_Flags,	HUD_INFO);
 	CMD3(CCC_Mask,				"hud_draw",				&psHUD_Flags,	HUD_DRAW);
 	CMD3(CCC_Mask,				"hud_crosshair_build",	&psHUD_Flags,	HUD_CROSSHAIR_BUILD); // билдокурсор
+	CMD3(CCC_Mask, "hud_crosshair_hard", &psHUD_Flags, HUD_CROSSHAIR_HARD);
 	CMD3( CCC_Mask, "hud_small_font", &psHUD_Flags, HUD_SMALL_FONT); // использовать уменьшенный размер шрифта
-
-	// hud
-	psHUD_Flags.set(HUD_CROSSHAIR,		true);
-	psHUD_Flags.set(HUD_WEAPON,			true);
-	psHUD_Flags.set(HUD_DRAW,			true);
-	psHUD_Flags.set(HUD_INFO,			true);
 
 	CMD3(CCC_Mask,				"hud_crosshair",		&psHUD_Flags,	HUD_CROSSHAIR);
 	CMD3(CCC_Mask,				"hud_crosshair_dist",	&psHUD_Flags,	HUD_CROSSHAIR_DIST);
@@ -1274,8 +1249,10 @@ void CCC_RegisterCommands()
 	CMD1(CCC_TuneAttachableItem,"dbg_adjust_attachable_item");
 #endif
 	// adjust mode support
-	CMD4(CCC_Integer,			"hud_adjust_mode",		&g_bHudAdjustMode,	0, 5);
-	CMD4(CCC_Float,				"hud_adjust_value",		&g_fHudAdjustValue,	0.0f, 1.0f);
+	CMD4(CCC_Integer,			"hud_adjust_mode",			&g_bHudAdjustMode,		0, 7);
+	//CMD4(CCC_Integer,			"hud_adjust_item_index",	&g_bHudAdjustItemIdx,	0, 1);
+	CMD4(CCC_Float,				"hud_adjust_delta_value",	&g_bHudAdjustDeltaPos,	0.0005f, 1.f);
+	CMD4(CCC_Float,				"hud_adjust_delta_rot",		&g_bHudAdjustDeltaRot,	0.0005f, 10.f);
 #ifdef DEBUG
 	CMD1(CCC_ShowAnimationStats,"ai_show_animation_stats");
 #endif // DEBUG

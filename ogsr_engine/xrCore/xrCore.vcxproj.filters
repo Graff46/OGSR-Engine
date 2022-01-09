@@ -160,6 +160,9 @@
     <ClCompile Include="Event.cpp">
       <Filter>Threading</Filter>
     </ClCompile>
+    <ClCompile Include="trivial_encryptor.cpp">
+      <Filter>FS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FTimer.h">
@@ -303,9 +306,6 @@
     <ClInclude Include="xr_resource.h">
       <Filter>shared memory/string library</Filter>
     </ClInclude>
-    <ClInclude Include="xr_shared.h">
-      <Filter>shared memory/string library</Filter>
-    </ClInclude>
     <ClInclude Include="xrsharedmem.h">
       <Filter>shared memory/string library</Filter>
     </ClInclude>
@@ -381,6 +381,9 @@
     </ClInclude>
     <ClInclude Include="buffer_vector_inline.h">
       <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="trivial_encryptor.h">
+      <Filter>FS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

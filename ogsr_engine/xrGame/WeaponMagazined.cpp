@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "hudmanager.h"
-#include "WeaponHUD.h"
 #include "WeaponMagazined.h"
 #include "entity.h"
 #include "actor.h"
@@ -113,9 +112,17 @@ void CWeaponMagazined::Load	(LPCSTR section)
 	HUD_SOUND::LoadSound(section,"snd_holster"	, sndHide		, m_eSoundHide		);
 	HUD_SOUND::LoadSound(section,"snd_shoot"	, sndShot		, m_eSoundShot		);
 	HUD_SOUND::LoadSound(section,"snd_empty"	, sndEmptyClick	, m_eSoundEmptyClick	);
-	HUD_SOUND::LoadSound(section,"snd_reload"	, sndReload		, m_eSoundReload		);
 
-	if (pSettings->line_exist(section, "snd_reload_partly")) {
+	if (pSettings->line_exist(section, "snd_reload_empty"))
+		HUD_SOUND::LoadSound(section, "snd_reload_empty", sndReload, m_eSoundReload);
+	else
+		HUD_SOUND::LoadSound(section, "snd_reload", sndReload, m_eSoundReload);
+
+	if (pSettings->line_exist(section, "snd_reload_empty")) { //OpenXRay-style неполная перезарядка
+		HUD_SOUND::LoadSound(section, "snd_reload", sndReloadPartly, m_eSoundReload);
+		sndReloadPartlyExist = true;
+	}
+	else if (pSettings->line_exist(section, "snd_reload_partly")) { //OGSR-style неполная перезарядка
 		HUD_SOUND::LoadSound(section, "snd_reload_partly", sndReloadPartly, m_eSoundReload);
 		sndReloadPartlyExist = true;
 	}
@@ -127,22 +134,6 @@ void CWeaponMagazined::Load	(LPCSTR section)
 	
 	m_pSndShotCurrent = &sndShot;
 		
-	
-	// HUD :: Anims
-	R_ASSERT			(m_pHUD);
-	animGetEx( mhud.mhud_idle,        "anim_idle" );
-	animGetEx( mhud.mhud_idle_moving, pSettings->line_exist( hud_sect.c_str(), "anim_idle_moving" ) ? "anim_idle_moving" : "anim_idle" );
-	animGetEx( mhud.mhud_idle_sprint, pSettings->line_exist( hud_sect.c_str(), "anim_idle_sprint" ) ? "anim_idle_sprint" : "anim_idle" );
-	animGetEx( mhud.mhud_reload,      "anim_reload" );
-	animGetEx( mhud.mhud_show,        "anim_draw" );
-	animGetEx( mhud.mhud_hide,        "anim_holster" );
-	animGetEx( mhud.mhud_shots,       "anim_shoot" );
-
-	if(IsZoomEnabled())
-		animGetEx( mhud.mhud_idle_aim, "anim_idle_aim" );
-
-	animGetEx( mhud.mhud_reload_partly, "anim_reload_partly", nullptr, "anim_reload" );
-
 	//звуки и партиклы глушителя, еслит такой есть
 	if(m_eSilencerStatus == ALife::eAddonAttachable)
 	{
@@ -243,7 +234,7 @@ bool CWeaponMagazined::TryReload()
 
 		if((m_pAmmo || m_set_next_ammoType_on_reload != u32(-1)) || unlimited_ammo() || (IsMisfire() && iAmmoElapsed))
 		{
-			m_bPending = true;
+			SetPending(TRUE);
 			SwitchState(eReload); 
 			return true;
 		}
@@ -253,7 +244,7 @@ bool CWeaponMagazined::TryReload()
 			if(m_pAmmo) 
 			{ 
 				m_set_next_ammoType_on_reload = i; // https://github.com/revolucas/CoC-Xray/pull/5/commits/3c45cad1edb388664efbe3bb20a29f92e2d827ca
-				m_bPending = true;
+				SetPending(TRUE);
 				SwitchState(eReload);
 				return true; 
 			}
@@ -440,9 +431,9 @@ void CWeaponMagazined::ReloadMagazine()
 	VERIFY((u32)iAmmoElapsed == m_magazine.size());
 }
 
-void CWeaponMagazined::OnStateSwitch	(u32 S)
+void CWeaponMagazined::OnStateSwitch(u32 S, u32 oldState)
 {
-	inherited::OnStateSwitch(S);
+	inherited::OnStateSwitch(S, oldState);
 	switch (S)
 	{
 	case eIdle:
@@ -649,6 +640,10 @@ void CWeaponMagazined::SetDefaults	()
 
 void CWeaponMagazined::OnShot		()
 {
+	// Если актор бежит - останавливаем его
+	if (ParentIsActor())
+		Actor()->set_state_wishful(Actor()->get_state_wishful() & (~mcSprint));
+
 	// Sound
 	PlaySound( *m_pSndShotCurrent, get_LastFP(), true );
 
@@ -693,10 +688,11 @@ void CWeaponMagazined::OnAnimationEnd(u32 state)
 
 	}
 }
-void CWeaponMagazined::switch2_Idle	()
+
+void CWeaponMagazined::switch2_Idle()
 {
-	m_bPending = false;
-	PlayAnimIdle( m_idle_state );
+	SetPending(FALSE);
+	PlayAnimIdle();
 }
 
 #ifdef DEBUG
@@ -784,8 +780,9 @@ void CWeaponMagazined::switch2_Reload()
 
 	PlayReloadSound	();
 	PlayAnimReload	();
-	m_bPending = true;
+	SetPending(TRUE);
 }
+
 void CWeaponMagazined::switch2_Hiding()
 {
 	CWeapon::FireEnd();
@@ -794,7 +791,7 @@ void CWeaponMagazined::switch2_Hiding()
 	PlaySound	(sndHide,get_LastFP());
 
 	PlayAnimHide();
-	m_bPending = true;
+	SetPending(TRUE);
 }
 
 void CWeaponMagazined::switch2_Hidden()
@@ -803,7 +800,7 @@ void CWeaponMagazined::switch2_Hidden()
 
 	HUD_SOUND::StopSound( sndReload );
 	HUD_SOUND::StopSound(sndReloadPartly);
-	if (m_pHUD) m_pHUD->StopCurrentAnimWithoutCallback();
+	StopCurrentAnimWithoutCallback();
 
 	signal_HideComplete		();
 	RemoveShotEffector		();
@@ -814,7 +811,7 @@ void CWeaponMagazined::switch2_Showing()
 {
 	PlaySound	(sndShow,get_LastFP());
 
-	m_bPending = true;
+	SetPending(TRUE);
 	PlayAnimShow();
 }
 
@@ -1043,7 +1040,6 @@ void CWeaponMagazined::InitAddons()
 	//////////////////////////////////////////////////////////////////////////
 	// Прицел
 	m_fIronSightZoomFactor = READ_IF_EXISTS(pSettings, r_float, cNameSect(), "ironsight_zoom_factor", 50.0f);
-	m_fSecondScopeZoomFactor = READ_IF_EXISTS(pSettings, r_float, cNameSect(), "second_scope_zoom_factor", m_fIronSightZoomFactor);
 
 	if(IsScopeAttached())
 	{
@@ -1141,7 +1137,7 @@ void CWeaponMagazined::InitAddons()
 	inherited::InitAddons();
 	callback(GameObject::eOnAddonInit)(1);
 
-	UpdateZoomOffset();
+	m_fZoomFactor = CurrentZoomFactor();
 }
 
 void CWeaponMagazined::ApplySilencerKoeffs	()
@@ -1183,63 +1179,57 @@ void CWeaponMagazined::ApplySilencerKoeffs	()
 void CWeaponMagazined::PlayAnimShow()
 {
 	VERIFY(GetState()==eShowing);
-	m_pHUD->animPlay(random_anim(mhud.mhud_show),FALSE,this,GetState());
+	PlayHUDMotion("anim_draw", "anm_show", false, this, GetState());
 }
 
 void CWeaponMagazined::PlayAnimHide()
 {
 	VERIFY(GetState()==eHiding);
-	m_pHUD->animPlay (random_anim(mhud.mhud_hide),TRUE,this,GetState());
+	PlayHUDMotion("anim_holster", "anm_hide", true, this, GetState());
 }
 
 
-void CWeaponMagazined::PlayAnimReload() {
-  VERIFY( GetState() == eReload );
-  if ( IsPartlyReloading() )
-    m_pHUD->animPlay( random_anim( mhud.mhud_reload_partly ), TRUE, this, GetState() );
-  else
-    m_pHUD->animPlay( random_anim( mhud.mhud_reload ), TRUE, this, GetState() );
-}
-
-
-bool CWeaponMagazined::TryPlayAnimIdle( u8 state = eIdle ) {
-  VERIFY( GetState() == eIdle );
-  if ( !IsZoomed() ) {
-    switch ( state ) {
-    case eSubstateIdleMoving:
-      m_pHUD->animPlay( random_anim( mhud.mhud_idle_moving ), TRUE, NULL, GetState() );
-      return true;
-    case eSubstateIdleSprint:
-      m_pHUD->animPlay( random_anim( mhud.mhud_idle_sprint ), TRUE, NULL, GetState() );
-      return true;
-    default:
-      return false;
-    }
-  }
-  return false;
-}
-
-
-void CWeaponMagazined::PlayAnimIdle( u8 state = eIdle )
+void CWeaponMagazined::PlayAnimReload()
 {
-	MotionSVec* m = NULL;
-	if(IsZoomed())
+	VERIFY(GetState() == eReload);
+	if (IsPartlyReloading())
 	{
-		m = &mhud.mhud_idle_aim;
+		if (AnimationExist("anim_reload_partly") || AnimationExist("anm_reload_partly"))
+			PlayHUDMotion("anim_reload_partly", "anm_reload_partly", TRUE, nullptr, GetState());
+		else
+			PlayHUDMotion("anim_reload", "anm_reload", TRUE, nullptr, GetState());
 	}
-	else{
-		m = &mhud.mhud_idle;
-		if ( TryPlayAnimIdle( state ) ) return;
+	else
+	{
+		if (AnimationExist("anm_reload_empty"))
+			PlayHUDMotion("anm_reload_empty", TRUE, nullptr, GetState());
+		else
+			PlayHUDMotion("anim_reload", "anm_reload", TRUE, nullptr, GetState());
 	}
+}
 
-	VERIFY(GetState()==eIdle);
-	m_pHUD->animPlay(random_anim(*m), TRUE, NULL, GetState());
+void CWeaponMagazined::PlayAnimAim()
+{ 
+	PlayHUDMotion("anim_idle_aim", "anm_idle_aim", true, nullptr, GetState());
+}
+
+void CWeaponMagazined::PlayAnimIdle()
+{
+	if (GetState() != eIdle)
+		return;
+
+	if (IsZoomed())
+	{
+		PlayAnimAim();
+	}
+	else
+		inherited::PlayAnimIdle();
 }
 
 void CWeaponMagazined::PlayAnimShoot()
 {
 	VERIFY(GetState()==eFire || GetState()==eFire2);
-	m_pHUD->animPlay(random_anim(mhud.mhud_shots), TRUE, this, GetState());
+	PlayHUDMotion("anim_shoot", "anm_shots", false, this, GetState());
 }
 
 void CWeaponMagazined::OnZoomIn			()
@@ -1270,14 +1260,15 @@ void CWeaponMagazined::OnZoomIn			()
 			m_binoc_vision = xr_new<CBinocularsVision>(this);
 	}
 }
-void CWeaponMagazined::OnZoomOut		()
+void CWeaponMagazined::OnZoomOut()
 {
-	if(!m_bZoomMode) return;
+	if (!m_bZoomMode)
+		return;
 
 	inherited::OnZoomOut();
 
-	if(GetState() == eIdle)
-		PlayAnimIdle( m_idle_state );
+	if (GetState() == eIdle)
+		PlayAnimIdle();
 
 	CActor* pActor = smart_cast<CActor*>(H_Parent());
 	if (pActor)
@@ -1289,7 +1280,6 @@ void CWeaponMagazined::OnZoomOut		()
 			xr_delete(m_binoc_vision);
 		}
 	}
-
 }
 
 void CWeaponMagazined::OnZoomChanged()
@@ -1298,9 +1288,10 @@ void CWeaponMagazined::OnZoomChanged()
 }
 
 //переключение режимов стрельбы одиночными и очередями
-bool CWeaponMagazined::SwitchMode			()
+bool CWeaponMagazined::SwitchMode()
 {
-	if(eIdle != GetState() || IsPending()) return false;
+	if (eIdle != GetState() || IsPending()) 
+		return false;
 
 	if(SingleShotMode())
 		m_iQueueSize = WEAPON_ININITE_QUEUE;
@@ -1311,21 +1302,6 @@ bool CWeaponMagazined::SwitchMode			()
 
 	return true;
 }
- 
-void CWeaponMagazined::StartIdleAnim			()
-{
-	if(IsZoomed())	m_pHUD->animDisplay(mhud.mhud_idle_aim[Random.randI(mhud.mhud_idle_aim.size())], TRUE);
-	else			m_pHUD->animDisplay(mhud.mhud_idle[Random.randI(mhud.mhud_idle.size())], TRUE);
-}
-
-
-void CWeaponMagazined::onMovementChanged( ACTOR_DEFS::EMoveCommand cmd ) {
-  if ( cmd == ACTOR_DEFS::mcSprint && GetState() == eIdle ) {
-    m_idle_state = eSubstateIdleSprint;
-    PlayAnimIdle( m_idle_state );
-  }
-}
-
 
 void	CWeaponMagazined::OnNextFireMode		()
 {
@@ -1391,22 +1367,10 @@ void CWeaponMagazined::load(IReader &input_packet)
 	load_data		(m_iCurFireMode, input_packet);
 }
 
-void CWeaponMagazined::net_Export	(NET_Packet& P)
-{
-	inherited::net_Export (P);
-
-	P.w_u8(u8(m_iCurFireMode&0x00ff));
-}
-
-void CWeaponMagazined::net_Import	(NET_Packet& P)
-{
-	//	if (Level().IsDemoPlay())
-	//		Msg("CWeapon::net_Import [%d]", ID());
-
-	inherited::net_Import (P);
-
-	m_iCurFireMode = P.r_u8();
-	SetQueueSize(GetCurrentFireMode());
+void CWeaponMagazined::net_Export( CSE_Abstract* E ) {
+  inherited::net_Export( E );
+  CSE_ALifeItemWeaponMagazined* wpn = smart_cast<CSE_ALifeItemWeaponMagazined*>( E );
+  wpn->m_u8CurFireMode = u8( m_iCurFireMode&0x00ff );
 }
 
 void CWeaponMagazined::GetBriefInfo(xr_string& str_name, xr_string& icon_sect_name, xr_string& str_count)
@@ -1476,20 +1440,14 @@ bool CWeaponMagazined::ScopeRespawn( PIItem pIItem ) {
       P.r_u16( size );
       sobj2->STATE_Read( P, size );
 
-      P.w_begin( M_UPDATE );
-      net_Export( P );
-      P.r_begin( id );
-      sobj1->UPDATE_Read( P );
-
-      P.w_begin( M_UPDATE );
-      sobj1->UPDATE_Write( P );
-      P.r_begin( id );
-      sobj2->UPDATE_Read( P );
+      net_Export( _abstract );
 
       auto io = smart_cast<CInventoryOwner*>( H_Parent() );
       auto ii = smart_cast<CInventoryItem*>( this );
       if ( io->inventory().InSlot( ii ) )
         io->SetNextItemSlot( ii->GetSlot() );
+      else
+        io->SetNextItemSlot( 0 );
 
       DestroyObject();
       sobj2->Spawn_Write( P, TRUE );

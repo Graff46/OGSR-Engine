@@ -13,6 +13,7 @@
 #include "xrserver_objects_alife_monsters.h"
 #include "CameraLook.h"
 #include "CameraFirstEye.h"
+#include "player_hud.h"
 #include "effectorfall.h"
 #include "EffectorBobbing.h"
 #include "clsid_game.h"
@@ -191,7 +192,6 @@ CActor::CActor() : CEntityAlive(),current_ik_cam_shift(0)
 	hit_probability			= 1.f;
 	m_feel_touch_characters = 0;
 	//-----------------------------------------------------------------------------------
-	m_dwILastUpdateTime		= 0;
 
 	m_location_manager		= xr_new<CLocationManager>(this);
 
@@ -903,6 +903,19 @@ void CActor::UpdateCL	()
 		else
 			xr_delete(m_sndShockEffector);
 	}
+
+	Fmatrix trans;
+	if (cam_Active() == cam_FirstEye())
+	{
+		Cameras().hud_camera_Matrix(trans);
+	}
+	else
+		Cameras().camera_Matrix(trans);
+
+	if (IsFocused()) {
+		trans.c.sub(Device.vCameraPosition);
+		g_player_hud->update(trans);
+	}
 }
 
 #if defined(OGSR_MOD) || defined(DSH_MOD)
@@ -916,10 +929,39 @@ void CActor::shedule_Update	(u32 DT)
 {
 	setSVU(OnServer());
 
-	//установить режим показа HUD для текущего активного слота
-	CHudItem* pHudItem = smart_cast<CHudItem*>(inventory().ActiveItem());	
-	if(pHudItem) 
-		pHudItem->SetHUDmode(HUDview());
+	if (IsFocused())
+	{
+		BOOL bHudView = HUDview();
+		if (bHudView)
+		{
+			CInventoryItem* pInvItem = inventory().ActiveItem();
+			if (pInvItem)
+			{
+				CHudItem* pHudItem = smart_cast<CHudItem*>(pInvItem);
+				if (pHudItem)
+				{
+					if (pHudItem->IsHidden())
+					{
+						g_player_hud->detach_item(pHudItem);
+					}
+					else
+					{
+						g_player_hud->attach_item(pHudItem);
+					}
+				}
+			}
+			else
+			{
+				g_player_hud->detach_item_idx(0);
+				// Msg("---No active item in inventory(), item 0 detached.");
+			}
+		}
+		else
+		{
+			g_player_hud->detach_all_items();
+			// Msg("---No hud view found, all items detached.");
+		}
+	}
 
 	//обновление инвентаря
 	if ( !updated )
@@ -1013,32 +1055,8 @@ void CActor::shedule_Update	(u32 DT)
 	}
 	else if ( !m_holder )
 	{
-		make_Interpolation();
-	
-		if (NET.size())
-		{
-			
-//			NET_SavedAccel = NET_Last.p_accel;
-//			mstate_real = mstate_wishful = NET_Last.mstate;
-
-			g_sv_Orientate				(mstate_real,dt			);
-			g_Orientate					(mstate_real,dt			);
-			g_Physics					(NET_SavedAccel,NET_Jump,dt	);			
-			if (!m_bInInterpolation)
-				g_cl_ValidateMState			(dt,mstate_wishful);
-			g_SetAnimation				(mstate_real);
-
-			if (NET_Last.mstate & mcCrouch)
-			{
-				if (isActorAccelerated(mstate_real, IsZoomAimingMode()))
-					character_physics_support()->movement()->ActivateBox(1, true);
-				else
-					character_physics_support()->movement()->ActivateBox(2, true);
-			}
-			else 
-				character_physics_support()->movement()->ActivateBox(0, true);
-		}	
-		mstate_old = mstate_real;
+		//Этот код не должен быть взван
+		R_ASSERT(0);
 	}
 
 	if ( this == Level().CurrentViewEntity() && !m_holder )
@@ -1228,12 +1246,7 @@ extern	BOOL	g_ShowAnimationInfo		;
 // HUD
 void CActor::OnHUDDraw	(CCustomHUD* /**hud/**/)
 {
-	CHudItem* pHudItem = smart_cast<CHudItem*>(inventory().ActiveItem());
-	if (pHudItem && pHudItem->GetHUDmode())
-//	if(inventory().ActiveItem()  ) 
-	{
-		inventory().ActiveItem()->renderable_Render();
-	}
+	g_player_hud->render_hud();
 
 #if 0//ndef NDEBUG
 	if (Level().CurrentControlEntity() == this && g_ShowAnimationInfo)

@@ -15,10 +15,10 @@ dx10StateManager::dx10StateManager()
 	Reset();
 }
 
-dx10StateManager::~dx10StateManager()
-{
+//dx10StateManager::~dx10StateManager()
+//{
 	//	Don't own any object so no release is needed
-}
+//}
 
 //	Set all states to default
 void dx10StateManager::Reset()
@@ -379,6 +379,18 @@ void dx10StateManager::SetCullMode(u32 Mode)
 	{
 		m_bRSChanged = true;
 		m_RDesc.CullMode = CMode;
+	}
+}
+
+void dx10StateManager::SetFillMode(u32 Mode)
+{
+	ValidateRDesc();
+
+	D3D_FILL_MODE CMode = dx10StateUtils::ConvertFillMode((D3DFILLMODE)Mode);
+	if (m_RDesc.FillMode != CMode)
+	{
+		m_bRSChanged = true;
+		m_RDesc.FillMode = CMode;
 	}
 }
 

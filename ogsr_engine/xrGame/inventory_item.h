@@ -32,8 +32,6 @@ class CPhysicsShellHolder;
 class NET_Packet;
 class CEatableItem;
 struct SPHNetState;
-struct net_update_IItem;
-struct net_updateData;
 class CInventoryOwner;
 
 struct SHit;
@@ -99,10 +97,6 @@ public:
 	virtual bool				Activate( bool = false );									// !!! Переопределить. (см. в Inventory.cpp)
 	virtual void				Deactivate( bool = false );								// !!! Переопределить. (см. в Inventory.cpp)
 	virtual bool				Action				(s32 cmd, u32 flags) {return false;}	// true если известная команда, иначе false
-
-	virtual bool				IsHidden			()	const	{return true;}
-	virtual bool				IsHiding			()	const	{return false;}
-	virtual bool 				IsShowing			()  const	{return false;}
 
 	virtual void				OnH_B_Chield		();
 	virtual void				OnH_A_Chield		();
@@ -204,20 +198,10 @@ protected:
 
 	////////// network //////////////////////////////////////////////////
 public:
-	virtual void				make_Interpolation	();
-	virtual void				PH_B_CrPr			(); // actions & operations before physic correction-prediction steps
-	virtual void				PH_I_CrPr			(); // actions & operations after correction before prediction steps
-#ifdef DEBUG
-	virtual void				PH_Ch_CrPr			(); // 
-#endif
-	virtual void				PH_A_CrPr			(); // actions & operations after phisic correction-prediction steps
-
-	virtual void				net_Import			(NET_Packet& P);					// import from server
-	virtual void				net_Export			(NET_Packet& P);					// export to server
+	virtual void net_Export( CSE_Abstract* E );
 
 public:
 	virtual void				activate_physic_shell		();
-	virtual u16					bone_count_to_synchronize	() const;
 
 	virtual	bool				IsSprintAllowed				() const		{return !!m_flags.test(FAllowSprint);} ;
 
@@ -228,11 +212,6 @@ public:
 protected:
 	virtual void				UpdateXForm	();
 			
-protected:
-	net_updateData*				m_net_updateData;
-	net_updateData*				NetSync						();
-	void						CalculateInterpolationParams();
-
 public:
 	virtual BOOL				net_Spawn				(CSE_Abstract* DC);
 	virtual void				net_Destroy				();

@@ -37,7 +37,7 @@ public:
 	void				UpdateParent		(const Fmatrix& m, const Fvector& vel);
 
 	void				play_at_pos			(const Fvector& pos, BOOL xform=FALSE);
-	virtual void		Play				();
+	virtual void		Play				(BOOL hudMode = FALSE);
 	void				Stop				(BOOL bDefferedStop=TRUE);
 	virtual BOOL		Locked				()				{ return mt_dt; }
 	
@@ -45,6 +45,7 @@ public:
 	bool				IsAutoRemove		();
 	bool				IsPlaying			();
 	void				SetAutoRemove		(bool auto_remove);
+	int LifeTime() const { return m_iLifeTime; }
 
 	const shared_str			Name		();
 public:

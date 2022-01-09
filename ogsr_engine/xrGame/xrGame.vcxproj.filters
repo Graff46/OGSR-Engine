@@ -4650,9 +4650,6 @@
     <ClInclude Include="weaponBM16.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Various weapons\BM-16</Filter>
     </ClInclude>
-    <ClInclude Include="WeaponHUD.h">
-      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
-    </ClInclude>
     <ClInclude Include="WeaponMounted.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Mounted Weapon</Filter>
     </ClInclude>
@@ -6108,6 +6105,9 @@
       <Filter>Core\Client\Objects\physics\IK</Filter>
     </ClInclude>
     <ClInclude Include="Seasons.h" />
+    <ClInclude Include="player_hud.h">
+      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -7766,9 +7766,6 @@
     <ClCompile Include="weaponBM16_script.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Various weapons\BM-16</Filter>
     </ClCompile>
-    <ClCompile Include="WeaponHUD.cpp">
-      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
-    </ClCompile>
     <ClCompile Include="WeaponMounted.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\Mounted Weapon</Filter>
     </ClCompile>
@@ -8102,9 +8099,6 @@
     <ClCompile Include="xrServer_CL_connect.cpp">
       <Filter>Core\Server\Games\server\single\ServerConnect</Filter>
     </ClCompile>
-    <ClCompile Include="xrServer_CL_disconnect.cpp">
-      <Filter>Core\Server\Games\server\single\ServerConnect</Filter>
-    </ClCompile>
     <ClCompile Include="xrServer_Connect.cpp">
       <Filter>Core\Server\Games\server\single\ServerConnect</Filter>
     </ClCompile>
@@ -8175,9 +8169,6 @@
       <Filter>Core\Server\ServerPerform</Filter>
     </ClCompile>
     <ClCompile Include="xrServer_perform_sls_default.cpp">
-      <Filter>Core\Server\ServerPerform</Filter>
-    </ClCompile>
-    <ClCompile Include="xrServer_perform_sls_load.cpp">
       <Filter>Core\Server\ServerPerform</Filter>
     </ClCompile>
     <ClCompile Include="xrServer_perform_sls_save.cpp">
@@ -8307,9 +8298,6 @@
       <Filter>Core\Client\Objects\physics\Base\Objects\Shell</Filter>
     </ClCompile>
     <ClCompile Include="PHShellActivate.cpp">
-      <Filter>Core\Client\Objects\physics\Base\Objects\Shell</Filter>
-    </ClCompile>
-    <ClCompile Include="PHShellNetState.cpp">
       <Filter>Core\Client\Objects\physics\Base\Objects\Shell</Filter>
     </ClCompile>
     <ClCompile Include="ShellHit.cpp">
@@ -8914,6 +8902,12 @@
       <Filter>Core\Client\Objects\physics\IK</Filter>
     </ClCompile>
     <ClCompile Include="Seasons.cpp" />
+    <ClCompile Include="player_hud.cpp">
+      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="player_hud_tune.cpp">
+      <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuildStep Include="Explosive.h">

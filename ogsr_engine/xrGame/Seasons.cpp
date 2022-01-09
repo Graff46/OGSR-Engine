@@ -1,11 +1,11 @@
 #include "stdafx.h"
 #include "Seasons.h"
 #include "level.h"
-#include "..\xrSound\SoundRender_Core.h"
+//#include "..\xrSound\SoundRender_Core.h"
 #include "ui/UILoadingScreen.h"
 #include "..\xr_3da\x_ray.h"
 
-LPSTR Seasons::currentSeason = "default";
+LPSTR Seasons::currentSeason = (LPSTR) "default";
 void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelName)
 {
 	if (xr_strcmp(newSeason, currentSeason)) {
@@ -54,5 +54,5 @@ void Seasons::load(IReader& stream, shared_str levelName)
 
 void Seasons::reset()
 {
-	currentSeason = "default";
+	currentSeason = (LPSTR) "default";
 }

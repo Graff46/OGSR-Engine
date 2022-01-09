@@ -164,7 +164,6 @@ void CGamePersistent::Start		(LPCSTR op)
 
 void CGamePersistent::Disconnect()
 {
-	CWeaponHUD::CleanSharedContainer();
 	Seasons::reset();
 
 	// destroy ambient particles

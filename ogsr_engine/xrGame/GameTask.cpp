@@ -146,7 +146,7 @@ void CGameTask::Load(const TASK_ID& id)
 
 		LPCSTR object_story_id			= g_gameTaskXml->Read(l_root, "object_story_id", 0, NULL);
 
-		if ((NULL == object_story_id) && (NULL != objective.map_location)) {
+		if ((NULL == object_story_id) && (NULL != objective.map_location.size())) {
 			object_story_id = g_gameTaskXml->ReadAttrib(l_root, "map_location_type", 0, "story_id", NULL);
 		}
 		

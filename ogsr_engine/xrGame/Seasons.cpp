@@ -5,10 +5,10 @@
 #include "ui/UILoadingScreen.h"
 #include "..\xr_3da\x_ray.h"
 
-LPSTR Seasons::currentSeason = (LPSTR) "default";
+shared_str Seasons::currentSeason = "default";
 void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelName)
 {
-	if (xr_strcmp(newSeason, currentSeason)) {
+	if (xr_strcmp(newSeason, currentSeason.c_str())) {
 		LPCSTR locName = Level().bReady ? Level().name().c_str() : levelName.c_str();
 		string_path tmp;
 		FS_Path* gte = FS.get_path("$game_textures_ex$");
@@ -21,7 +21,7 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelNam
 		FS.rescan_path(lte->m_Path, TRUE);
 		FS.rescan_path(snd->m_Path, TRUE);
 
-		currentSeason = (LPSTR) newSeason;
+		currentSeason = newSeason;
 
 		if (needReload) {
 			Device.m_pRender->DeferredLoad(FALSE);
@@ -49,10 +49,11 @@ void Seasons::load(IReader& stream, shared_str levelName)
 	stream.r_stringZ(saveSeason);
 
 	swithSeason(saveSeason.c_str(), FALSE, levelName);
-	currentSeason = (LPSTR) saveSeason.c_str();	
+
+	currentSeason = saveSeason.c_str();	
 };
 
 void Seasons::reset()
 {
-	currentSeason = (LPSTR) "default";
+	currentSeason = "default";
 }

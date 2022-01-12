@@ -54,7 +54,7 @@ void changeSeason(LPCSTR seasonName, bool needRreload)
 
 LPCSTR getSeason()
 {
-	return (LPCSTR) Seasons::currentSeason;
+	return Seasons::currentSeason.c_str();
 }
 
 #pragma optimize("s",on)

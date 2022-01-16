@@ -338,6 +338,20 @@ void CScriptGameObject::SetActorDirection		(float dir)
 		ai().script_engine().script_log		(ScriptStorage::eLuaMessageTypeError,"ScriptGameObject : attempt to call SetActorDirection method for non-actor object");
 }
 
+void CScriptGameObject::SetNpcPosition(Fvector pos)
+{
+	CCustomMonster* obj = smart_cast<CCustomMonster*>(&object());
+	if (obj)
+	{
+		Fmatrix F = obj->XFORM();
+		F.c = pos;
+		obj->movement().detail().make_inactual();
+		if (obj->animation_movement_controlled())
+			obj->destroy_anim_mov_ctrl();
+		obj->ForceTransform(F);
+	}
+}
+
 CHolderCustom* CScriptGameObject::get_current_holder()
 {
 	CActor* actor = smart_cast<CActor*>(&object());

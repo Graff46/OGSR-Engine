@@ -220,6 +220,7 @@ public:
 			void				ResetActionQueue	();
 	// Actor only
 			void				SetActorPosition	(Fvector pos);
+			void				SetNpcPosition		(Fvector pos);
 			void				SetActorDirection	(float dir);
 	// CCustomMonster
 			bool				CheckObjectVisibility(const CScriptGameObject *tpLuaGameObject);

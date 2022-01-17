@@ -107,7 +107,7 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 	light_render			= ::Render->light_create();
 	light_render->set_shadow(!!lamp->flags.is(CSE_ALifeObjectHangingLamp::flCastShadow));
 	light_render->set_type	(lamp->flags.is(CSE_ALifeObjectHangingLamp::flTypeSpot)?IRender_Light::SPOT:IRender_Light::POINT);
-	light_render->set_range	(lamp->range * 2.0);
+	light_render->set_range	(lamp->range);
 	light_render->set_color	(clr);
 	light_render->set_cone	(lamp->spot_cone_angle);
 	light_render->set_texture(*lamp->light_texture);
@@ -125,7 +125,7 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 		glow_render->set_radius	(lamp->glow_radius);
 	}
 
-	if (0) /*lamp->flags.is(CSE_ALifeObjectHangingLamp::flPointAmbient))*/ {
+	if (lamp->flags.is(CSE_ALifeObjectHangingLamp::flPointAmbient)) {
 		ambient_power			= lamp->m_ambient_power;
 		light_ambient			= ::Render->light_create();
 		light_ambient->set_type	(IRender_Light::POINT);

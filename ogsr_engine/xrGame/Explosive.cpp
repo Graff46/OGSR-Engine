@@ -511,7 +511,7 @@ void CExplosive::UpdateCL()
 			{
 				float scale = (m_fExplodeDuration - (m_fExplodeDurationMax - m_fLightTime))/m_fLightTime;
 				m_pLight->set_color(m_LightColor.r*scale, m_LightColor.g*scale, m_LightColor.b*scale);
-				m_pLight->set_range(m_fLightRange*scale);
+				m_pLight->set_range(m_fLightRange*scale * pSettings->r_float("dynamic_light", "range_koef"));
 			} 
 			else
 				StopLight();
@@ -638,7 +638,7 @@ void CExplosive::StartLight	()
 		LightCreate				();
 
 		m_pLight->set_color		(m_LightColor.r, m_LightColor.g, m_LightColor.b);
-		m_pLight->set_range		(m_fLightRange);
+		m_pLight->set_range		(m_fLightRange * pSettings->r_float("dynamic_light", "range_koef"));
 		m_pLight->set_position	(m_vExplodePos); 
 		m_pLight->set_active	(true);
 	}

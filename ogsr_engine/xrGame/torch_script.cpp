@@ -67,11 +67,11 @@ void CTorch::SetRange(float range, int target)
 	switch (target)
 	{
 	case 0: {
-		light_render->set_range(range);
+		light_render->set_range(range * pSettings->r_float("dynamic_light", "range_koef"));
 		calc_m_delta_h( range );
 		break;
 	}
-	case 1: if (light_omni) light_omni->set_range(range); break;
+	case 1: if (light_omni) light_omni->set_range(range * pSettings->r_float("dynamic_light", "range_koef")); break;
 	case 2: if (glow_render) glow_render->set_radius(range); break;
 	}
 }

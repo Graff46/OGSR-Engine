@@ -246,7 +246,7 @@ BOOL CTorch::net_Spawn(CSE_Abstract* DC)
 	fBrightness				= m_color.intensity();
 	float range				= pUserData->r_float				("torch_definition",(b_r2)?"range_r2":"range");
 	light_render->set_color( m_color );
-	light_render->set_range	(range);
+	light_render->set_range	(range * pSettings->r_float("dynamic_light", "range_koef"));
 
 	if (b_r2)
 	{
@@ -271,7 +271,7 @@ BOOL CTorch::net_Spawn(CSE_Abstract* DC)
 	Fcolor clr_o			= pUserData->r_fcolor				("torch_definition",(b_r2)?"omni_color_r2":"omni_color");
 	float range_o			= pUserData->r_float				("torch_definition",(b_r2)?"omni_range_r2":"omni_range");
 	light_omni->set_color	(clr_o);
-	light_omni->set_range	(range_o);
+	light_omni->set_range	(range_o * pSettings->r_float("dynamic_light", "range_koef"));
 
 	light_render->set_cone	(deg2rad(pUserData->r_float			("torch_definition","spot_angle")));
 	light_render->set_texture(pUserData->r_string				("torch_definition","spot_texture"));

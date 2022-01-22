@@ -107,7 +107,7 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 	light_render			= ::Render->light_create();
 	light_render->set_shadow(!!lamp->flags.is(CSE_ALifeObjectHangingLamp::flCastShadow));
 	light_render->set_type	(lamp->flags.is(CSE_ALifeObjectHangingLamp::flTypeSpot)?IRender_Light::SPOT:IRender_Light::POINT);
-	light_render->set_range	(lamp->range);
+	light_render->set_range	(lamp->range * pSettings->r_float("dynamic_light", "range_koef"));
 	light_render->set_color	(clr);
 	light_render->set_cone	(lamp->spot_cone_angle);
 	light_render->set_texture(*lamp->light_texture);
@@ -125,13 +125,13 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 		glow_render->set_radius	(lamp->glow_radius);
 	}
 
-	if (lamp->flags.is(CSE_ALifeObjectHangingLamp::flPointAmbient)) {
+	if ((pSettings->r_bool("dynamic_light", "hanging_lamp_ambient")) && (lamp->flags.is(CSE_ALifeObjectHangingLamp::flPointAmbient))) {
 		ambient_power			= lamp->m_ambient_power;
 		light_ambient			= ::Render->light_create();
 		light_ambient->set_type	(IRender_Light::POINT);
 		light_ambient->set_shadow(false);
 		clr.mul_rgb				(ambient_power);
-		light_ambient->set_range(lamp->m_ambient_radius);
+		light_ambient->set_range(lamp->m_ambient_radius * pSettings->r_float("dynamic_light", "range_koef"));
 		light_ambient->set_color(clr);
 		light_ambient->set_texture(*lamp->m_ambient_texture);
 		light_ambient->set_virtual_size(lamp->m_virtual_size);

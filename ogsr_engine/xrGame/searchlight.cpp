@@ -78,7 +78,7 @@ BOOL CProjector::net_Spawn(CSE_Abstract* DC)
 	Fcolor clr				= pUserData->r_fcolor				("projector_definition","color");
 	fBrightness				= clr.intensity();
 	light_render->set_color	(clr);
-	light_render->set_range	(pUserData->r_float					("projector_definition","range"));
+	light_render->set_range	(pUserData->r_float					("projector_definition","range") * pSettings->r_float("dynamic_light", "range_koef"));
 	light_render->set_cone	(deg2rad(pUserData->r_float			("projector_definition","spot_angle")));
 	light_render->set_texture(pUserData->r_string				("projector_definition","spot_texture"));
 

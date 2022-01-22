@@ -501,7 +501,7 @@ void CCustomRocket::StartLights()
 							 m_TrailLightColor.g, 
 							 m_TrailLightColor.b);
 
-	m_pTrailLight->set_range(m_fTrailLightRange);
+	m_pTrailLight->set_range(m_fTrailLightRange * pSettings->r_float("dynamic_light", "range_koef"));
 	m_pTrailLight->set_position(Position()); 
 	m_pTrailLight->set_active(true);
 }

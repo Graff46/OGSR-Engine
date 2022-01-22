@@ -579,7 +579,7 @@ void CWeapon::Load		(LPCSTR section)
 		laser_fBrightness = clr.intensity();
 		laser_light_render->set_color(clr);
 		const float range = READ_IF_EXISTS(pSettings, r_float, m_light_section, b_r2 ? "range_r2" : "range", 100.f);
-		laser_light_render->set_range(range);
+		laser_light_render->set_range(range * pSettings->r_float("dynamic_light", "range_koef"));
 		laser_light_render->set_cone(deg2rad(READ_IF_EXISTS(pSettings, r_float, m_light_section, "spot_angle", 1.f)));
 		laser_light_render->set_texture(READ_IF_EXISTS(pSettings, r_string, m_light_section, "spot_texture", nullptr));
 	}
@@ -602,7 +602,7 @@ void CWeapon::Load		(LPCSTR section)
 		flashlight_fBrightness = clr.intensity();
 		flashlight_render->set_color(clr);
 		const float range = READ_IF_EXISTS(pSettings, r_float, m_light_section, b_r2 ? "range_r2" : "range", 50.f);
-		flashlight_render->set_range(range);
+		flashlight_render->set_range(range * pSettings->r_float("dynamic_light", "range_koef"));
 		flashlight_render->set_cone(deg2rad(READ_IF_EXISTS(pSettings, r_float, m_light_section, "spot_angle", 60.f)));
 		flashlight_render->set_texture(READ_IF_EXISTS(pSettings, r_string, m_light_section, "spot_texture", nullptr));
 
@@ -613,7 +613,7 @@ void CWeapon::Load		(LPCSTR section)
 		const Fcolor oclr = READ_IF_EXISTS(pSettings, r_fcolor, m_light_section, b_r2 ? "omni_color_r2" : "omni_color", (Fcolor{ 1.0f , 1.0f , 1.0f , 0.0f }));
 		flashlight_omni->set_color(oclr);
 		const float orange = READ_IF_EXISTS(pSettings, r_float, m_light_section, b_r2 ? "omni_range_r2" : "omni_range", 0.25f);
-		flashlight_omni->set_range(orange);
+		flashlight_omni->set_range(orange * pSettings->r_float("dynamic_light", "range_koef"));
 
 		flashlight_glow = ::Render->glow_create();
 		flashlight_glow->set_texture(READ_IF_EXISTS(pSettings, r_string, m_light_section, "glow_texture", "glow\\glow_torch_r2"));

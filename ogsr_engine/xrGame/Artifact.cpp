@@ -237,7 +237,7 @@ void CArtefact::StartLights()
 		m_TrailLightColor.g, 
 		m_TrailLightColor.b);
 
-	m_pTrailLight->set_range(m_fTrailLightRange);
+	m_pTrailLight->set_range(m_fTrailLightRange * pSettings->r_float("dynamic_light", "range_koef"));
 	m_pTrailLight->set_position(Position()); 
 	m_pTrailLight->set_active(true);
 }
@@ -552,7 +552,7 @@ void SArtefactActivation::ChangeEffects()
 		m_snd.play_at_pos		(m_af,	m_af->Position());
 	};
 
-	m_light->set_range		(	state_def.m_light_range);
+	m_light->set_range		(	state_def.m_light_range * pSettings->r_float("dynamic_light", "range_koef"));
 	m_light->set_color		(	state_def.m_light_color.r,
 								state_def.m_light_color.g,
 								state_def.m_light_color.b);

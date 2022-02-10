@@ -1209,11 +1209,11 @@ void CCar::StopBreaking()
 		Drive();
 	b_breaks=false;
 }
-void CCar::PressRight(bool reverse)
+void CCar::PressRight(bool reverseCall)
 {
-	if (reverse_rule) return PressLeft(true);
+	if ((reverse_rule) && (!reverseCall)) return PressLeft(true);
 
-	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(1);
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(1);
 
 	if(lsp)
 	{
@@ -1223,11 +1223,11 @@ void CCar::PressRight(bool reverse)
 		SteerRight();
 	rsp=true;
 }
-void CCar::PressLeft(bool reverse)
+void CCar::PressLeft(bool reverseCall)
 {
-	if (reverse_rule) return PressRight(true);
+	if ((reverse_rule) && (!reverseCall)) return PressRight(true);
 
-	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(-1);
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(-1);
 
 	if(rsp)
 	{
@@ -1294,11 +1294,11 @@ void CCar::DriveForward()
 	if(1==CurrentTransmission()||0==CurrentTransmission())Starter();
 	Drive();
 }
-void CCar::ReleaseRight(bool reverse)
+void CCar::ReleaseRight(bool reverseCall)
 {
-	if (reverse_rule) return ReleaseLeft(true);
+	if ((reverse_rule) && (!reverseCall)) return ReleaseLeft(true);
 
-	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(0);
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(0);
 
 	if(lsp)
 		SteerLeft();
@@ -1306,11 +1306,11 @@ void CCar::ReleaseRight(bool reverse)
 		SteerIdle();
 	rsp=false;
 }
-void CCar::ReleaseLeft(bool reverse)
+void CCar::ReleaseLeft(bool reverseCall)
 {
-	if (reverse_rule) return ReleaseRight(true);
+	if ((reverse_rule) && (!reverseCall)) return ReleaseRight(true);
 
-	if (OwnerActor() && (reverse_rule == reverse)) OwnerActor()->steer_Vehicle(0);
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(0);
 
 	if(rsp)
 		SteerRight();

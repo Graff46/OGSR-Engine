@@ -33,6 +33,7 @@
 #include "saved_game_wrapper.h"
 #include "level_graph.h"
 #include "cameralook.h"
+#include "ai_object_location.h"
 
 #ifdef DEBUG
 #	include "PHDebug.h"
@@ -61,6 +62,7 @@ extern	BOOL	g_bDebugDumpPhysicsStep	;
 extern	ESingleGameDifficulty g_SingleGameDifficulty;
 extern	BOOL	g_show_wnd_rect			;
 extern	BOOL	g_show_wnd_rect2			;
+extern	BOOL	g_show_wnd_rect_text;
 //-----------------------------------------------------------
 extern	float	g_fTimeFactor;
 extern	BOOL	g_bCopDeathAnim;
@@ -834,7 +836,8 @@ public:
 			return;
 		}
 
-		Level().g_cl_Spawn(args, 0xff, M_SPAWN_OBJECT_LOCAL, Actor()->Position());
+		if (auto tpGame = smart_cast<game_sv_Single*>(Level().Server->game))
+			tpGame->alife().spawn_item(args, Actor()->Position(), Actor()->ai_location().level_vertex_id(), Actor()->ai_location().game_vertex_id(), ALife::_OBJECT_ID(-1));
 	}
 };
 //#endif // MASTER_GOLD
@@ -1285,6 +1288,10 @@ void CCC_RegisterCommands()
 	CMD3(CCC_Mask,			"g_3d_scopes",			&psActorFlags,	AF_3D_SCOPES);
 	CMD4(CCC_Integer, "g_3d_scopes_fps_factor", &g_3dscopes_fps_factor, 2, 5);
 	CMD3(CCC_Mask,			"g_crosshair_dbg",		&psActorFlags,	AF_CROSSHAIR_DBG);
+	CMD3(CCC_Mask, "g_camera_collision", &psActorFlags, AF_CAM_COLLISION);
+
+	CMD3(CCC_Mask, "g_mouse_wheel_switch_slot", &psActorFlags, AF_MOUSE_WHEEL_SWITCH_SLOTS);
+
 	CMD1(CCC_TimeFactor,	"time_factor")	
 	CMD1(CCC_SetWeather,	"set_weather");
 //#endif // MASTER_GOLD
@@ -1392,6 +1399,7 @@ void CCC_RegisterCommands()
 
 	CMD4(CCC_Integer,	"show_wnd_rect",				&g_show_wnd_rect, 0, 1);
 	CMD4(CCC_Integer,	"show_wnd_rect_all",			&g_show_wnd_rect2, 0, 1);
+	CMD4(CCC_Integer, "show_wnd_rect_names", &g_show_wnd_rect_text, 0, 1);
 
 	*g_last_saved_game	= 0;
 

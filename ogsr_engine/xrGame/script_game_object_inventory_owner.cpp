@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "script_game_object.h"
 #include "InventoryOwner.h"
+#include "InventoryBox.h"
 #include "Pda.h"
 #include "xrMessages.h"
 #include "character_info.h"
@@ -54,17 +55,7 @@ bool CScriptGameObject::DisableInfoPortion(LPCSTR info_id)
 	return true;
 }
 
-void _AddIconedTalkMessage(LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, LPCSTR templ_name);
-
-void  CScriptGameObject::AddIconedTalkMessage		(LPCSTR text, LPCSTR texture_name, Frect tex_rect, LPCSTR templ_name)
-{
-	return _AddIconedTalkMessage	(text,
-									texture_name, 
-									tex_rect, 
-									templ_name); 
-}
-
-void _AddIconedTalkMessage(LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, LPCSTR templ_name)
+void AddIconedTalkMessage(CScriptGameObject*, LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, LPCSTR templ_name)
 {
 	CUIGameSP* pGameSP = smart_cast<CUIGameSP*>(HUD().GetUI()->UIGame());
 	if(!pGameSP) return;
@@ -72,17 +63,8 @@ void _AddIconedTalkMessage(LPCSTR text, LPCSTR texture_name, const Frect& tex_re
 	if(pGameSP->TalkMenu->IsShown())
 		pGameSP->TalkMenu->AddIconedMessage(text, texture_name, tex_rect, templ_name?templ_name:"iconed_answer_item" );
 }
-bool _give_news	(LPCSTR news, LPCSTR texture_name, const Frect& tex_rect, int delay, int show_time);
 
-bool  CScriptGameObject::GiveGameNews		(LPCSTR news, LPCSTR texture_name, Frect tex_rect, int delay, int show_time)
-{
-	return _give_news				(news,
-									texture_name, 
-									tex_rect, 
-									delay, 
-									show_time);
-}
-bool _give_news	(LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, int delay, int show_time)
+bool GiveGameNews(CScriptGameObject*, LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, int delay, int show_time)
 {
 	GAME_NEWS_DATA				news_data;
 	news_data.news_text			= text;
@@ -205,15 +187,26 @@ void CScriptGameObject::ForEachInventoryItems(const luabind::functor<void> &func
 //1
 void CScriptGameObject::IterateInventory( const luabind::functor<void>& functor, const luabind::object& object)
 {
-	auto inventory_owner = smart_cast<CInventoryOwner*>(&this->object());
-	if (!inventory_owner) {
-		ai().script_engine().script_log(ScriptStorage::eLuaMessageTypeError,"CScriptGameObject::IterateInventory non-CInventoryOwner object !!!");
-		return;
+/**
+	IterateInventory расширен: Работает как для CInventoryOwner, так и для IInventoryBox, а так же для любых классов наследующих от одного из них.
+	в числе которых тайники, контейнеры, мобы, неписи, акторы и проч.
+	Расширение метода выполнено: Zander.
+*/
+	if (auto inventory_owner = smart_cast<CInventoryOwner*>(&this->object())) {
+		for (const auto* it : inventory_owner->inventory().m_all)
+			if (!it->object().getDestroy())
+				functor(object, it->object().lua_game_object());
 	}
-
-	for (const auto* it : inventory_owner->inventory().m_all)
-		if (!it->object().getDestroy())
-			functor(object, it->object().lua_game_object());
+	else if (auto inventory_box = smart_cast<IInventoryBox*>(&this->object())) {
+		for (u32 i = 0; i < inventory_box->GetSize(); i++) {
+			auto* iit = inventory_box->GetObjectByIndex(i);
+			if (iit)
+				functor(object, iit);
+		}
+	}
+	else {
+		ai().script_engine().script_log(ScriptStorage::eLuaMessageTypeError,"CScriptGameObject::IterateInventory invalid object !!!");
+	}
 }
 
 void CScriptGameObject::MarkItemDropped		(CScriptGameObject *item)
@@ -970,7 +963,6 @@ void CScriptGameObject::SetAdditionalMaxWalkWeight(float add_max_walk_weight)
 	outfit->m_additional_weight = add_max_walk_weight;
 }
 
-#include "InventoryBox.h"
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // получить суммарный вес инвентаря
 float CScriptGameObject::GetTotalWeight() const
@@ -1167,18 +1159,18 @@ void CScriptGameObject::InvalidateInventory()
 	inventory_owner->inventory().InvalidateState();
 }
 // functions for CInventoryItem class
-flags16 CScriptGameObject::GetIIFlags	()
+Flags16 CScriptGameObject::GetIIFlags	()
 {
 	CInventoryItem	*inventory_item = smart_cast<CInventoryItem*>(&object());
 	if (!inventory_item) {
 		ai().script_engine().script_log			(ScriptStorage::eLuaMessageTypeError,"CInventoryItem : cannot access class member GetIIFlags!");
-		return flags16();
+		return Flags16();
 	}
 
 	return inventory_item->m_flags;
 }
 
-void CScriptGameObject::SetIIFlags	(flags16 flags)
+void CScriptGameObject::SetIIFlags	(Flags16 flags)
 {
 	CInventoryItem	*inventory_item = smart_cast<CInventoryItem*>(&object());
 	if (!inventory_item) {

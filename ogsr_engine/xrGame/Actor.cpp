@@ -64,6 +64,7 @@
 #include "InventoryBox.h"
 #include "location_manager.h"
 #include "PHCapture.h"
+#include "CustomDetector.h"
 
 // Tip for action for object we're looking at
 constexpr const char* m_sCarCharacterUseAction        = "car_character_use";
@@ -88,7 +89,7 @@ static Fbox		bbCrouchBox;
 static Fvector	vFootCenter;
 static Fvector	vFootExt;
 
-Flags32 psActorFlags = { AF_3D_SCOPES | AF_KEYPRESS_ON_START };
+Flags32 psActorFlags = { AF_3D_SCOPES | AF_KEYPRESS_ON_START | AF_CAM_COLLISION };
 
 static bool updated;
 
@@ -1971,4 +1972,11 @@ void CActor::RepackAmmo() {
 bool CActor::unlimited_ammo()
 {
 	return !!psActorFlags.test(AF_UNLIMITEDAMMO);
+}
+
+bool CActor::IsDetectorActive() const {
+	if (auto det = smart_cast<CCustomDetector*>(inventory().ItemFromSlot(DETECTOR_SLOT)))
+		return det->IsWorking();
+
+	return false;
 }

@@ -90,7 +90,6 @@ void InitConsole	()
 	CORE_FEATURE_SET( show_inv_item_condition,    "features" );
 	CORE_FEATURE_SET( remove_alt_keybinding,      "features" );
 	CORE_FEATURE_SET( binoc_firing,               "features" );
-	CORE_FEATURE_SET( no_mouse_wheel_switch_slot, "features" );
 	CORE_FEATURE_SET( stop_anim_playing,          "features" );
 	CORE_FEATURE_SET( corpses_collision,          "features" );
 	CORE_FEATURE_SET( more_hide_weapon,           "features" );
@@ -119,7 +118,6 @@ void InitConsole	()
 	CORE_FEATURE_SET( autoreload_wpn,             "features" );
 	CORE_FEATURE_SET( no_progress_bar_animation,  "features" );
 	CORE_FEATURE_SET( disable_dialog_break,       "features" );
-	CORE_FEATURE_SET( use_cop_thm_format,         "features" );
 }
 
 void InitInput()
@@ -242,10 +240,11 @@ void Startup					( )
 static INT_PTR CALLBACK logDlgProc( HWND hw, UINT msg, WPARAM wp, LPARAM lp )
 {
 	switch( msg ){
-		case WM_INITDIALOG:
-			if (auto hBMP = LoadImage(nullptr, "splash.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE))
-				SendDlgItemMessage(hw, IDC_STATIC, STM_SETIMAGE, IMAGE_BITMAP, reinterpret_cast<LPARAM>(hBMP));
-			break;
+		// Возможность менять сплэш отключена
+		//case WM_INITDIALOG:
+		//	if (auto hBMP = LoadImage(nullptr, "splash.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE))
+		//		SendDlgItemMessage(hw, IDC_STATIC, STM_SETIMAGE, IMAGE_BITMAP, reinterpret_cast<LPARAM>(hBMP));
+		//	break;
 		case WM_DESTROY:
 			break;
 		case WM_CLOSE:

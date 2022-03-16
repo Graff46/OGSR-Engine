@@ -26,7 +26,9 @@
 #include "InventoryBox.h"
 #include "player_hud.h"
 #include "HudItem.h"
+#include "WeaponMagazined.h"
 #include "../xr_3da/xr_input.h"
+#include "CustomDetector.h"
 
 bool g_bAutoClearCrouch = true;
 extern int g_bHudAdjustMode;
@@ -122,16 +124,12 @@ void CActor::IR_OnKeyboardPress(int cmd)
 				pTorch->Switch();
 			}
 		} break;
-	case kWPN_1:	
-	case kWPN_2:	
-	case kWPN_3:	
-	case kWPN_4:	
-	case kWPN_5:	
-	case kWPN_6:	
 	case kWPN_8:
-	case kWPN_RELOAD:
-		//Weapons->ActivateWeaponID	(cmd-kWPN_1);			
-		break;
+	{
+		if (auto det = smart_cast<CCustomDetector*>(inventory().ItemFromSlot(DETECTOR_SLOT)))
+			det->ToggleDetector(g_player_hud->attached_item(0) != nullptr);
+	}
+	break;
 	case kUSE:
 		ActorUse();
 		break;
@@ -165,6 +163,17 @@ void CActor::IR_OnKeyboardPress(int cmd)
 				}
 			}
 		}break;
+	case kLASER_ON:
+	{
+		if (auto wpn = smart_cast<CWeapon*>(inventory().ActiveItem()))
+			wpn->SwitchLaser(!wpn->IsLaserOn());
+	}break;
+	case kFLASHLIGHT:
+	{
+		if (auto wpn = smart_cast<CWeapon*>(inventory().ActiveItem()))
+			wpn->SwitchFlashlight(!wpn->IsFlashlightOn());
+	}break;
+
 	}
 }
 void CActor::IR_OnMouseWheel(int direction)
@@ -181,7 +190,7 @@ void CActor::IR_OnMouseWheel(int direction)
 	if(inventory().Action( (direction>0)? kWPN_ZOOM_DEC:kWPN_ZOOM_INC , CMD_START)) return;
 
 
-	if (!Core.Features.test(xrCore::Feature::no_mouse_wheel_switch_slot)) {
+	if (psActorFlags.test(AF_MOUSE_WHEEL_SWITCH_SLOTS)) {
 		if (direction > 0)
 			OnNextWeaponSlot();
 		else

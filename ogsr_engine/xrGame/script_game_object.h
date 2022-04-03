@@ -655,7 +655,7 @@ public:
 			void				OpenInvBox(CScriptGameObject *object);
 			CScriptGameObject	*ObjectFromInvBox(int _i);
 			float				GetCamFOV();
-			void				SetCamFOV(float _fov);
+			void				SetCamFOV(float _fov, bool nostor = false);
 
 			void				SetMaxWeight(float _weight);
 			void				SetMaxWalkWeight(float _weight);

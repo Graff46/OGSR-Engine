@@ -778,10 +778,11 @@ void CActor::g_Physics(Fvector& _accel, float jump, float dt)
 	}
 }
 float g_fov = 67.5f; //75.0f - SWM
+float gt_fov = g_fov;
 
 float CActor::currentFOV()
 {
-	const auto pWeapon = smart_cast<CWeapon*>(inventory().ActiveItem());	
+	const auto pWeapon = smart_cast<CWeapon*>(inventory().ActiveItem());
 
 	if (
 		eacFirstEye == cam_active
@@ -789,11 +790,11 @@ float CActor::currentFOV()
 		&& (!pWeapon->ZoomTexture() || (!pWeapon->IsRotatingToZoom() && pWeapon->ZoomTexture()))
 		)
 		if (Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system))
-			return atanf(tanf(g_fov * (0.5f * PI / 180)) / pWeapon->GetZoomFactor()) / (0.5f * PI / 180);
+			return atanf(tanf(gt_fov * (0.5f * PI / 180)) / pWeapon->GetZoomFactor()) / (0.5f * PI / 180);
 		else
 			return pWeapon->GetZoomFactor() * 0.75f;
 	else
-		return g_fov;
+		return gt_fov;
 }
 
 void CActor::UpdateCL	()

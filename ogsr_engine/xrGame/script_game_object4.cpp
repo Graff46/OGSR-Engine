@@ -373,9 +373,12 @@ float CScriptGameObject::GetCamFOV()
 	return g_fov;
 }
 
-void CScriptGameObject::SetCamFOV(float _fov)
+void CScriptGameObject::SetCamFOV(float _fov, bool nosave)
 {
-	g_fov = _fov;
+	if (nosave)
+		gt_fov = _fov;
+	else
+		gt_fov = g_fov = _fov;
 }
 
 #include "HudManager.h"

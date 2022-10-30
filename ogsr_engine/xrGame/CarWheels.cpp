@@ -52,7 +52,11 @@ void CCar::SWheel::Init()
 {
 	if(inited) return;
 	BONE_P_PAIR_CIT bone=bone_map.find(bone_id);
-	R_ASSERT2(bone->second.element,"No Element was created for wheel. Check collision is set");
+	R_ASSERT3(
+		bone->second.element,
+		"No Element was created for wheel. Check collision is set",
+		PKinematics(car->Visual())->LL_BoneName_dbg(bone_id)
+	);
 	bone->second.element->set_DynamicLimits(default_l_limit,default_w_limit*100.f);
 	CPhysicsElement	*e=bone->second.element	;
 	CPhysicsJoint	*j=bone->second.joint	;

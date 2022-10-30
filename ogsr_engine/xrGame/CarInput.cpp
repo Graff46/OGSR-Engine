@@ -176,6 +176,7 @@ void	CCar::OnKeyboardRelease(int cmd)
 	case kL_STRAFE:	ReleaseLeft();				break;
 	case kR_STRAFE:	ReleaseRight();				break;
 	case kJUMP:		ReleaseBreaks();			break;
+	case kCROUCH:	ctrlOn = false;				break;
 	};
 }
 

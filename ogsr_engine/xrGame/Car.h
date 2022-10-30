@@ -105,7 +105,7 @@ protected:
 public:
 
 
-	bool rsp,lsp,fwp,bkp,brp, brpOn;
+	bool rsp,lsp,fwp,bkp,brp, brpOn, ctrlOn;
 	Fmatrix m_root_transform;
 	Fvector m_exit_position;
 

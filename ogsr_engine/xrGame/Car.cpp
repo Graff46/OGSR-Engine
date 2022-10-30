@@ -1271,9 +1271,9 @@ void CCar::PressBack()
 }
 void CCar::PressBreaks()
 {
-	if ((!brpOn) && ((Device.dwTimeGlobal - lastPressBreaks) < 750)) brpOn = true;
+	brpOn = bool ((!brpOn) && (ctrlOn));
 	
-	lastPressBreaks = Device.dwTimeGlobal;
+	//lastPressBreaks = Device.dwTimeGlobal;
 	HandBreak();
 	brp = true;
 }
@@ -1410,6 +1410,7 @@ void CCar::TransmissionUp()
 
 void CCar::TransmissionDown()
 {
+	ctrlOn = true;
 	if(0==CurrentTransmission())return;
 	size_t transmission=CurrentTransmission()-1;
 	transmission<1 ? transmission=1 : transmission;

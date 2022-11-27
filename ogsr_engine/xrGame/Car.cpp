@@ -1410,7 +1410,6 @@ void CCar::TransmissionUp()
 
 void CCar::TransmissionDown()
 {
-	ctrlOn = true;
 	if(0==CurrentTransmission())return;
 	size_t transmission=CurrentTransmission()-1;
 	transmission<1 ? transmission=1 : transmission;

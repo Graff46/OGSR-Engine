@@ -143,7 +143,7 @@ void CCar::OnKeyboardPress(int cmd)
 	case kCAM_2:	OnCameraChange(ectChase);	break;
 	case kCAM_3:	OnCameraChange(ectFree);	break;
 	case kACCEL:	TransmissionUp();			break;
-	case kCROUCH:	ctrlOn = false;TransmissionDown();break;
+	case kCROUCH:	ctrlOn = true;TransmissionDown();break;
 	case kFWD:		PressForward();				break;
 	case kBACK:		PressBack();				break;
 	case kR_STRAFE:	PressRight();				break;

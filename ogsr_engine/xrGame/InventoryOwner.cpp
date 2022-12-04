@@ -455,7 +455,7 @@ void CInventoryOwner::OnItemSlot	(CInventoryItem *inventory_item, EItemPlace pre
 {
 	CGameObject	*object = smart_cast<CGameObject*>(this);
 	VERIFY(object);
-	object->callback(GameObject::eOnItemToSlot)(inventory_item->object().lua_game_object());
+	object->callback(GameObject::eOnItemToSlot)(inventory_item->object().lua_game_object(), inventory_item->BaseSlot());
 	attach		(inventory_item);
 }
 

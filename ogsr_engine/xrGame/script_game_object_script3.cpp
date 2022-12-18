@@ -51,9 +51,12 @@ bool exit_car(CScriptGameObject* obj, const float angle) //Graff46
 	return result;
 }
 
-bool CanTrade(CScriptGameObject* obj)
+bool CanTrade(CScriptGameObject* obj, bool def = false)
 {
-	return (smart_cast<CInventoryItem*>(obj))->CanTrade();
+	CInventoryItem* p = smart_cast<CInventoryItem*>(&obj->object());
+	if (p)
+		return p->CanTrade();
+	return def;
 }
 
 class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>&& instance)

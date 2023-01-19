@@ -100,6 +100,9 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 		light_bone			= K->LL_BoneID	(*lamp->light_main_bone);	VERIFY(light_bone!=BI_NONE);
 		ambient_bone		= K->LL_BoneID	(*lamp->light_ambient_bone);VERIFY(ambient_bone!=BI_NONE);
 		collidable.model	= xr_new<CCF_Skeleton>				(this);
+
+		CInifile* ini = K->LL_UserData();
+		hit_destroyed = ini ? READ_IF_EXISTS(ini, r_bool, "collide", "hit_destroyed", true) : true;
 	}
 	fBrightness = lamp->brightness;
 	clr.set					(lamp->color);						clr.a = 1.f;
@@ -302,10 +305,14 @@ void	CHangingLamp::Hit					(SHit* pHDS)
 
 	if(m_pPhysicsShell) m_pPhysicsShell->applyHit(pHDS->p_in_bone_space,pHDS->dir,pHDS->impulse,pHDS->boneID,pHDS->hit_type);
 
-	if (pHDS->boneID==light_bone)fHealth =	0.f;
-	else	fHealth -=	pHDS->damage()*100.f;
+	if (hit_destroyed) {
+		if (pHDS->boneID==light_bone)
+			fHealth = 0.f;
+		else
+			fHealth -= pHDS->damage()*100.f;
 
-	if (bWasAlive && (!Alive()))		TurnOff	();
+		if (bWasAlive && (!Alive()))		TurnOff	();
+	}
 }
 
 static BONE_P_MAP bone_map=BONE_P_MAP();

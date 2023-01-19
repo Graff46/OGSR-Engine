@@ -38,6 +38,7 @@ private:
 	void			Init();
 	void			RespawnInit		();
 	bool			Alive			(){return fHealth>0.f;}
+	bool			hit_destroyed = true;
 
 
 public:

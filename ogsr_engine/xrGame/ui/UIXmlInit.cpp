@@ -94,12 +94,21 @@ bool CUIXmlInit::InitWindow(CUIXml& xml_doc, LPCSTR path,
 	float height = xml_doc.ReadAttribFlt(path, index, "height");
 		// Add by Zander
 	int as_is = xml_doc.ReadAttribInt(path, index, "as_is", 0);
-	if(as_is){
+	if(as_is)
+	{
 		Fvector2 device_scale;
 		device_scale.x = 1024.0f / _max((float)Device.dwWidth, 1.0f);
 		device_scale.y = 768.0f / _max((float)Device.dwHeight, 1.0f);
 		width = width * device_scale.x;
 		height = height * device_scale.y;
+	}
+	else if (xml_doc.ReadAttribInt(path, index, "percent", 0))
+	{
+		width = width * 1024 * 0.01;
+		height = height * 768 * 0.01;
+
+		x = x * 1024 * 0.01;
+		y = y * 768 * 0.01;
 	}
 	pWnd->Init(x, y, width, height);
 

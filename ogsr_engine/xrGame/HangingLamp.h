@@ -70,6 +70,9 @@ public:
 	virtual float	Radius			()				const;
 
 	void SetLSFParams(float _speed, float _amount, float _jit);
+	void setParams(NET_Packet& p);
+	NET_Packet getLightParams();
+
 	DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CHangingLamp)

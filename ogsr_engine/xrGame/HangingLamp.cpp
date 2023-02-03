@@ -379,6 +379,58 @@ void CHangingLamp::SetLSFParams(float _speed, float _amount, float _jit) {
 	//light_render->set_lsf_params(_speed, _amount, _jit);
 }
 
+void CHangingLamp::setParams(NET_Packet& p)
+{
+	p.r_seek(0);
+
+	fBrightness = p.r_float();
+	Fcolor clr;
+	clr.set(light_render->get_color()); clr.a = 1.f;
+	clr.mul_rgb(fBrightness);
+	light_render->set_color(clr);
+
+	light_render->set_range(p.r_float() * pSettings->r_float("dynamic_light", "range_koef"));
+
+	light_render->set_volumetric(p.r_u8());
+
+	light_render->set_shadow(p.r_u8());
+
+	ambient_power = p.r_float();
+	if (!light_ambient)
+		light_ambient = ::Render->light_create();
+
+	light_ambient->set_type(IRender_Light::POINT);
+	light_ambient->set_shadow(false);
+	clr.mul_rgb(ambient_power);
+	light_ambient->set_range(p.r_float() * pSettings->r_float("dynamic_light", "range_koef"));
+	light_ambient->set_color(clr);
+
+	light_render->set_volumetric_distance(p.r_float());
+	light_render->set_volumetric_intensity(p.r_float());
+	light_render->set_volumetric_quality(p.r_float());
+}
+
+NET_Packet CHangingLamp::getLightParams()
+{
+	CSE_ALifeObjectHangingLamp* lamp = smart_cast<CSE_ALifeObjectHangingLamp*>(this->alife_object());
+
+	NET_Packet p;
+	p.w_float(lamp->brightness);
+	p.w_float(lamp->range);
+	p.w_u8(lamp->flags.is(CSE_ALifeObjectHangingLamp::flVolumetricLight));
+	p.w_u8(lamp->flags.is(CSE_ALifeObjectHangingLamp::flCastShadow));
+	p.w_float(lamp->m_ambient_power);
+	p.w_float(light_ambient ? light_ambient->get_range() : 0.f);
+	p.w_float(1.f);
+	p.w_float(1.f);
+	p.w_float(1.f);
+
+	p.r_seek(0);
+	p.write_start();
+
+	return p;
+}
+
 #pragma optimize("s",on)
 void CHangingLamp::script_register(lua_State *L)
 {
@@ -389,5 +441,7 @@ void CHangingLamp::script_register(lua_State *L)
 			.def("turn_on",		&CHangingLamp::TurnOn)
 			.def("turn_off",	&CHangingLamp::TurnOff)
 			.def("set_lsf_params",	&CHangingLamp::SetLSFParams)
+			.def("get_params",	&CHangingLamp::getLightParams)
+			.def("set_params",	&CHangingLamp::setParams)
 	];
 }

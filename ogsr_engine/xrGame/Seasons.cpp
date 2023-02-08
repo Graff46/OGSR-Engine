@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Seasons.h"
 #include "level.h"
-//#include "..\xrSound\SoundRender_Core.h"
+#include "..\xrSound\SoundRender_Core.h"
 #include "ui/UILoadingScreen.h"
 #include "..\xr_3da\x_ray.h"
 
@@ -28,7 +28,7 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelNam
 			Device.m_pRender->ResourcesDeferredUpload(TRUE);
 			if (Device.b_is_Ready) Device.Reset();
 
-			//SoundRender->reload();// Нормально не работает
+			SoundRender->reload();
 
 #pragma todo("create reload all sounds from FS")
 		}

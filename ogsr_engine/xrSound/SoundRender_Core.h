@@ -35,6 +35,7 @@ public:
 	float								fTimer_Value;
 	float								fTimer_Delta;
 	sound_event*						Handler;
+	xr_map<LPCSTR, ref_sound*>			m_snd_target;
 protected:
 	// Collider
 	CDB::COLLIDER						geom_DB;

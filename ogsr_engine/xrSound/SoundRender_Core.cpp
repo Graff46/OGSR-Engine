@@ -269,6 +269,7 @@ void	CSoundRender_Core::create(ref_sound& S, const char* fName, esound_type soun
 {
 	if (!bPresent)		return;
 	S._p = xr_new<ref_sound_data>(fName, sound_type, game_type);
+	m_snd_target[fName] = &S;
 }
 
 void	CSoundRender_Core::attach_tail(ref_sound& S, const char* fName)
@@ -621,11 +622,24 @@ void CSoundRender_Core::object_relcase(CObject* obj)
 
 void CSoundRender_Core::reload()
 {
+	ref_sound *snd;
+
 	for (u32 it = 0; it < s_sources.size(); it++) {
 		LPCSTR name = s_sources[it]->fname.c_str();
 		s_sources[it]->unload();
-		s_sources[it]->load(name);
+		
+		if (snd = m_snd_target[name]) {
+			esound_type t1 = snd->_sound_type();
+			int t2 = snd->_g_type();
+
+			destroy(*snd);
+			//s_sources[it]->load(name);
+			create(*snd, name, t1, t2);
+			//SoundRender->i_start((CSoundRender_Emitter*)snd->_feedback());
+		} else
+			s_sources[it]->load(name);
 	}
+	
 }
 
 XRSOUND_API float SoundRenderGetOcculution(Fvector& P, float R, Fvector* occ) { return SoundRender->get_occlusion(P, R, occ); }

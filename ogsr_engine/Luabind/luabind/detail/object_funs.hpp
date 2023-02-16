@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <Utils/imdexlib/option.hpp>
+#include <optional>
 
 #include <luabind/config.hpp>
 #include <luabind/detail/policy.hpp>
@@ -40,7 +40,7 @@ namespace luabind
 		template<typename T, typename Obj, typename... Policies>
 		T object_cast_impl(const Obj& obj, const policy_cons<Policies...>)
 		{
-			if (obj.lua_state() == 0) 
+			if (obj.lua_state() == 0)
 			{
 #ifndef LUABIND_NO_EXCEPTIONS
 				throw cast_failed(nullptr, LUABIND_TYPEID(T));
@@ -56,7 +56,7 @@ namespace luabind
 
 			LUABIND_CHECK_STACK(obj.lua_state());
 
-		    using converter_policy = typename detail::find_conversion_policy<0, Policies...>::type;
+			using converter_policy = typename detail::find_conversion_policy<0, Policies...>::type;
 			typename converter_policy::template generate_converter<T, Direction::lua_to_cpp>::type converter;
 
 			obj.pushvalue();
@@ -84,12 +84,12 @@ namespace luabind
 		}
 
 		template<typename T, typename Obj, typename... Policies>
-		imdexlib::option<T> object_cast_nothrow_impl(const Obj& obj, const policy_cons<Policies...>)
+		std::optional<T> object_cast_nothrow_impl(const Obj& obj, const policy_cons<Policies...>)
 		{
-		    using converter_policy = typename detail::find_conversion_policy<0, Policies...>::type;
+			using converter_policy = typename detail::find_conversion_policy<0, Policies...>::type;
 			typename converter_policy::template generate_converter<T, Direction::lua_to_cpp>::type converter;
 
-			if (obj.lua_state() == 0) return imdexlib::option<T>();
+			if (obj.lua_state() == 0) return {};
 			LUABIND_CHECK_STACK(obj.lua_state());
 
 			obj.pushvalue();
@@ -100,79 +100,111 @@ namespace luabind
 #ifndef LUABIND_NO_ERROR_CHECKING
 
 			if (converter.match(L, LUABIND_DECORATE_TYPE(T), -1) < 0)
-				return imdexlib::option<T>();
+				return {};
 #endif
 
-            return imdexlib::some(converter.apply(L, LUABIND_DECORATE_TYPE(T), -1));
+			return converter.apply(L, LUABIND_DECORATE_TYPE(T), -1);
 		}
 	}
-	
+
 	template<typename T>
 	T object_cast(const object& obj)
-	{ return detail::object_cast_impl<T>(obj, detail::policy_cons<>()); }
-	
-	template<typename T, typename... Policies>
-	T object_cast(const object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_impl<T>(obj, p); }
-	
-	template<typename T>
-    imdexlib::option<T> object_cast_nothrow(const object& obj)
-	{ return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>()); }
+	{
+		return detail::object_cast_impl<T>(obj, detail::policy_cons<>());
+	}
 
 	template<typename T, typename... Policies>
-    imdexlib::option<T> object_cast_nothrow(const object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_nothrow_impl<T>(obj, p); }
-	
+	T object_cast(const object& obj, const detail::policy_cons<Policies...> p)
+	{
+		return detail::object_cast_impl<T>(obj, p);
+	}
+
+	template<typename T>
+	std::optional<T> object_cast_nothrow(const object& obj)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>());
+	}
+
+	template<typename T, typename... Policies>
+	std::optional<T> object_cast_nothrow(const object& obj, const detail::policy_cons<Policies...> p)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, p);
+	}
+
 
 	template<typename T>
 	T object_cast(const detail::proxy_object& obj)
-	{ return detail::object_cast_impl<T>(obj, detail::policy_cons<>()); }
-	
+	{
+		return detail::object_cast_impl<T>(obj, detail::policy_cons<>());
+	}
+
 	template<typename T, typename... Policies>
 	T object_cast(const detail::proxy_object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_impl<T>(obj, p); }
-	
-	template<typename T>
-    imdexlib::option<T> object_cast_nothrow(const detail::proxy_object& obj)
-	{ return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>()); }
-	
-	template<typename T, typename... Policies>
-    imdexlib::option<T> object_cast_nothrow(const detail::proxy_object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_nothrow_impl<T>(obj, p); }
+	{
+		return detail::object_cast_impl<T>(obj, p);
+	}
 
-	
+	template<typename T>
+	std::optional<T> object_cast_nothrow(const detail::proxy_object& obj)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>());
+	}
+
+	template<typename T, typename... Policies>
+	std::optional<T> object_cast_nothrow(const detail::proxy_object& obj, const detail::policy_cons<Policies...> p)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, p);
+	}
+
+
 	template<typename T>
 	T object_cast(const detail::proxy_raw_object& obj)
-	{ return detail::object_cast_impl<T>(obj, detail::policy_cons<>()); }
+	{
+		return detail::object_cast_impl<T>(obj, detail::policy_cons<>());
+	}
 
 	template<typename T, typename... Policies>
 	T object_cast(const detail::proxy_raw_object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_impl<T>(obj, p); }
+	{
+		return detail::object_cast_impl<T>(obj, p);
+	}
 
 	template<typename T>
-    imdexlib::option<T> object_cast_nothrow(const detail::proxy_raw_object& obj)
-	{ return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>()); }
+	std::optional<T> object_cast_nothrow(const detail::proxy_raw_object& obj)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>());
+	}
 
 	template<typename T, typename... Policies>
-    imdexlib::option<T> object_cast_nothrow(const detail::proxy_raw_object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_nothrow_impl<T>(obj, p); }
+	std::optional<T> object_cast_nothrow(const detail::proxy_raw_object& obj, const detail::policy_cons<Policies...> p)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, p);
+	}
 
-	
+
 	template<typename T>
 	T object_cast(const detail::proxy_array_object& obj)
-	{ return detail::object_cast_impl<T>(obj, detail::policy_cons<>()); }
-	
+	{
+		return detail::object_cast_impl<T>(obj, detail::policy_cons<>());
+	}
+
 	template<typename T, typename... Policies>
 	T object_cast(const detail::proxy_array_object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_impl<T>(obj, p); }
-	
+	{
+		return detail::object_cast_impl<T>(obj, p);
+	}
+
 	template<typename T>
-    imdexlib::option<T> object_cast_nothrow(const detail::proxy_array_object& obj)
-	{ return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>()); }
-	
+	std::optional<T> object_cast_nothrow(const detail::proxy_array_object& obj)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, detail::policy_cons<>());
+	}
+
 	template<typename T, typename... Policies>
-    imdexlib::option<T> object_cast_nothrow(const detail::proxy_array_object& obj, const detail::policy_cons<Policies...> p)
-	{ return detail::object_cast_nothrow_impl<T>(obj, p); }
+	std::optional<T> object_cast_nothrow(const detail::proxy_array_object& obj, const detail::policy_cons<Policies...> p)
+	{
+		return detail::object_cast_nothrow_impl<T>(obj, p);
+	}
 
 
 

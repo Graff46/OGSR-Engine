@@ -6,16 +6,16 @@
 constexpr LPCSTR CAR_PANEL_XML = "car_panel.xml";
 constexpr LPCSTR POINTER_ARROW_TEX = "ui\\hud_map_arrow";
 
-void CUICarPanel::Init			(float x, float y, float width, float height)
+void CUICarPanel::Init(float x, float y, float width, float height)
 {
-	CUIXml uiXml;
-	bool result = uiXml.Init(CONFIG_PATH, UI_PATH, CAR_PANEL_XML);
-	R_ASSERT3(result, "xml file not found", CAR_PANEL_XML);
+    CUIXml uiXml;
+    bool result = uiXml.Init(CONFIG_PATH, UI_PATH, CAR_PANEL_XML);
+    R_ASSERT3(result, "xml file not found", CAR_PANEL_XML);
 
-	CUIXmlInit	xml_init;
-	////////////////////////////////////////////////////////////////////
-	AttachChild(&UIStaticCarHealth);
-	xml_init.InitStatic(uiXml, "car_health_static", 0, &UIStaticCarHealth);
+    CUIXmlInit xml_init;
+    ////////////////////////////////////////////////////////////////////
+    AttachChild(&UIStaticCarHealth);
+    xml_init.InitStatic(uiXml, "car_health_static", 0, &UIStaticCarHealth);
 
 	UIStaticCarHealth.AttachChild(&UICarHealthBar);
 	xml_init.InitAutoStaticGroup(uiXml, "car_health_static", 0, &UIStaticCarHealth);
@@ -53,9 +53,9 @@ void CUICarPanel::Init			(float x, float y, float width, float height)
 
 void CUICarPanel::SetCarHealth(float value)
 {
-	float pos = value*100;
-	clamp(pos, 0.0f, 100.0f);
-	UICarHealthBar.SetProgressPos(pos);
+    float pos = value * 100;
+    clamp(pos, 0.0f, 100.0f);
+    UICarHealthBar.SetProgressPos(pos);
 }
 
 //////////////////////////////////////////////////////////////////////////

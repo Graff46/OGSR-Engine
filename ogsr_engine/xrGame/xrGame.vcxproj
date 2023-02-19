@@ -49,6 +49,7 @@
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>false</WholeProgramOptimization>
+    <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -1118,10 +1119,6 @@
     <ClInclude Include="script_hit_inline.h" />
     <ClInclude Include="..\COMMON_AI\script_ini_file.h" />
     <ClInclude Include="..\COMMON_AI\script_ini_file_inline.h" />
-    <ClInclude Include="..\COMMON_AI\script_token_list.h" />
-    <ClInclude Include="..\COMMON_AI\script_token_list_inline.h" />
-    <ClInclude Include="..\COMMON_AI\script_rtoken_list.h" />
-    <ClInclude Include="..\COMMON_AI\script_rtoken_list_inline.h" />
     <ClInclude Include="script_monster_hit_info.h" />
     <ClInclude Include="..\COMMON_AI\script_net_packet.h" />
     <ClInclude Include="script_render_device.h" />
@@ -1166,7 +1163,6 @@
     <ClInclude Include="EffectorZoomInertion.h" />
     <ClInclude Include="GamePersistent.h" />
     <ClInclude Include="Level.h" />
-    <ClInclude Include="Level_network_Demo.h" />
     <ClInclude Include="Level_Bullet_Manager.h" />
     <ClInclude Include="Tracer.h" />
     <ClInclude Include="seniority_hierarchy_holder.h" />
@@ -2061,9 +2057,6 @@
     <ClCompile Include="script_hit_script.cpp" />
     <ClCompile Include="..\COMMON_AI\script_ini_file.cpp" />
     <ClCompile Include="..\COMMON_AI\script_ini_file_script.cpp" />
-    <ClCompile Include="..\COMMON_AI\script_token_list.cpp" />
-    <ClCompile Include="..\COMMON_AI\script_token_list_script.cpp" />
-    <ClCompile Include="..\COMMON_AI\script_rtoken_list_script.cpp" />
     <ClCompile Include="script_monster_hit_info_script.cpp" />
     <ClCompile Include="..\COMMON_AI\script_net_packet_script.cpp" />
     <ClCompile Include="script_render_device_script.cpp" />
@@ -2115,7 +2108,6 @@
     <ClCompile Include="Level_input.cpp" />
     <ClCompile Include="Level_load.cpp" />
     <ClCompile Include="Level_network.cpp" />
-    <ClCompile Include="Level_network_Demo.cpp" />
     <ClCompile Include="Level_network_messages.cpp" />
     <ClCompile Include="Level_network_spawn.cpp" />
     <ClCompile Include="Level_network_start_client.cpp" />

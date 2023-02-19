@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://github.com/OGSR/OGSR-Engine/releases/latest"><img src="https://img.shields.io/github/release/OGSR/OGSR-Engine.svg?style=flat-square" alt="GitHub release"></a>
   <a href="https://github.com/OGSR/OGSR-Engine/releases/latest"><img src="https://img.shields.io/github/downloads/OGSR/OGSR-Engine/total.svg?style=flat-square" alt="Total downloads"></a>
-  <a href="https://github.com/OGSR/OGSR-Engine/actions?query=event:push+workflow:%22Main+Workflow%22"><img src="https://img.shields.io/github/workflow/status/OGSR/OGSR-Engine/Main%20Workflow?label=build&logo=github&style=flat-square" alt="Build Status"></a>
+  <a href="https://github.com/OGSR/OGSR-Engine/actions?query=event:push+workflow:%22Main+Workflow%22"><img src="https://img.shields.io/github/actions/workflow/status/OGSR/OGSR-Engine/push.yml?branch=main&label=build&logo=github&style=flat-square" alt="Build Status"></a>
 <p align="center">
   <a href="https://discord.gg/Q6QDxbNcfR"><img src="https://img.shields.io/discord/508530704674455562.svg?style=for-the-badge&label=DISCORD&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)" alt="Discord"></a>
 
@@ -26,7 +26,7 @@
 ### [Write here](https://github.com/OGSR/OGSR-Engine/discussions) your suggestions, questions and everything else ###
 
 ### Compilation guide: ###
-* Latest version of Visual Studio 2017 or 2019 or 2022 required
+* Latest version of Visual Studio 2022 required
 * Open Engine.sln
 * Set the platform to x64 and the configuration to Release, then select Build -> Build solution
 ### Thanks to: ###
@@ -42,6 +42,8 @@
 * [S.T.A.L.K.E.R. Anomaly Engine](https://bitbucket.org/anomalymod/xray-monolith)
 * [X-Ray Engine by Alpet & KD](https://github.com/joye-ramone/xray_xp_dev)
 * [CoC-Xray](https://github.com/revolucas/CoC-Xray)
+* [IX-Ray](https://github.com/ixray-team/ixray-1.6-stcop)
+* [ScreenSpaceShaders](https://www.moddb.com/mods/stalker-anomaly/addons/screen-space-shaders)
 
 And everyone else whose work has been used. If you are not mentioned, send a message and you will be added.
 
@@ -60,7 +62,7 @@ And everyone else whose work has been used. If you are not mentioned, send a mes
 ### Предложения, вопросы и тп можно писать [сюда](https://github.com/OGSR/OGSR-Engine/discussions) ###
 
 ### Инструкции по сборке: ###
-* Требуется актуальная версия Visual Studio 2017 или 2019 или 2022
+* Требуется актуальная версия Visual Studio 2022
 * Открываете Engine.sln
 * В студии выбираете Сборка -> Собрать решение, предварительно выставив платформу x64 и конфигурацию Release
 ### Благодарим: ###
@@ -76,5 +78,7 @@ And everyone else whose work has been used. If you are not mentioned, send a mes
 * [S.T.A.L.K.E.R. Anomaly Engine](https://bitbucket.org/anomalymod/xray-monolith)
 * [X-Ray Engine by Alpet & KD](https://github.com/joye-ramone/xray_xp_dev)
 * [CoC-Xray](https://github.com/revolucas/CoC-Xray)
+* [IX-Ray](https://github.com/ixray-team/ixray-1.6-stcop)
+* [ScreenSpaceShaders](https://www.moddb.com/mods/stalker-anomaly/addons/screen-space-shaders)
 
 И всех остальных, чьи работы я использовал. Пишите, если забыл кого-то, добавлю в список.

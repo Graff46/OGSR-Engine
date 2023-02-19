@@ -10,6 +10,8 @@
 #include <sstream>
 #include <iterator>
 #include <array> //для std::array
+#include <filesystem>
+namespace stdfs = std::filesystem;
 
 #include "lzo\lzo1x.h"
 
@@ -21,7 +23,7 @@ constexpr std::array<const char*, 3> NoCompress{ //Расширения файл
 };
 
 
-static bool bStoreFiles{}, MOD_COMPRESS{};
+static bool bStoreFiles{}, MOD_COMPRESS{}, IS_WW{};
 
 static IWriter* fs{};
 static CMemoryWriter fs_desc{};
@@ -43,16 +45,19 @@ struct	ALIAS {
 };
 static xr_multimap<u32, ALIAS>	aliases;
 
-static std::vector<std::string> exclude_exts;
+static xr_vector<xr_string> exclude_exts, exclude_files;
 
 
 static bool testSKIP(LPCSTR path)
 {
 	string_path p_name, p_ext;
-	_splitpath(path, 0, 0, p_name, p_ext);
+	_splitpath(path, nullptr, nullptr, p_name, p_ext);
 
-	if (!stricmp(p_name, "build"))
-		return true;
+	xr_string fname_ext{ p_name };
+	fname_ext += p_ext;
+	for (const auto& it : exclude_files)
+		if (PatternMatch(fname_ext.c_str(), it.c_str()))
+			return true;
 
 	for (const auto& it : exclude_exts)
 		if (PatternMatch(p_ext, it.c_str()))
@@ -303,7 +308,7 @@ static void ClosePack()
 	// save list
 	bytesDST = fs->tell();
 
-	fs->w_chunk(1 | CFS_CompressMark, fs_desc.pointer(), fs_desc.size(), !MOD_COMPRESS);
+	fs->w_chunk(1 | CFS_CompressMark, fs_desc.pointer(), fs_desc.size(), !MOD_COMPRESS, IS_WW);
 
 	FS.w_close(fs);
 
@@ -343,7 +348,7 @@ static void CompressList(LPCSTR in_name, xr_vector<char*>* list, xr_vector<char*
 		u32 count = 0;
 		for (char* it : *list) {
 			count++;
-			sprintf(caption, "Compress files: %d/%d - %d%%", count, list->size(), (count * 100) / list->size());
+			sprintf(caption, "Compress files: %u/%zu - %zu%%", count, list->size(), (count * 100) / list->size());
 			SetWindowText(GetConsoleWindow(), caption);
 			if (fs->tell() > XRP_MAX_SIZE) {
 				ClosePack();
@@ -381,6 +386,12 @@ static void ProcessFolder(xr_vector<char*>& list, LPCSTR path)
 
 static bool IsFolderAccepted(CInifile& ltx, LPCSTR path, BOOL& recurse)
 {
+	string_path dir_name;
+	FS.update_path(dir_name, "$target_folder$", path);
+	if (!stdfs::exists(dir_name) || !stdfs::is_directory(dir_name) || stdfs::is_empty(dir_name))
+		return false;
+
+	//--Код ниже не проверен, работает ли он вообще. У нас не юзается.
 	// exclude folders
 	if (ltx.section_exist("exclude_folders"))
 	{
@@ -398,6 +409,7 @@ static bool IsFolderAccepted(CInifile& ltx, LPCSTR path, BOOL& recurse)
 			}
 		}
 	}
+	//--
 	return true;
 }
 
@@ -427,13 +439,24 @@ static void ProcessLTX(LPCSTR tgt_name, LPCSTR params, BOOL bFast)
 
 	if (ltx.line_exist("options", "exclude_exts"))
 	{
-		std::string input(ltx.r_string("options", "exclude_exts"));
+		xr_string input(ltx.r_string("options", "exclude_exts"));
 		std::replace(input.begin(), input.end(), ',', ' ');
 		std::istringstream iss(input);
-		using it = std::istream_iterator<std::string>;
+		using it = std::istream_iterator<xr_string>;
 		std::copy(it(iss), it(), std::back_inserter(exclude_exts));
 		//for (const auto& str : exclude_exts)
 		//	Msg("--Found exclude: [%s]", str.c_str());
+	}
+
+	if (ltx.line_exist("options", "exclude_files"))
+	{
+		xr_string input(ltx.r_string("options", "exclude_files"));
+		std::replace(input.begin(), input.end(), ',', ' ');
+		std::istringstream iss(input);
+		using it = std::istream_iterator<xr_string>;
+		std::copy(it(iss), it(), std::back_inserter(exclude_files));
+		//for (const auto& str : exclude_files)
+		//	Msg("--Found exclude file: [%s]", str.c_str());
 	}
 
 	xr_vector<char*> list;
@@ -509,13 +532,14 @@ static void ProcessLTX(LPCSTR tgt_name, LPCSTR params, BOOL bFast)
 	// free
 	for (char* it : list)
 		xr_free(it);
-	list.clear_and_free();
+	list.clear();
 
 	for (char* it : fl_list)
 		xr_free(it);
-	fl_list.clear_and_free();
+	fl_list.clear();
 
 	exclude_exts.clear();
+	exclude_files.clear();
 }
 
 
@@ -568,6 +592,7 @@ int __cdecl main(int argc, char* argv[])
 			"-fast                - fast compression.\n"
 			"-store               - store files. No compression.\n"
 			"-max_size <Mb>       - set maximum archive size. Default: [%u Mb]\n"
+			"- filename  <file_name.db> - name of the archive to be created by the compressor (without whitespaces!)"
 			, XRP_MAX_SIZE_DEF
 		);
 
@@ -586,7 +611,8 @@ int __cdecl main(int argc, char* argv[])
 	Log("\n");
 
 	{
-		BOOL bFast = 0 != strstr(params, "-fast");
+		BOOL bFast = !!strstr(params, "-fast");
+		IS_WW = !!strstr(params, "-WW");
 		LPCSTR p = strstr(params, "-ltx");
 		R_ASSERT2(p, "wrong params passed. -ltx option needed");
 

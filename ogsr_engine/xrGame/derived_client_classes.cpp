@@ -430,7 +430,7 @@ void CWeaponScript::script_register(lua_State *L)
 			.def_readwrite("zoom_rotate_time"			,			&CWeapon::m_fZoomRotateTime)
 			.def_readwrite("iron_sight_zoom_factor"		,			&CWeapon::m_fIronSightZoomFactor)
 			.def_readwrite("scope_zoom_factor"			,			&CWeapon::m_fScopeZoomFactor)
-			.def_readwrite("zoom_rotation_factor"			,			&CWeapon::m_fZoomRotationFactor)
+			.def_readonly("zoom_rotation_factor"			,			&CWeapon::m_fZoomRotationFactor)
 			// переменные для подстройки положения аддонов из скриптов:
 			
 			.def_readwrite("grenade_launcher_x"			,			&CWeapon::m_iGrenadeLauncherX)
@@ -448,7 +448,6 @@ void CWeaponScript::script_register(lua_State *L)
             .property("silencer_name", &get_silencer_name, &set_silencer_name)
             .property("grenade_launcher_name", &get_grenade_launcher_name, &set_grenade_launcher_name)
 
-			.def_readonly("misfire"						,			&CWeapon::bMisfire)
 			.def_readonly("zoom_mode"					,			&CWeapon::m_bZoomMode)
 
 			.def_readwrite("scope_inertion_factor"		,			&CWeapon::m_fScopeInertionFactor)
@@ -481,6 +480,8 @@ void CWeaponScript::script_register(lua_State *L)
 			.property	  ("fire_modes"					,			&get_fire_modes, &set_fire_modes)
 			.def( "attach_addon", &CWeaponMagazined::Attach )
 			.def( "detach_addon", &CWeaponMagazined::Detach )
+			.def("can_attach_addon", &CWeaponMagazined::CanAttach)
+			.def("can_detach_addon", &CWeaponMagazined::CanDetach)
 			,
 			class_<CWeaponMagazinedWGrenade,			CWeaponMagazined>("CWeaponMagazinedWGrenade")
 			.def_readwrite("gren_mag_size"				,			&CWeaponMagazinedWGrenade::iMagazineSize2)			

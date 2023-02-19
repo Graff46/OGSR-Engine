@@ -42,6 +42,7 @@
 #endif // DEBUG
 
 #include "hudmanager.h"
+#include "../xr_3da/x_ray.h"
 
 string_path		g_last_saved_game;
 
@@ -62,6 +63,7 @@ extern	BOOL	g_bDebugDumpPhysicsStep	;
 extern	ESingleGameDifficulty g_SingleGameDifficulty;
 extern	BOOL	g_show_wnd_rect			;
 extern	BOOL	g_show_wnd_rect2			;
+extern	BOOL	g_show_wnd_rect_text;
 //-----------------------------------------------------------
 extern	float	g_fTimeFactor;
 extern	BOOL	g_bCopDeathAnim;
@@ -70,6 +72,8 @@ extern	int		g_bHudAdjustItemIdx;
 extern	float	g_bHudAdjustDeltaPos;
 extern	float	g_bHudAdjustDeltaRot;
 
+float adj_delta_pos = 0.0005f;
+float adj_delta_rot = 0.05f;
 //-----------------------------------------------------------
 
 BOOL	g_bCheckTime			= FALSE;
@@ -90,11 +94,6 @@ extern LPSTR	dbg_stalker_death_anim;
 extern BOOL		b_death_anim_velocity;
 #endif
 int g_AI_inactive_time = 0;
-Flags32 g_uCommonFlags;
-
-enum E_COMMON_FLAGS{
-	flAiUseTorchDynamicLights = 1
-};
 
 extern int g_dof_zoom_far;
 extern int g_dof_zoom_near;
@@ -1009,38 +1008,118 @@ struct CCC_DbgBullets : public CCC_Integer {
 		CCC_Integer::Execute	(args);
 	}
 };
+#endif // DEBUG
 
 #include "attachable_item.h"
 #include "attachment_owner.h"
+#include "InventoryOwner.h"
+#include "Inventory.h"
+#include "HUDManager.h"
+#include "HUDTarget.h"
 class CCC_TuneAttachableItem : public IConsole_Command
 {
-public		:
-	CCC_TuneAttachableItem(LPCSTR N):IConsole_Command(N){};
-	virtual void	Execute	(LPCSTR args)
+public:
+	CCC_TuneAttachableItem(LPCSTR N) :IConsole_Command(N) {};
+	void Execute(LPCSTR args) override
 	{
-		if( CAttachableItem::m_dbgItem){
-			CAttachableItem::m_dbgItem = NULL;	
-			Msg("CCC_TuneAttachableItem switched to off");
+		if (!g_pGameLevel) // level not loaded
 			return;
-		};
 
-		CObject* obj = Level().CurrentViewEntity();	VERIFY(obj);
-		CAttachmentOwner* owner = smart_cast<CAttachmentOwner*>(obj);
-		shared_str ssss = args;
-		CAttachableItem* itm = owner->attachedItem(ssss);
-		if(itm){
+		if (CAttachableItem::m_dbgItem) {
+			CAttachableItem::m_dbgItem = nullptr;
+			Msg("~~[%s] switched to off", __FUNCTION__);
+			return;
+		}
+
+		if (!g_hud)
+			return;
+
+		CObject* obj = ((CHUDManager*)g_hud)->GetTarget()->GetObj();
+		auto owner = smart_cast<CAttachmentOwner*>(obj);
+		if (!owner) {
+			obj = Level().CurrentViewEntity();
+			owner = smart_cast<CAttachmentOwner*>(obj);
+		}
+
+		if (!owner)
+			return;
+
+		if (auto itm = owner->attachedItem(args))
 			CAttachableItem::m_dbgItem = itm;
-			Msg("CCC_TuneAttachableItem switched to ON for [%s]",args);
-		}else
-			Msg("CCC_TuneAttachableItem cannot find attached item [%s]",args);
+		else
+		{
+			auto iowner = smart_cast<CInventoryOwner*>(obj);
+			if (iowner) {
+				auto active_item = iowner->m_inventory->ActiveItem();
+				if (active_item && active_item->object().cNameSect() == args)
+					CAttachableItem::m_dbgItem = active_item->cast_attachable_item();
+			}
+		}
+
+		if (CAttachableItem::m_dbgItem)
+			Msg("--[%s] switched to ON for [%s]", __FUNCTION__, args);
+		else
+			Msg("!![%s] cannot find attached item [%s]", __FUNCTION__, args);
 	}
 
-	virtual void	Info	(TInfo& I)
-	{	
-		sprintf_s(I,"allows to change bind rotation and position offsets for attached item, <section_name> given as arguments");
+	void Info(TInfo& I) override
+	{
+		sprintf_s(I, "allows to change bind rotation and position offsets for attached item, <section_name> given as arguments");
 	}
 };
 
+class CCC_TuneAttachableItemInSlot : public IConsole_Command
+{
+public:
+	CCC_TuneAttachableItemInSlot(LPCSTR N) :IConsole_Command(N) {};
+	void Execute(LPCSTR args) override
+	{
+		if (!g_pGameLevel) // level not loaded
+			return;
+
+		if (CAttachableItem::m_dbgItem) {
+			CAttachableItem::m_dbgItem = nullptr;
+			Msg("~~[%s] switched to off", __FUNCTION__);
+			return;
+		}
+
+		if (!g_hud)
+			return;
+
+		CObject* obj = ((CHUDManager*)g_hud)->GetTarget()->GetObj();
+		auto owner = smart_cast<CAttachmentOwner*>(obj);
+		if (!owner) {
+			obj = Level().CurrentViewEntity();
+			owner = smart_cast<CAttachmentOwner*>(obj);
+		}
+
+		if (!owner)
+			return;
+
+		auto iowner = smart_cast<CInventoryOwner*>(obj);
+		if (iowner) {
+			u32 slot = u32(std::stoi(args));
+			if (slot < SLOTS_TOTAL) {
+				auto active_item = iowner->m_inventory->ItemFromSlot(slot);
+				if (active_item)
+					CAttachableItem::m_dbgItem = active_item->cast_attachable_item();
+			}
+		}
+
+		if (CAttachableItem::m_dbgItem)
+			Msg("--[%s] switched to ON for item in slot [%s]", __FUNCTION__, args);
+		else
+			Msg("!![%s] cannot find attached item in slot [%s]", __FUNCTION__, args);
+	}
+
+	void Info(TInfo& I) override
+	{
+		sprintf_s(I, "allows to change bind rotation and position offsets for attached item, <section_name> given as arguments");
+	}
+};
+
+
+#ifdef DEBUG
 class CCC_Crash : public IConsole_Command {
 public:
 	CCC_Crash(LPCSTR N) : IConsole_Command(N)  { bEmptyArgsHandled = true; };
@@ -1199,16 +1278,21 @@ void CCC_RegisterCommands()
 	CMD3(CCC_Mask,				"hud_info",				&psHUD_Flags,	HUD_INFO);
 	CMD3(CCC_Mask,				"hud_draw",				&psHUD_Flags,	HUD_DRAW);
 	CMD3(CCC_Mask,				"hud_crosshair_build",	&psHUD_Flags,	HUD_CROSSHAIR_BUILD); // билдокурсор
-	CMD3(CCC_Mask, "hud_crosshair_hard", &psHUD_Flags, HUD_CROSSHAIR_HARD);
-	CMD3( CCC_Mask, "hud_small_font", &psHUD_Flags, HUD_SMALL_FONT); // использовать уменьшенный размер шрифта
+
+	if (IS_OGSR_GA)
+		psHUD_Flags.set(HUD_CROSSHAIR_HARD, TRUE);
+	else
+		CMD3(CCC_Mask, "hud_crosshair_hard", &psHUD_Flags, HUD_CROSSHAIR_HARD);
 
 	CMD3(CCC_Mask,				"hud_crosshair",		&psHUD_Flags,	HUD_CROSSHAIR);
 	CMD3(CCC_Mask,				"hud_crosshair_dist",	&psHUD_Flags,	HUD_CROSSHAIR_DIST);
 
-//#ifdef DEBUG
-	CMD4(CCC_Float,				"hud_fov",				&psHUD_FOV_def,		0.1f,	1.0f);
+	if (IS_OGSR_GA)
+		psHUD_FOV_def = 0.65f;
+	else
+		CMD4(CCC_Float, "hud_fov", &psHUD_FOV_def, 0.1f, 1.0f);
+
 	CMD4(CCC_Float,				"fov",					&g_fov,			5.0f,	140.0f);
-//#endif // DEBUG
 
 	// Demo
 	CMD1(CCC_DemoPlay,			"demo_play"				);
@@ -1272,13 +1356,17 @@ void CCC_RegisterCommands()
 	
 	CMD1(CCC_ShowMonsterInfo,	"ai_monster_info");
 	CMD1(CCC_DebugFonts,		"debug_fonts");
-	CMD1(CCC_TuneAttachableItem,"dbg_adjust_attachable_item");
 #endif
+	CMD1(CCC_TuneAttachableItem,"dbg_adjust_attachable_item");
+	CMD1(CCC_TuneAttachableItemInSlot, "dbg_adjust_attachable_item_in_slot");
 	// adjust mode support
-	CMD4(CCC_Integer,			"hud_adjust_mode",			&g_bHudAdjustMode,		0, 7);
-	//CMD4(CCC_Integer,			"hud_adjust_item_index",	&g_bHudAdjustItemIdx,	0, 1);
-	CMD4(CCC_Float,				"hud_adjust_delta_value",	&g_bHudAdjustDeltaPos,	0.0005f, 1.f);
-	CMD4(CCC_Float,				"hud_adjust_delta_rot",		&g_bHudAdjustDeltaRot,	0.0005f, 10.f);
+	CMD4(CCC_Integer,			"hud_adjust_mode",			&g_bHudAdjustMode,		0, 11);
+	CMD4(CCC_Float,				"hud_adjust_delta_value",	&g_bHudAdjustDeltaPos,	0.00005f, 1.f);
+	CMD4(CCC_Float,				"hud_adjust_delta_rot",		&g_bHudAdjustDeltaRot,	0.00005f, 10.f);
+
+	CMD4(CCC_Float, "adjust_delta_pos", &adj_delta_pos, -10.f, 10.f);
+	CMD4(CCC_Float, "adjust_delta_rot", &adj_delta_rot, -10.f, 10.f);
+
 #ifdef DEBUG
 	CMD1(CCC_ShowAnimationStats,"ai_show_animation_stats");
 #endif // DEBUG
@@ -1311,6 +1399,13 @@ void CCC_RegisterCommands()
 	CMD3(CCC_Mask,			"g_3d_scopes",			&psActorFlags,	AF_3D_SCOPES);
 	CMD4(CCC_Integer, "g_3d_scopes_fps_factor", &g_3dscopes_fps_factor, 2, 5);
 	CMD3(CCC_Mask,			"g_crosshair_dbg",		&psActorFlags,	AF_CROSSHAIR_DBG);
+	CMD3(CCC_Mask, "g_camera_collision", &psActorFlags, AF_CAM_COLLISION);
+
+	CMD3(CCC_Mask, "g_mouse_wheel_switch_slot", &psActorFlags, AF_MOUSE_WHEEL_SWITCH_SLOTS);
+
+	psActorFlags.set(AF_3D_PDA, TRUE);
+	CMD3(CCC_Mask, "g_3d_pda", &psActorFlags, AF_3D_PDA);
+
 	CMD1(CCC_TimeFactor,	"time_factor")	
 	CMD1(CCC_SetWeather,	"set_weather");
 //#endif // MASTER_GOLD
@@ -1396,12 +1491,7 @@ void CCC_RegisterCommands()
 	CMD4(CCC_TimeFactorSingle,	"time_factor_single", &g_fTimeFactor, 0.f,flt_max);
 #endif // MASTER_GOLD
 
-
-	g_uCommonFlags.zero();
-	g_uCommonFlags.set(flAiUseTorchDynamicLights, TRUE);
-
-	CMD3(CCC_Mask,		"ai_use_torch_dynamic_lights",	&g_uCommonFlags, flAiUseTorchDynamicLights);
-
+	CMD3(CCC_Mask, "ai_use_torch_dynamic_lights", &psActorFlags, AF_AI_VOLUMETRIC_LIGHTS);
 
 #ifndef MASTER_GOLD
 	CMD4(CCC_Vector3,		"psp_cam_offset",				&CCameraLook2::m_cam_offset, Fvector().set(-1000,-1000,-1000),Fvector().set(1000,1000,1000));
@@ -1418,6 +1508,7 @@ void CCC_RegisterCommands()
 
 	CMD4(CCC_Integer,	"show_wnd_rect",				&g_show_wnd_rect, 0, 1);
 	CMD4(CCC_Integer,	"show_wnd_rect_all",			&g_show_wnd_rect2, 0, 1);
+	CMD4(CCC_Integer, "show_wnd_rect_names", &g_show_wnd_rect_text, 0, 1);
 
 	*g_last_saved_game	= 0;
 

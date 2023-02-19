@@ -59,12 +59,12 @@ void	IGame_Level::SoundEvent_Register	( ref_sound_data_ptr S, float range )
 			VERIFY			(_valid(occ))	;
 			Power			*= occ;
 			if (Power>EPS_S)	{
-				_esound_delegate D = { L, S, Power, snd_position };
+				_esound_delegate D = { L, S, Power };
 				snd_Events.push_back	(D)	;
 			}
 		}
 	}
-	snd_ER.clear_not_free	();
+	snd_ER.clear	();
 }
 
 void	IGame_Level::SoundEvent_Dispatch	( )
@@ -77,12 +77,18 @@ void	IGame_Level::SoundEvent_Dispatch	( )
 				D.source->g_object,
 				D.source->g_type,
 				D.source->g_userdata,
-				D.position, //D.source->feedback->get_params()->position,
+				D.source->feedback->is_2D() ? Device.vCameraPosition : D.source->feedback->get_params()->position,
 				D.power
 				);
 		}
 		snd_Events.pop_back		();
 	}
+}
+
+// Lain: added
+void IGame_Level::SoundEvent_OnDestDestroy(Feel::Sound* obj)
+{
+	snd_Events.erase(std::remove_if(snd_Events.begin(), snd_Events.end(), [obj](const _esound_delegate& d) { return d.dest == obj; }), snd_Events.end());
 }
 
 void __stdcall _sound_event		(ref_sound_data_ptr S, float range)
@@ -117,7 +123,7 @@ CObjectSpace::~CObjectSpace	( )
 int	CObjectSpace::GetNearest	( xr_vector<CObject*>&	q_nearest, const Fvector &point, float range, CObject* ignore_object )
 {
 	// Query objects
-	q_nearest.clear_not_free		( );
+	q_nearest.clear		( );
 	Fsphere				Q;	Q.set	(point,range);
 	Fvector				B;	B.set	(range,range,range);
 	g_SpatialSpace->q_box(r_spatial,0,STYPE_COLLIDEABLE,point,B);

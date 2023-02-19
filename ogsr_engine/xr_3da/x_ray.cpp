@@ -23,7 +23,7 @@
 #define CORE_FEATURE_SET( feature, section )\
   Core.Features.set( xrCore::Feature::feature, READ_IF_EXISTS( pSettings, r_bool, section, #feature, false ) )
 
-
+ENGINE_API	bool IS_OGSR_GA{};
 ENGINE_API CInifile* pGameIni = nullptr;
 int max_load_stage = 0;
 
@@ -63,6 +63,8 @@ void InitSettings	()
 	FS.update_path				(fname,"$game_config$","game.ltx");
 	pGameIni					= xr_new<CInifile>	(fname,TRUE);
 	CHECK_OR_EXIT				(!pGameIni->sections().empty(),make_string("Cannot find file %s.\nReinstalling application may fix this problem.",fname));
+
+	IS_OGSR_GA = strstr(READ_IF_EXISTS(pSettings, r_string, "mod_ver", "mod_ver", "nullptr"), "OGSR");
 }
 void InitConsole	()
 {
@@ -90,7 +92,6 @@ void InitConsole	()
 	CORE_FEATURE_SET( show_inv_item_condition,    "features" );
 	CORE_FEATURE_SET( remove_alt_keybinding,      "features" );
 	CORE_FEATURE_SET( binoc_firing,               "features" );
-	CORE_FEATURE_SET( no_mouse_wheel_switch_slot, "features" );
 	CORE_FEATURE_SET( stop_anim_playing,          "features" );
 	CORE_FEATURE_SET( corpses_collision,          "features" );
 	CORE_FEATURE_SET( more_hide_weapon,           "features" );
@@ -584,7 +585,11 @@ void CApplication::LoadEnd		()
 
 void CApplication::SetLoadingScreen(ILoadingScreen* newScreen)
 {
-	R_ASSERT(!loadingScreen, "! Trying to create new loading screen, but there is already one..");
+	if (loadingScreen) {
+		Log("! Trying to create new loading screen, but there is already one..");
+		xr_delete(newScreen);
+		return;
+	}
 
 	loadingScreen = newScreen;
 }

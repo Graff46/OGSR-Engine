@@ -28,8 +28,7 @@ protected:
 	Fvector			m_focus;
 	Fcolor			m_color;
 private:
-	inline	bool	can_use_dynamic_lights	();
-
+	bool useVolumetric{}, useVolumetricForActor{};
 public:
 					CTorch				(void);
 	virtual			~CTorch				(void);

@@ -284,9 +284,6 @@ void					CRender::create					()
 		o.ssao_opt_data = true;
 	}
 
-	o.dx10_sm4_1		= ps_r2_ls_flags.test((u32)R3FLAG_USE_DX10_1);
-	o.dx10_sm4_1		= o.dx10_sm4_1 && ( HW.pDevice1 != 0 );
-
 	//	MSAA option dependencies
 
 	o.dx10_msaa			= !!ps_r3_msaa;
@@ -294,10 +291,8 @@ void					CRender::create					()
 
 	o.dx10_msaa_opt		= ps_r2_ls_flags.test(R3FLAG_MSAA_OPT);
 	o.dx10_msaa_opt		= o.dx10_msaa_opt && o.dx10_msaa && ( HW.pDevice1 != 0 );
-
-	//o.dx10_msaa_hybrid	= ps_r2_ls_flags.test(R3FLAG_MSAA_HYBRID);
-	o.dx10_msaa_hybrid	= ps_r2_ls_flags.test((u32)R3FLAG_USE_DX10_1);
-	o.dx10_msaa_hybrid	&= !o.dx10_msaa_opt && o.dx10_msaa && ( HW.pDevice1 != 0) ;
+	o.dx10_sm4_1		= o.dx10_msaa_opt;
+	o.dx10_msaa_hybrid	= o.dx10_msaa_opt;
 
 	//	Allow alpha test MSAA for DX10.0
 
@@ -504,16 +499,31 @@ void CRender::OnFrame()
 void CRender::BeforeWorldRender() {}
 
 // После рендера мира и пост-эффектов --#SM+#-- +SecondVP+
-void CRender::AfterWorldRender()
+void CRender::AfterWorldRender(const bool save_bb_before_ui)
 {
-	if (Device.m_SecondViewport.IsSVPFrame())
+	if (save_bb_before_ui || Device.m_SecondViewport.IsSVPFrame())
 	{
-		// Делает копию бэкбуфера (текущего экрана) в рендер-таргет второго вьюпорта
-		ID3D10Texture2D* pBuffer = nullptr;
-		HW.m_pSwapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (LPVOID*)&pBuffer);
-		HW.pDevice->CopyResource(Target->rt_secondVP->pSurface, pBuffer);
+		// Делает копию бэкбуфера (текущего экрана) в рендер-таргет второго вьюпорта (для использования в 3д прицеле либо в рендер-таргет вьюпорта, из которого мы вернем заберем кадр после рендера ui. Именно этот кадр будет позже выведен на экран.)
+		ID3DTexture2D* pBuffer{};
+		HW.m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBuffer));
+		HW.pContext->CopyResource(save_bb_before_ui ? Target->rt_BeforeUi->pSurface : Target->rt_secondVP->pSurface, pBuffer);
 		pBuffer->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
 	}
+}
+
+void CRender::AfterUIRender()
+{
+	// Делает копию бэкбуфера (текущего экрана) в рендер-таргет второго вьюпорта (для использования в пда)
+	ID3DTexture2D* pBuffer{};
+	HW.m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBuffer));
+	HW.pContext->CopyResource(Target->rt_secondVP->pSurface, pBuffer);
+	pBuffer->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
+
+	// Возвращаем на экран кадр, который сохранили до рендера ui для пда
+	ID3DTexture2D* pBuffer2{};
+	HW.m_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBuffer2));
+	HW.pContext->CopyResource(pBuffer2, Target->rt_BeforeUi->pSurface);
+	pBuffer2->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
 }
 
 
@@ -729,7 +739,7 @@ static HRESULT create_shader				(
 		_result			= HW.pDevice->CreatePixelShader(buffer, buffer_size, &sps_result->ps);
 #endif // #ifdef USE_DX11
 		if ( !SUCCEEDED(_result) ) {
-			Log			("! PS: ", file_name);
+			Msg("! PS: [%s]", file_name);
 			Msg			("! CreatePixelShader hr == 0x%08x", _result);
 			return		E_FAIL;
 		}
@@ -753,7 +763,7 @@ static HRESULT create_shader				(
 		}
 		else
 		{
-			Log	("! PS: ", file_name);
+			Msg("! PS: [%s]", file_name);
 			Msg	("! D3DReflectShader hr == 0x%08x", _result);
 		}
 	}
@@ -766,7 +776,7 @@ static HRESULT create_shader				(
 #endif // #ifdef USE_DX11
 
 		if ( !SUCCEEDED(_result) ) {
-			Log			("! VS: ", file_name);
+			Msg("! VS: [%s]", file_name);
 			Msg			("! CreatePixelShader hr == 0x%08x", _result);
 			return		E_FAIL;
 		}
@@ -801,7 +811,7 @@ static HRESULT create_shader				(
 		}
 		else
 		{
-			Log			("! VS: ", file_name);
+			Msg("! VS: [%s]", file_name);
 			Msg			("! D3DXFindShaderComment hr == 0x%08x", _result);
 		}
 	}
@@ -813,7 +823,7 @@ static HRESULT create_shader				(
 		_result			= HW.pDevice->CreateGeometryShader(buffer, buffer_size, &sgs_result->gs);
 #endif // #ifdef USE_DX11
 		if ( !SUCCEEDED(_result) ) {
-			Log			("! GS: ", file_name);
+			Msg("! GS: [%s]", file_name);
 			Msg			("! CreateGeometryShaderhr == 0x%08x", _result);
 			return		E_FAIL;
 		}
@@ -837,7 +847,7 @@ static HRESULT create_shader				(
 		}
 		else
 		{
-			Log	("! PS: ", file_name);
+			Msg("! PS: [%s]", file_name);
 			Msg	("! D3DReflectShader hr == 0x%08x", _result);
 		}
 	}
@@ -859,35 +869,31 @@ static HRESULT create_shader				(
 }
 
 //--------------------------------------------------------------------------------------------------------------
-class	includer				: public ID3DInclude
+class includer final : public ID3DInclude
 {
+	IReader* R{};
 public:
-	HRESULT __stdcall	Open	(D3D10_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
+	HRESULT __stdcall Open(D3D10_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
 	{
-		string_path				pname;
-		strconcat				(sizeof(pname),pname,::Render->getShaderPath(),pFileName);
-		IReader*		R		= FS.r_open	("$game_shaders$",pname);
-		if (0==R)				{
+		string_path pname;
+		strconcat(sizeof(pname), pname, ::Render->getShaderPath(), pFileName);
+		R = FS.r_open("$game_shaders$", pname);
+		if (!R) {
 			// possibly in shared directory or somewhere else - open directly
-			R					= FS.r_open	("$game_shaders$",pFileName);
-			if (0==R)			return			E_FAIL;
+			R = FS.r_open("$game_shaders$", pFileName);
+			if (!R)
+				return E_FAIL;
 		}
 
-		// duplicate and zero-terminate
-		u32				size	= R->length();
-		u8*				data	= xr_alloc<u8>	(size + 1);
-		CopyMemory			(data,R->pointer(),size);
-		data[size]				= 0;
-		FS.r_close				(R);
-
-		*ppData					= data;
-		*pBytes					= size;
+		*ppData = R->pointer();
+		*pBytes = R->length();
 		return	D3D_OK;
 	}
-	HRESULT __stdcall	Close	(LPCVOID	pData)
-	{
-		xr_free	(pData);
-		return	D3D_OK;
+
+	HRESULT __stdcall Close(LPCVOID) override {
+		if (R)
+			FS.r_close(R);
+		return D3D_OK;
 	}
 };
 
@@ -1221,14 +1227,13 @@ HRESULT	CRender::shader_compile			(
 	}
 	sh_name[len]='0'+char(o.dx10_minmax_sm!=0); ++len;
 
-#ifdef USE_COP_WEATHER_CONFIGS
-	defines[def_it].Name = "USE_COP_WEATHER_CONFIGS";
-	defines[def_it].Definition = "1";
-	def_it++;
-	sh_name[len] = '1'; ++len;
-#else
-	sh_name[len] = '0'; ++len;
-#endif
+	if (ps_r2_ls_flags_ext.test(R2FLAGEXT_TERRAIN_PARALLAX))
+	{
+		defines[def_it].Name = "TERRAIN_PARALLAX_ENABNLED";
+		defines[def_it].Definition = "1";
+		def_it++;
+	}
+	sh_name[len] = '0' + char(ps_r2_ls_flags_ext.test(R2FLAGEXT_TERRAIN_PARALLAX)); ++len;
 
 	// add a #define for DX10_1 MSAA support
    if( o.dx10_msaa )
@@ -1245,17 +1250,27 @@ HRESULT	CRender::shader_compile			(
 	   defines[def_it].Definition	= samples;	
 	   def_it						++;
 
-		static char def[ 256 ];
-		if( m_MSAASample < 0 )
-			def[0]= '0';
-		else
-			def[0]= '0' + char(m_MSAASample);
+	   if (o.dx10_msaa_opt) {
+		   static char def[256];
+		   def[0] = '0';
+		   def[1] = 0;
+		   defines[def_it].Name = "ISAMPLE";
+		   defines[def_it].Definition = def;
+		   def_it++;
+		   sh_name[len] = '0'; ++len;
+	   }
+	   else {
+		   static char def[256];
+		   if (m_MSAASample < 0)
+			   def[0] = '0';
+		   else
+			   def[0] = '0' + char(m_MSAASample);
 
-		def[1] = 0;
-		defines[def_it].Name		=	"ISAMPLE";
-		defines[def_it].Definition	=	def;
-		def_it						++	;
-
+		   def[1] = 0;
+		   defines[def_it].Name = "ISAMPLE";
+		   defines[def_it].Definition = def;
+		   def_it++;
+	   }
 
 	   if( o.dx10_msaa_opt )
 	   {

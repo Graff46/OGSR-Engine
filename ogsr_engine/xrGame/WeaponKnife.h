@@ -8,10 +8,12 @@ private:
 	typedef CWeapon inherited;
 protected:
 	HUD_SOUND			m_sndShot;
+	HUD_SOUND			sndItemOn;
 
 	bool				m_attackStart;
 	bool				m_attackMotionMarksAvailable;
 
+	bool HeadLampSwitch{}, NightVisionSwitch{};
 protected:
 
 	virtual void		switch2_Idle				();
@@ -23,6 +25,10 @@ protected:
 	virtual void		OnMotionMark				(u32 state, const motion_marks& M);
 	virtual void		OnAnimationEnd				(u32 state);
 	virtual void		OnStateSwitch				(u32 S, u32 oldState);
+
+	virtual void DeviceUpdate() override;
+	virtual void UpdateCL() override;
+	virtual void PlayAnimDeviceSwitch() override;
 
 	void				state_Attacking				(float dt);
 
@@ -42,8 +48,12 @@ protected:
 	//float				fHitPower_2;
 	Fvector4			fvHitPower_2;
 	float				fHitImpulse_2;
-protected:
 	virtual void		LoadFireParams					(LPCSTR section, LPCSTR prefix);
+
+	virtual size_t GetWeaponTypeForCollision() const override { return Knife_and_other; }
+	//TODO: рассчитать здесь позицию для коллизии
+	virtual Fvector GetPositionForCollision() override { return Device.vCameraPosition; }
+	virtual Fvector GetDirectionForCollision() override { return Device.vCameraDirection; }
 public:
 						CWeaponKnife(); 
 	virtual				~CWeaponKnife(); 

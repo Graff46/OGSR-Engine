@@ -29,6 +29,10 @@
 #include "WeaponMagazined.h"
 #include "../xr_3da/xr_input.h"
 #include "CustomDetector.h"
+#include "WeaponKnife.h"
+#include "Missile.h"
+#include "PDA.h"
+#include "ui/UIPDAWnd.h"
 
 bool g_bAutoClearCrouch = true;
 extern int g_bHudAdjustMode;
@@ -113,32 +117,23 @@ void CActor::IR_OnKeyboardPress(int cmd)
 	case kCAM_2:	cam_Set			(eacLookAt);				break;
 	case kCAM_3:	cam_Set			(eacFreeLook);				break;
 	case kNIGHT_VISION: {
-			CTorch* pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
-			if (pTorch) {
-				pTorch->SwitchNightVision();
-			}
-		} break;
-	case kTORCH: { 
-			CTorch* pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
-			if (pTorch) {
-				pTorch->Switch();
-			}
-		} break;
+		auto act_it = inventory().ActiveItem();
+		auto pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
+		if (pTorch && !smart_cast<CWeaponMagazined*>(act_it) && !smart_cast<CWeaponKnife*>(act_it) && !smart_cast<CMissile*>(act_it))
+			pTorch->SwitchNightVision();
+	} break;
+	case kTORCH: {
+		auto act_it = inventory().ActiveItem();
+		auto pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
+		if (pTorch && !smart_cast<CWeaponMagazined*>(act_it) && !smart_cast<CWeaponKnife*>(act_it) && !smart_cast<CMissile*>(act_it))
+			pTorch->Switch();
+	} break;
 	case kWPN_8:
 	{
 		if (auto det = smart_cast<CCustomDetector*>(inventory().ItemFromSlot(DETECTOR_SLOT)))
 			det->ToggleDetector(g_player_hud->attached_item(0) != nullptr);
 	}
 	break;
-	case kWPN_1:
-	case kWPN_2:	
-	case kWPN_3:	
-	case kWPN_4:	
-	case kWPN_5:	
-	case kWPN_6:	
-	case kWPN_RELOAD:
-		//Weapons->ActivateWeaponID	(cmd-kWPN_1);			
-		break;
 	case kUSE:
 		ActorUse();
 		break;
@@ -172,24 +167,13 @@ void CActor::IR_OnKeyboardPress(int cmd)
 				}
 			}
 		}break;
-	case kLASER_ON:
-	{
-		if (auto wpn = smart_cast<CWeapon*>(inventory().ActiveItem()))
-			wpn->SwitchLaser(!wpn->IsLaserOn());
-	}break;
-	case kFLASHLIGHT:
-	{
-		if (auto wpn = smart_cast<CWeapon*>(inventory().ActiveItem()))
-			wpn->SwitchFlashlight(!wpn->IsFlashlightOn());
-	}break;
-
 	}
 }
 void CActor::IR_OnMouseWheel(int direction)
 {
 	if (g_bHudAdjustMode)
 	{
-		g_player_hud->tune(Ivector().set(0, 0, direction));
+		g_player_hud->tune(Ivector{ 0, 0, direction });
 		return;
 	}
 
@@ -199,7 +183,7 @@ void CActor::IR_OnMouseWheel(int direction)
 	if(inventory().Action( (direction>0)? kWPN_ZOOM_DEC:kWPN_ZOOM_INC , CMD_START)) return;
 
 
-	if (!Core.Features.test(xrCore::Feature::no_mouse_wheel_switch_slot)) {
+	if (psActorFlags.test(AF_MOUSE_WHEEL_SWITCH_SLOTS)) {
 		if (direction > 0)
 			OnNextWeaponSlot();
 		else
@@ -312,7 +296,7 @@ void CActor::IR_OnMouseMove(int dx, int dy)
 {
 	if (g_bHudAdjustMode)
 	{
-		g_player_hud->tune(Ivector().set(dx, dy, 0));
+		g_player_hud->tune(Ivector{ dx, dy, 0 });
 		return;
 	}
 
@@ -396,6 +380,10 @@ bool CActor::use_Holder				(CHolderCustom* holder)
 
 extern bool g_bDisableAllInput;
 void CActor::ActorUse() {
+	auto pGameSP = smart_cast<CUIGameSP*>(HUD().GetUI()->UIGame());
+	if (auto Pda = GetPDA(); Pda && Pda->Is3DPDA() && psActorFlags.test(AF_3D_PDA) && pGameSP->PdaMenu->IsShown())
+		return;
+
   if ( g_bDisableAllInput || HUD().GetUI()->MainInputReceiver() ) return;
 
   if ( m_holder ) {
@@ -479,6 +467,7 @@ constexpr u32 SlotsToCheck[] = {
 		GRENADE_SLOT	,		// 3
 		APPARATUS_SLOT	,		// 4
 		BOLT_SLOT		,		// 5
+		PDA_SLOT,
 };
 
 void	CActor::OnNextWeaponSlot()
@@ -492,16 +481,22 @@ void	CActor::OnNextWeaponSlot()
 	
 	constexpr u32 NumSlotsToCheck = sizeof(SlotsToCheck)/sizeof(u32);
 	u32 CurSlot = 0;
-	for (; CurSlot<NumSlotsToCheck; CurSlot++)
-	{
-		if (SlotsToCheck[CurSlot] == ActiveSlot) break;
-	}
-	if (CurSlot >= NumSlotsToCheck) return;
+
+	for (; CurSlot < NumSlotsToCheck; CurSlot++)
+		if (SlotsToCheck[CurSlot] == ActiveSlot)
+			break;
+
+	if (CurSlot >= NumSlotsToCheck)
+		return;
+
 	for (u32 i=CurSlot+1; i<NumSlotsToCheck; i++)
 	{
 		if (inventory().ItemFromSlot(SlotsToCheck[i]))
 		{
-			IR_OnKeyboardPress(kWPN_1+(i-KNIFE_SLOT));
+			if (SlotsToCheck[i] == PDA_SLOT)
+				IR_OnKeyboardPress(kACTIVE_JOBS);
+			else
+				IR_OnKeyboardPress(kWPN_1 + i);
 			return;
 		}
 	}
@@ -518,16 +513,22 @@ void	CActor::OnPrevWeaponSlot()
 
 	constexpr u32 NumSlotsToCheck = sizeof(SlotsToCheck)/sizeof(u32);
 	u32 CurSlot = 0;
-	for (; CurSlot<NumSlotsToCheck; CurSlot++)
-	{
-		if (SlotsToCheck[CurSlot] == ActiveSlot) break;
-	}
-	if (CurSlot >= NumSlotsToCheck) return;
+
+	for (; CurSlot < NumSlotsToCheck; CurSlot++)
+		if (SlotsToCheck[CurSlot] == ActiveSlot)
+			break;
+
+	if (CurSlot >= NumSlotsToCheck)
+		return;
+
 	for (s32 i=s32(CurSlot-1); i>=0; i--)
 	{
 		if (inventory().ItemFromSlot(SlotsToCheck[i]))
 		{
-			IR_OnKeyboardPress(kWPN_1+(i-KNIFE_SLOT));
+			if (SlotsToCheck[i] == PDA_SLOT)
+				IR_OnKeyboardPress(kACTIVE_JOBS);
+			else
+				IR_OnKeyboardPress(kWPN_1 + i);
 			return;
 		}
 	}

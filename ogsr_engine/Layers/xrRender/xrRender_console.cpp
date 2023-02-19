@@ -16,7 +16,7 @@ constexpr xr_token SmapSizeToken[] = {
   { nullptr, 0 }
 };
 
-u32 ps_r_pp_aa_mode = 0;
+u32 ps_r_pp_aa_mode = SMAA;
 constexpr xr_token pp_aa_mode_token[] = {
 	{ "st_opt_off", NO_AA },
 	{ "st_opt_smaa", SMAA },
@@ -94,7 +94,7 @@ constexpr xr_token qmsaa_token[] = {
 	{ 0,							0												}
 };
 
-u32			ps_r3_msaa_atest		=	0;			//	=	0;
+u32			ps_r3_msaa_atest		=	2;	
 constexpr xr_token qmsaa__atest_token[] = {
 	{ "st_opt_off",					0												},
 	{ "st_opt_atest_msaa_dx10_0",	1												},
@@ -177,7 +177,7 @@ Flags32		ps_r2_ls_flags				= { R2FLAG_SUN
 	| R2FLAG_EXP_MT_CALC | R3FLAG_DYN_WET_SURF
 	| R3FLAG_VOLUMETRIC_SMOKE
 	//| R3FLAG_MSAA 
-	//| R3FLAG_MSAA_OPT
+	| R3FLAG_MSAA_OPT
 	| R3FLAG_GBUFFER_OPT
 	|R2FLAG_DETAIL_BUMP
 	|R2FLAG_DOF
@@ -211,11 +211,7 @@ float		ps_r2_ls_bloom_kernel_scale	= .7f;				// r2-only	// gauss
 float		ps_r2_ls_dsm_kernel			= .7f;				// r2-only
 float		ps_r2_ls_psm_kernel			= .7f;				// r2-only
 float		ps_r2_ls_ssm_kernel			= .7f;				// r2-only
-#ifdef USE_COP_WEATHER_CONFIGS
 float		ps_r2_ls_bloom_threshold	= .00001f;				// r2-only
-#else
-float		ps_r2_ls_bloom_threshold = 1.f;				// r2-only
-#endif
 float		ps_r2_mblur					= .0f;				// .5f
 int			ps_r2_GI_depth				= 1;				// 1..5
 int			ps_r2_GI_photons			= 16;				// 8..64
@@ -262,7 +258,7 @@ float ps_r3_dyn_wet_surf_far = 20.f; // 30.0f
 int ps_r3_dyn_wet_surf_sm_res = 1024; // 256
 int ps_r3_dyn_wet_surf_enable_streaks = 0;
 
-float ps_r2_rain_drops_intensity = 0.00025f;
+float ps_r2_rain_drops_intensity = 0.00003f;
 float ps_r2_rain_drops_speed = 1.25f;
 
 float ps_r2_visor_refl_intensity = 0.39f;
@@ -270,7 +266,6 @@ float ps_r2_visor_refl_radius = 0.4f;
 
 #if RENDER==R_R4
 float ps_ext_SSLR_L = 1.f;
-float ps_ext_SSLR_blur = 0.f;
 #endif
 
 int			ps_r__detail_radius = 49;
@@ -287,12 +282,7 @@ float		dm_current_fade = 47.5;	//float(2*dm_current_size)-.5f;
 float		ps_current_detail_density = 0.6;
 float		ps_current_detail_scale = 1.f;
 
-
-#ifdef USE_COP_WEATHER_CONFIGS
 float ps_r2_gloss_factor = 4.0f;
-#else
-float ps_r2_gloss_factor = 1.0f;
-#endif
 
 // textures 
 int psTextureLOD = 0;
@@ -754,6 +744,11 @@ public:
 //-----------------------------------------------------------------------
 void		xrRender_initconsole	()
 {
+	if (!FS.path_exist("$game_weathers$")) {
+		ps_r2_ls_bloom_threshold = 1.0f;
+		ps_r2_gloss_factor = 1.0f;
+	}
+
 	CMD3(CCC_Preset,	"_preset",				&ps_Preset,	qpreset_token	);
 
 	CMD4(CCC_Integer,	"rs_skeleton_update",	&psSkeletonUpdate,	2,		128	);
@@ -818,15 +813,17 @@ void		xrRender_initconsole	()
 	CMD3(CCC_Mask, "r__actor_shadow", &ps_r2_ls_flags_ext, R2FLAGEXT_ACTOR_SHADOW);
 
 	// R1
+#if RENDER==R_R1
 	CMD4(CCC_Float,		"r1_ssa_lod_a",			&ps_r1_ssaLOD_A,			16,		96		);
 	CMD4(CCC_Float,		"r1_ssa_lod_b",			&ps_r1_ssaLOD_B,			16,		64		);
 	CMD4(CCC_Float,		"r1_lmodel_lerp",		&ps_r1_lmodel_lerp,			0,		0.333f	);
 	CMD3(CCC_Mask,		"r1_dlights",			&ps_r1_flags,				R1FLAG_DLIGHTS	);
 	CMD4(CCC_Float,		"r1_dlights_clip",		&ps_r1_dlights_clip,		10.f,	150.f	);
+#endif
 	CMD4(CCC_Float,		"r1_pps_u",				&ps_r1_pps_u,				-1.f,	+1.f	);
 	CMD4(CCC_Float,		"r1_pps_v",				&ps_r1_pps_v,				-1.f,	+1.f	);
 
-
+#if RENDER==R_R1
 	// R1-specific
 	CMD4(CCC_Integer,	"r1_glows_per_frame",	&ps_r1_GlowsPerFrame,		2,		32		);
 	CMD3(CCC_Mask,		"r1_detail_textures",	&ps_r2_ls_flags,			R1FLAG_DETAIL_TEXTURES);
@@ -838,6 +835,7 @@ void		xrRender_initconsole	()
 	// 1 - enabled
 	// 2 - forced hardware skinning (renderer can not override)
 	CMD4(CCC_Integer,	"r1_software_skinning",	&ps_r1_SoftwareSkinning,	0,		2	);
+#endif
 
 	// R2
 	CMD4(CCC_Float,		"r2_ssa_lod_a",			&ps_r2_ssaLOD_A,			16,		96		);
@@ -881,14 +879,15 @@ void		xrRender_initconsole	()
 
 	CMD3(CCC_Mask,  "r2_rain_drops", &ps_r2_ls_flags_ext, R2FLAGEXT_RAIN_DROPS);
 	CMD3(CCC_Mask,  "r2_rain_drops_control", &ps_r2_ls_flags_ext, R2FLAGEXT_RAIN_DROPS_CONTROL);
-	CMD4(CCC_Float, "r2_rain_drops_intensity", &ps_r2_rain_drops_intensity, 0.f, 1.f);
+	CMD4(CCC_Float, "r2_rain_drops_intensity", &ps_r2_rain_drops_intensity, 0.f, 0.0001f);
 	CMD4(CCC_Float, "r2_rain_drops_speed", &ps_r2_rain_drops_speed, 0.8f, 5.f);
 
 #if RENDER==R_R4
 	CMD3(CCC_Mask, "r_sslr_enable", &ps_r2_ls_flags_ext, R2FLAGEXT_SSLR);
 	CMD4(CCC_Float, "r_sslr_l", &ps_ext_SSLR_L, .1f, 10.f);
-	CMD4(CCC_Float, "r_sslr_blur", &ps_ext_SSLR_blur, 0.0f, 5.f);
 #endif
+
+	CMD3(CCC_Mask, "r_terrain_parallax_enable", &ps_r2_ls_flags_ext, R2FLAGEXT_TERRAIN_PARALLAX);
 
 	CMD3(CCC_Mask,		"r2_sun",				&ps_r2_ls_flags,			R2FLAG_SUN		);
 	CMD3(CCC_Mask,		"r2_sun_details",		&ps_r2_ls_flags,			R2FLAG_SUN_DETAILS);
@@ -1007,10 +1006,9 @@ void		xrRender_initconsole	()
 	//CMD3(CCC_Mask,		"r3_msaa_hybrid",				&ps_r2_ls_flags,			R3FLAG_MSAA_HYBRID);
 	//CMD3(CCC_Mask,		"r3_msaa_opt",					&ps_r2_ls_flags,			R3FLAG_MSAA_OPT);
 	CMD3(CCC_Mask,		"r3_gbuffer_opt",				&ps_r2_ls_flags,			R3FLAG_GBUFFER_OPT);
-	CMD3(CCC_Mask,		"r3_use_dx10_1",				&ps_r2_ls_flags,			(u32)R3FLAG_USE_DX10_1);
-	//CMD3(CCC_Mask,		"r3_msaa_alphatest",			&ps_r2_ls_flags,			(u32)R3FLAG_MSAA_ALPHATEST);
-	CMD3(CCC_Token,		"r3_msaa_alphatest",			&ps_r3_msaa_atest,			qmsaa__atest_token);
-	CMD3(CCC_Token,		"r3_minmax_sm",					&ps_r3_minmax_sm,			qminmax_sm_token);
+	//CMD3(CCC_Mask,		"r3_use_dx10_1",				&ps_r2_ls_flags,			(u32)R3FLAG_USE_DX10_1);
+	//CMD3(CCC_Token,		"r3_msaa_alphatest",			&ps_r3_msaa_atest,			qmsaa__atest_token);
+	//CMD3(CCC_Token,		"r3_minmax_sm",					&ps_r3_minmax_sm,			qminmax_sm_token);
 
 	CMD4(CCC_detail_radius, "r__detail_radius", &ps_r__detail_radius, 49, 300);
 	CMD4(CCC_Integer, "r__no_scale_on_fade", &ps_no_scale_on_fade, 0, 1); //Alundaio

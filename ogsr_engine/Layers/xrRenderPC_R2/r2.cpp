@@ -378,17 +378,33 @@ void CRender::OnFrame()
 void CRender::BeforeWorldRender() {}
 
 // После рендера мира и пост-эффектов --#SM+#-- +SecondVP+
-void CRender::AfterWorldRender()
+void CRender::AfterWorldRender(const bool save_bb_before_ui)
 {
-	if (Device.m_SecondViewport.IsSVPFrame())
+	if (save_bb_before_ui || Device.m_SecondViewport.IsSVPFrame())
 	{
-		// Делает копию бэкбуфера (текущего экрана) в рендер-таргет второго вьюпорта
-		IDirect3DSurface9* pBackBuffer = nullptr;
-		HW.pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer); // Получаем ссылку на бэкбуфер
-		D3DXLoadSurfaceFromSurface(Target->rt_secondVP->pRT, nullptr, nullptr, pBackBuffer, nullptr, nullptr, D3DX_DEFAULT, 0);
-		pBackBuffer->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
+		// Делает копию бэкбуфера (текущего экрана) в рендер-таргет второго вьюпорта (для использования в 3д прицеле либо в рендер-таргет вьюпорта, из которого мы вернем заберем кадр после рендера ui. Именно этот кадр будет позже выведен на экран.)
+		IDirect3DSurface9* pBuffer{};
+		HW.pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBuffer); // Получаем ссылку на бэкбуфер
+		D3DXLoadSurfaceFromSurface(save_bb_before_ui ? Target->rt_BeforeUi->pRT : Target->rt_secondVP->pRT, nullptr, nullptr, pBuffer, nullptr, nullptr, D3DX_DEFAULT, 0);
+		pBuffer->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
 	}
 }
+
+void CRender::AfterUIRender()
+{
+	// Делает копию бэкбуфера (текущего экрана) в рендер-таргет второго вьюпорта (для использования в пда)
+	IDirect3DSurface9* pBuffer{};
+	HW.pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBuffer); // Получаем ссылку на бэкбуфер
+	D3DXLoadSurfaceFromSurface(Target->rt_secondVP->pRT, nullptr, nullptr, pBuffer, nullptr, nullptr, D3DX_DEFAULT, 0);
+	pBuffer->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
+
+	// Возвращаем на экран кадр, который сохранили до рендера ui для пда
+	IDirect3DSurface9* pBuffer2{};
+	HW.pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBuffer2); // Получаем ссылку на бэкбуфер
+	D3DXLoadSurfaceFromSurface(pBuffer2, nullptr, nullptr, Target->rt_BeforeUi->pRT, nullptr, nullptr, D3DX_DEFAULT, 0);
+	pBuffer2->Release(); // Корректно очищаем ссылку на бэкбуфер (иначе игра зависнет в опциях)
+}
+
 
 // Implementation
 IRender_ObjectSpecific*	CRender::ros_create				(IRenderable* parent)				{ return xr_new<CROS_impl>();			}
@@ -590,7 +606,7 @@ static HRESULT create_shader				(
 		SPS* sps_result = (SPS*)result;
 		_result			= HW.pDevice->CreatePixelShader(buffer, &sps_result->ps);
 		if ( !SUCCEEDED(_result) ) {
-			Log			("! PS: ", file_name);
+			Msg("! PS: [%s]", file_name);
 			Msg			("! CreatePixelShader hr == 0x%08x", _result);
 			return		E_FAIL;
 		}
@@ -604,7 +620,7 @@ static HRESULT create_shader				(
 		} 
 		else
 		{
-			Log			("! PS: ", file_name);
+			Msg("! PS: [%s]", file_name);
 			Msg			("! D3DXFindShaderComment hr == 0x%08x", _result);
 		}
 	}
@@ -612,7 +628,7 @@ static HRESULT create_shader				(
 		SVS* svs_result = (SVS*)result;
 		_result			= HW.pDevice->CreateVertexShader(buffer, &svs_result->vs);
 		if ( !SUCCEEDED(_result) ) {
-			Log			("! VS: ", file_name);
+			Msg("! VS: [%s]", file_name);
 			Msg			("! CreatePixelShader hr == 0x%08x", _result);
 			return		E_FAIL;
 		}
@@ -626,7 +642,7 @@ static HRESULT create_shader				(
 		} 
 		else
 		{
-			Log			("! VS: ", file_name);
+			Msg("! VS: [%s]", file_name);
 			Msg			("! D3DXFindShaderComment hr == 0x%08x", _result);
 		}
 	}
@@ -649,35 +665,31 @@ static HRESULT create_shader				(
 
 static inline bool match_shader_id	( LPCSTR const debug_shader_id, LPCSTR const full_shader_id, FS_FileSet const& file_set, string_path& result );
 
-class	includer				: public ID3DXInclude
+class includer final : public ID3DInclude
 {
+	IReader* R{};
 public:
-	HRESULT __stdcall	Open	(D3DXINCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
+	HRESULT __stdcall Open(D3DXINCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
 	{
-		string_path				pname;
-		strconcat				(sizeof(pname),pname,::Render->getShaderPath(),pFileName);
-		IReader*		R		= FS.r_open	("$game_shaders$",pname);
-		if (0==R)				{
+		string_path pname;
+		strconcat(sizeof(pname), pname, ::Render->getShaderPath(), pFileName);
+		R = FS.r_open("$game_shaders$", pname);
+		if (!R) {
 			// possibly in shared directory or somewhere else - open directly
-			R					= FS.r_open	("$game_shaders$",pFileName);
-			if (0==R)			return			E_FAIL;
+			R = FS.r_open("$game_shaders$", pFileName);
+			if (!R)
+				return E_FAIL;
 		}
 
-		// duplicate and zero-terminate
-		u32				size	= R->length();
-		u8*				data	= xr_alloc<u8>	(size + 1);
-		CopyMemory			(data,R->pointer(),size);
-		data[size]				= 0;
-		FS.r_close				(R);
-
-		*ppData					= data;
-		*pBytes					= size;
+		*ppData = R->pointer();
+		*pBytes = R->length();
 		return	D3D_OK;
 	}
-	HRESULT __stdcall	Close	(LPCVOID	pData)
-	{
-		xr_free	(pData);
-		return	D3D_OK;
+
+	HRESULT __stdcall Close(LPCVOID) override {
+		if (R)
+			FS.r_close(R);
+		return D3D_OK;
 	}
 };
 
@@ -971,15 +983,6 @@ HRESULT	CRender::shader_compile			(
 	{
 		sh_name[len]='0'; ++len;
 	}
-
-#ifdef USE_COP_WEATHER_CONFIGS
-	defines[def_it].Name = "USE_COP_WEATHER_CONFIGS";
-	defines[def_it].Definition = "1";
-	def_it++;
-	sh_name[len] = '1'; ++len;
-#else
-	sh_name[len] = '0'; ++len;
-#endif
 
 	// finish
 	defines[def_it].Name			=	0;

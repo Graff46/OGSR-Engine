@@ -72,48 +72,20 @@ public:
 
 lua_State* LSVM = nullptr;
 constexpr const char* GlobalNamespace = "_G";
-constexpr const char* FILE_HEADER = "\
+static constexpr const char* FILE_HEADER = "\
 local function script_name() \
-return '%s' \
+return '{0}' \
 end; \
 local this; \
-module('%s', package.seeall, function(m) this = m end); \
-%s";
+module('{0}', package.seeall, function(m) this = m end); \
+{1}";
 
 static const char* get_lua_traceback(lua_State *L)
 {
-#if LUAJIT_VERSION_NUM < 20000
-	static char buffer[32768]; // global buffer
-	int top = lua_gettop(L);
-	// alpet: Lua traceback added
-	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
-	lua_getfield(L, -1, "traceback");
-	lua_pushstring(L, "\t");
-	lua_pushinteger(L, 1);
-
-	const char *traceback = "cannot get Lua traceback ";
-	strcpy_s(buffer, 32767, traceback);
-	__try
-	{
-		if (0 == lua_pcall(L, 2, 1, 0))
-		{
-			traceback = lua_tostring(L, -1);
-			strcpy_s(buffer, 32767, traceback);
-			lua_pop(L, 1);
-		}
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		Msg("!#EXCEPTION(get_lua_traceback): buffer = %s ", buffer);
-	}
-	lua_settop(L, top);
-	return buffer;
-#else
 	luaL_traceback(L, L, nullptr, 0);
 	auto tb = lua_tostring(L, -1);
 	lua_pop(L, 1);
 	return tb;
-#endif
 }
 
 bool print_output(const char* caScriptFileName, int errorCode)
@@ -165,13 +137,13 @@ bool print_output(const char* caScriptFileName, int errorCode)
 
 bool load_buffer(const char* caBuffer, size_t tSize, const char* caScriptName, const char* caNameSpaceName)
 {
-	//KRodin: Переделал, т.к. в оригинале тут происходило нечто, на мой взгляд, странное.
-	int buf_len = std::snprintf(nullptr, 0, FILE_HEADER, caNameSpaceName, caNameSpaceName, caBuffer);
-	auto strBuf = std::make_unique<char[]>(buf_len + 1);
-	std::snprintf(strBuf.get(), buf_len + 1, FILE_HEADER, caNameSpaceName, caNameSpaceName, caBuffer);
+	const std::string_view strbuf{ caBuffer, tSize };
+	const std::string script = std::format(FILE_HEADER, caNameSpaceName, strbuf);
+
 	//Log("[CResourceManager::load_buffer] Loading buffer:");
-	//Log(strBuf.get());
-	int l_iErrorCode = luaL_loadbuffer(LSVM, strBuf.get(), buf_len /*+ 1 Нуль-терминатор на конце мешает походу*/, caScriptName);
+	//Log(script.c_str());
+
+	int l_iErrorCode = luaL_loadbuffer(LSVM, script.c_str(), script.size(), caScriptName);
 	if (l_iErrorCode)
 	{
 		print_output(caScriptName, l_iErrorCode);
@@ -190,13 +162,9 @@ bool do_file(const char* caScriptName, const char* caNameSpaceName)
 		return false;
 	}
 	strconcat(sizeof(l_caLuaFileName), l_caLuaFileName, "@", caScriptName); //KRodin: приводит путь к виду @f:\games\s.t.a.l.k.e.r\gamedata\scripts\class_registrator.script
-	//
-	//KRodin: исправлено. Теперь содержимое скрипта сразу читается нормально, без мусора на конце.
-	auto strBuf = std::make_unique<char[]>(l_tpFileReader->length() + 1);
-	strncpy(strBuf.get(), (const char*)l_tpFileReader->pointer(), l_tpFileReader->length());
-	strBuf.get()[l_tpFileReader->length()] = 0;
-	//
-	load_buffer(strBuf.get(), (size_t)l_tpFileReader->length(), l_caLuaFileName, caNameSpaceName);
+
+	load_buffer(reinterpret_cast<const char*>(l_tpFileReader->pointer()), (size_t)l_tpFileReader->length(), l_caLuaFileName, caNameSpaceName);
+
 	FS.r_close(l_tpFileReader);
 
 	int	l_iErrorCode = lua_pcall(LSVM, 0, 0, 0); //KRodin: без этого скрипты не работают!

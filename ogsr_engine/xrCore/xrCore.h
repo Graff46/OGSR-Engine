@@ -95,6 +95,7 @@
 #include "xrMemory.h"
                         
 #include "_stl_extensions.h"
+#include "log.h"
 #include "xrsharedmem.h"
 #include "xrstring.h"
 #include "xr_resource.h"
@@ -115,7 +116,6 @@ DEFINE_SET		(shared_str,RStringSet,RStringSetIt);
 DEFINE_VECTOR	(xr_rtoken,RTokenVec,RTokenVecIt);
                         
 #include "FS.h"
-#include "log.h"
 #include "xr_trims.h"
 #include "xr_ini.h"
 
@@ -181,7 +181,7 @@ public:
 	  show_inv_item_condition    = 1ull << 8,
 	  remove_alt_keybinding      = 1ull << 9,
 	  binoc_firing               = 1ull << 10,
-	  no_mouse_wheel_switch_slot = 1ull << 11,
+	  //!!МЕСТО СВОБОДНО!! = 1ull << 11,
 	  stop_anim_playing          = 1ull << 12,
 	  corpses_collision          = 1ull << 13,
 	  more_hide_weapon           = 1ull << 14,
@@ -232,7 +232,7 @@ public:
 extern XRCORE_API xrCore Core;
 
 #include "Utils/thread_pool.hpp"
-extern XRCORE_API ThreadPool* TTAPI;
+//extern XRCORE_API ThreadPool* TTAPI;
 
 extern XRCORE_API bool gModulesLoaded;
 

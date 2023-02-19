@@ -81,7 +81,7 @@ public:
     resptr_core<CRT, resptrcode_crt> rt_Generic_0_temp;
 
 	//  Second viewport
-	ref_rt rt_secondVP; // 32bit		(r,g,b,a) --//#SM+#-- +SecondVP+
+	ref_rt rt_secondVP, rt_BeforeUi; // 32bit		(r,g,b,a) --//#SM+#-- +SecondVP+
 
 	//	Igor: for volumetric lights
 	ref_rt						rt_Generic_2;		// 32bit		(r,g,b,a)				// post-process, intermidiate results, etc.
@@ -372,9 +372,5 @@ private:
 	ref_shader s_ssss_mrmnwar;
 	ref_shader s_ssss_ogse;
 
-	void phase_SSLR();
-	ref_shader s_SSLR;
-	ref_rt rt_SSLR_0;
-	ref_rt rt_SSLR_1;
 	ref_rt rt_Wetness;
 };

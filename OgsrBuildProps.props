@@ -2,16 +2,11 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <!--PreferredToolArchitecture>x64</PreferredToolArchitecture-->
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
 
-    <!-- Default is v142 -->
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
 
-    <!-- v141 is allowed -->
-    <PlatformToolset Condition="'$(DefaultPlatformToolset)'=='v141'">v141</PlatformToolset>
-  
-    <!-- v143 is allowed -->
-    <PlatformToolset Condition="'$(DefaultPlatformToolset)'=='v143'">v143</PlatformToolset>
+    <!--CopyCppRuntimeToOutputDir>true</CopyCppRuntimeToOutputDir-->
   </PropertyGroup>
 
   <PropertyGroup Label="Globals">
@@ -23,7 +18,8 @@
     <ClCompile>
       <EnableEnhancedInstructionSet Condition="'$(Platform)'=='Win32'">StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
 
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
 

@@ -120,6 +120,7 @@ void CWeaponPistol::PlayAnimIdle()
 		if (IsRotatingFromZoom()) {
 			if (AnimationExist("anm_idle_aim_end_empty")) {
 				PlayHUDMotion("anm_idle_aim_end_empty", true, GetState());
+				PlaySound(sndAimEnd, get_LastFP());
 				return;
 			}
 		}
@@ -136,12 +137,13 @@ void CWeaponPistol::PlayAnimAim()
 		if (IsRotatingToZoom()) {
 			if (AnimationExist("anm_idle_aim_start_empty")) {
 				PlayHUDMotion("anm_idle_aim_start_empty", true, GetState());
+				PlaySound(sndAimStart, get_LastFP());
 				return;
 			}
 		}
 
 		if (const char* guns_aim_anm = GetAnimAimName()) {
-			string64 guns_aim_anm_full;
+			string128 guns_aim_anm_full;
 			xr_strconcat(guns_aim_anm_full, guns_aim_anm, "_empty");
 			if (AnimationExist(guns_aim_anm_full)) {
 				PlayHUDMotion(guns_aim_anm_full, true, GetState());
@@ -180,24 +182,22 @@ void CWeaponPistol::PlayAnimHide()
 
 void CWeaponPistol::PlayAnimShoot()
 {
-	VERIFY(GetState() == eFire || GetState() == eFire2);
-
-	string_path guns_shoot_anm{};
+	string128 guns_shoot_anm;
 	xr_strconcat(guns_shoot_anm, "anm_shoot", (this->IsZoomed() && !this->IsRotatingToZoom()) ? "_aim" : "", iAmmoElapsed == 1 ? "_last" : "", this->IsSilencerAttached() ? "_sil" : "");
 	if (AnimationExist(guns_shoot_anm)) {
-		PlayHUDMotion(guns_shoot_anm, false, GetState());
+		PlayHUDMotion(guns_shoot_anm, used_cop_fire_point(), GetState());
 		m_opened = iAmmoElapsed <= 1;
 		return;
 	}
 
 	if (iAmmoElapsed > 1)
 	{
-		PlayHUDMotion({ "anim_shoot", "anm_shots" }, false, GetState());
+		PlayHUDMotion({ "anim_shoot", "anm_shots" }, used_cop_fire_point(), GetState());
 		m_opened = false;
 	}
 	else
 	{
-		PlayHUDMotion({ "anim_shot_last", "anm_shot_l" }, false, GetState());
+		PlayHUDMotion({ "anim_shot_last", "anm_shot_l" }, used_cop_fire_point(), GetState());
 		m_opened = true;
 	}
 }

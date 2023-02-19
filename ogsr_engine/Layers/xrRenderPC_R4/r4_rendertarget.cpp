@@ -480,7 +480,8 @@ CRenderTarget::CRenderTarget		()
             rt_Generic_0_temp.create(r2_RT_generic0_temp, w, h, D3DFMT_A8R8G8B8, 1);
 
 		rt_secondVP.create(r2_RT_secondVP, w, h, D3DFMT_A8R8G8B8, 1); //--#SM+#-- +SecondVP+
-
+		rt_BeforeUi.create("$user$viewport_temp_before_ui", w, h, D3DFMT_A8R8G8B8, 1);
+		
 		if( RImplementation.o.dx10_msaa )
 		{
 			rt_Generic_0_r.create			(r2_RT_generic0_r,w,h,D3DFMT_A8R8G8B8, SampleCount	);
@@ -808,10 +809,7 @@ CRenderTarget::CRenderTarget		()
 	}
 
 	// SSLR
-	rt_SSLR_0.create(r2_RT_SSLR0, w, h, D3DFMT_A8R8G8B8);
-	rt_SSLR_1.create(r2_RT_SSLR1, w, h, D3DFMT_A8R8G8B8);
-	s_SSLR.create("ogsr_sslr");
-	rt_Wetness.create(r2_RT_Wetness, w, h, D3DFMT_A8R8G8B8);
+	rt_Wetness.create(r2_RT_Wetness, w, h, D3DFMT_A8R8G8B8, SampleCount);
 
 	// Build textures
 	{

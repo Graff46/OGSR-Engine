@@ -55,6 +55,7 @@ protected:
 	u32							Sounds_Random_dwNextTime{};
 	BOOL						Sounds_Random_Enabled{};
 	CCameraManager*				m_pCameras;
+	xr_string on_change_weather_callback;
 
 	// temporary
 	xr_vector<ISpatial*>		snd_ER;
@@ -72,7 +73,6 @@ public:	// deferred sound events
 		Feel::Sound*			dest	;
 		ref_sound_data_ptr		source	;
 		float					power	;
-		Fvector position;
 	};
 	xr_vector<_esound_delegate>	snd_Events;
 public:
@@ -105,11 +105,13 @@ public:
 	
 	void						SoundEvent_Register		( ref_sound_data_ptr S, float range );
 	void						SoundEvent_Dispatch		( );
+	void SoundEvent_OnDestDestroy(Feel::Sound*);
 
 	// Loader interface
 	//ref_shader					LL_CreateShader			(int S, int T, int M, int C);
 	void						LL_CheckTextures		();
 	virtual void				SetEnvironmentGameTimeFactor(u64 const& GameTime, float const& fTimeFactor) = 0;
+	virtual void OnChangeCurrentWeather(const char* sect) = 0;
 
 	virtual void OnDestroyObject(u16 id) = 0;
 

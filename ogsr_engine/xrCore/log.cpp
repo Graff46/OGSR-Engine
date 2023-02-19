@@ -8,11 +8,11 @@
 #include <array> //для std::array
 
 static LogCallback LogCB = nullptr;
-std::vector<std::string> LogFile;
+xr_vector<xr_string> LogFile;
 static std::ofstream logstream;
 string_path logFName{};
 
-static void AddOne(std::string& split, bool first_line)
+static void AddOne(xr_string& split, bool first_line)
 {
 	static std::recursive_mutex logCS;
 	std::scoped_lock<decltype(logCS)> lock(logCS);
@@ -69,7 +69,7 @@ void Log(std::stringstream&& ss)
 	const char& color_s = str.front();
 	const bool have_color = std::find(color_codes.begin(), color_codes.end(), color_s) != color_codes.end(); //Ищем в начале строки цветовой код
 
-	for (std::string item; std::getline(ss, item);) //Разбиваем текст по "\n"
+	for (xr_string item; std::getline(ss, item);) //Разбиваем текст по "\n"
 	{
 		if (not_first_line && have_color)
 		{
@@ -99,35 +99,7 @@ void __cdecl Msg(const char *format, ...)
 }
 
 
-// Это всё не нужно на самом деле, от них бы избавиться...
 /////////////////////////////////////////////////////////////////////////////////////////////
-void Log(const char *msg, const char *dop) { //Надо убрать
-	char buf[1024];
-	if (dop)
-		std::snprintf(buf,sizeof(buf),"%s %s",msg,dop);
-	else
-		std::snprintf(buf,sizeof(buf),"%s",msg);
-	Log(buf);
-}
-
-void Log(const char *msg, u32 dop) { //Надо убрать
-	char buf[1024];
-	std::snprintf(buf,sizeof(buf),"%s %d",msg,dop);
-	Log(buf);
-}
-
-void Log(const char *msg, int dop) {
-	char buf[1024];
-	std::snprintf(buf, sizeof(buf),"%s %d",msg,dop);
-	Log(buf);
-}
-
-void Log(const char *msg, float dop) {
-	char buf[1024];
-	std::snprintf(buf, sizeof(buf),"%s %f",msg,dop);
-	Log(buf);
-}
-
 void Log(const char *msg, const Fvector &dop) {
 	char buf[1024];
 	std::snprintf(buf,sizeof(buf),"%s (%f,%f,%f)",msg,dop.x,dop.y,dop.z);

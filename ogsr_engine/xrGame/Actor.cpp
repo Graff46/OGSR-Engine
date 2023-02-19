@@ -89,7 +89,7 @@ static Fbox		bbCrouchBox;
 static Fvector	vFootCenter;
 static Fvector	vFootExt;
 
-Flags32 psActorFlags = { AF_3D_SCOPES | AF_KEYPRESS_ON_START };
+Flags32 psActorFlags = { AF_3D_SCOPES | AF_KEYPRESS_ON_START | AF_CAM_COLLISION | AF_AI_VOLUMETRIC_LIGHTS };
 
 static bool updated;
 
@@ -868,6 +868,7 @@ void CActor::UpdateCL	()
 			// Обновляем информацию об оружии в шейдерах
 			g_pGamePersistent->m_pGShaderConstants.hud_params.x = pWeapon->GetZRotatingFactor(); //--#SM+#--
 			g_pGamePersistent->m_pGShaderConstants.hud_params.y = pWeapon->GetSecondVPFov(); //--#SM+#--
+			g_pGamePersistent->m_pGShaderConstants.hud_params.z = pWeapon->GetLastHudFov();
 		}
 	}
 	else
@@ -918,21 +919,24 @@ void CActor::UpdateCL	()
 		trans.c.sub(Device.vCameraPosition);
 		g_player_hud->update(trans);
 	}
+
+	{
+		float outfit_cond{ -1.f }, wpn_cond{ -1.f };
+		if (auto outfit = inventory().ItemFromSlot(OUTFIT_SLOT))
+			outfit_cond = outfit->GetCondition();
+		if (auto wpn = inventory().ActiveItem())
+			wpn_cond = wpn->GetCondition();
+		shader_exports.set_actor_params(Fvector{ this->GetHealth(), outfit_cond, wpn_cond });
+	}
 }
 
-#if defined(OGSR_MOD) || defined(DSH_MOD)
-constexpr u32 TASKS_UPDATE_TIME = 500u;
-#else
 constexpr u32 TASKS_UPDATE_TIME = 1u;
-#endif
 
 float	NET_Jump = 0;
 void CActor::shedule_Update	(u32 DT)
 {
 	setSVU(OnServer());
 
-	if (IsFocused())
-	{
 		BOOL bHudView = HUDview();
 		if (bHudView)
 		{
@@ -963,7 +967,6 @@ void CActor::shedule_Update	(u32 DT)
 			g_player_hud->detach_all_items();
 			// Msg("---No hud view found, all items detached.");
 		}
-	}
 
 	//обновление инвентаря
 	if ( !updated )

@@ -68,29 +68,6 @@ void VerifyPath(const std::string_view path) //Проверяет путь до 
 	(void)e;
 }
 
-void*  FileDownload(LPCSTR fn, u32* pdwSize)
-{
-	int		hFile;
-	u32		size;
-	void*	buf;
-
-	hFile	= _open(fn,O_RDONLY|O_BINARY|O_SEQUENTIAL,_S_IREAD);
-	if (hFile<=0)	{
-		Sleep	(1);
-		hFile	= _open(fn,O_RDONLY|O_BINARY|O_SEQUENTIAL,_S_IREAD);
-	}
-	R_ASSERT2(hFile>0,fn);
-	size	= _filelength(hFile);
-
-	buf		= Memory.mem_alloc	(size);
-	int r_bytes	= _read	(hFile,buf,size);
-	R_ASSERT3(r_bytes==(int)size,"Can't read file data:",fn);
-	_close	(hFile);
-	if (pdwSize) *pdwSize = size;
-	return buf;
-}
-
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -148,26 +125,26 @@ u32	IWriter::chunk_size	()					// returns size of currently opened chunk, 0 othe
 	return tell() - chunk_pos.top()-4;
 }
 
-void IWriter::w_compressed(void* ptr, u32 count, const bool encrypt)
+void IWriter::w_compressed(void* ptr, u32 count, const bool encrypt, const bool is_ww)
 {
 	BYTE*		dest	= 0;
 	unsigned	dest_sz	= 0;
 	_compressLZ	(&dest,&dest_sz,ptr,count);
 
 	if (encrypt)
-		g_trivial_encryptor.encode(dest, dest_sz, dest);
+		g_trivial_encryptor.encode(dest, dest_sz, dest, is_ww ? trivial_encryptor::key_flag::worldwide : trivial_encryptor::key_flag::russian);
 
 	if (dest && dest_sz)
 		w(dest,dest_sz);
 	xr_free		(dest);
 }
 
-void IWriter::w_chunk(u32 type, void* data, u32 size, const bool encrypt)
+void IWriter::w_chunk(u32 type, void* data, u32 size, const bool encrypt, const bool is_ww)
 {
 	open_chunk(type);
 
 	if (type & CFS_CompressMark)
-		w_compressed(data, size, encrypt);
+		w_compressed(data, size, encrypt, is_ww);
 	else
 		w(data, size);
 
@@ -254,7 +231,6 @@ void	IReader::r	(void *p,int cnt)
 	advance				(cnt);
 #ifdef DEBUG
 	BOOL	bShow		= FALSE		;
-	if (dynamic_cast<CFileReader*>(this))			bShow = TRUE;
 	if (dynamic_cast<CVirtualFileReader*>(this))	bShow = TRUE;
 	if (bShow)			{
   		FS.dwOpenCounter	++		;
@@ -333,16 +309,6 @@ CPackReader::~CPackReader()
 	UnmapViewOfFile	(base_address);
 };
 //---------------------------------------------------
-// file stream
-CFileReader::CFileReader(const char *name)
-{
-    data	= (char *)FileDownload(name,(u32 *)&Size);
-    Pos		= 0;
-};
-CFileReader::~CFileReader()
-{	xr_free(data);	};
-//---------------------------------------------------
-
 
 CVirtualFileReader::CVirtualFileReader(const char *cFileName) 
 {
@@ -350,13 +316,14 @@ CVirtualFileReader::CVirtualFileReader(const char *cFileName)
 	hSrcFile		= CreateFile(cFileName, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
 	R_ASSERT3		(hSrcFile!=INVALID_HANDLE_VALUE,cFileName,Debug.error2string(GetLastError()));
 	Size			= (int)GetFileSize(hSrcFile, NULL);
-	R_ASSERT3		(Size,cFileName,Debug.error2string(GetLastError()));
+	if (Size == 0)
+		Msg("~~[%s] Found empty file: [%s]", __FUNCTION__, cFileName);
 
 	hSrcMap			= CreateFileMapping (hSrcFile, 0, PAGE_READONLY, 0, 0, 0);
 	R_ASSERT3		(hSrcMap!=INVALID_HANDLE_VALUE,cFileName,Debug.error2string(GetLastError()));
 
 	data			= (char*)MapViewOfFile (hSrcMap, FILE_MAP_READ, 0, 0, 0);
-	R_ASSERT3		(data,cFileName,Debug.error2string(GetLastError()));
+	R_ASSERT3		(!Size || data,cFileName,Debug.error2string(GetLastError()));
 
 #ifdef DEBUG
 	register_file_mapping	(data,Size,cFileName);

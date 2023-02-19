@@ -99,6 +99,10 @@ CCustomMonster::~CCustomMonster	()
 	xr_delete					(m_movement_manager);
 	xr_delete					(m_sound_player);
 
+	// Lain: added (asking GameLevel to forget about self)
+	if (g_pGameLevel)
+		g_pGameLevel->SoundEvent_OnDestDestroy(this);
+
 #ifdef DEBUG
 	Msg							("dumping client spawn manager stuff for object with id %d",ID());
 		Level().client_spawn_manager().dump	(ID());
@@ -1128,4 +1132,16 @@ void CCustomMonster::destroy_anim_mov_ctrl	()
 
 	NET_Last.o_model				= movement().m_body.current.yaw;
 	NET_Last.o_torso.pitch			= movement().m_body.current.pitch;
+}
+
+void CCustomMonster::ForceTransform(const Fmatrix& m)
+{
+	if (!g_Alive())				return;
+	XFORM().set(m);
+
+	if (character_physics_support()->movement()->CharacterExist())
+		character_physics_support()->movement()->EnableCharacter();
+
+	character_physics_support()->set_movement_position(m.c);
+	character_physics_support()->movement()->SetVelocity(0, 0, 0);
 }

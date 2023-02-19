@@ -1081,7 +1081,8 @@ const char* TiXmlElement::Parse( const char* p, TiXmlParsingData* data, TiXmlEnc
 
     TIXML_STRING endTag ("</");
 	endTag += value;
-	endTag += ">";
+
+	static const bool skip_errors = pSettings->line_exist("features", "skip_shoc_xml_errors") && pSettings->r_bool("features", "skip_shoc_xml_errors");
 
 	// Check for and read attributes. Also look for an empty
 	// tag or an end tag.
@@ -1112,14 +1113,29 @@ const char* TiXmlElement::Parse( const char* p, TiXmlParsingData* data, TiXmlEnc
 			// elements -- read the end tag, and return.
 			++p;
 			p = ReadValue( p, data, encoding );		// Note this is an Element method, and will set the error if one happens.
-			if ( !p || !*p )
-				return 0;
+            if (!p || !*p) {
+				if (!skip_errors && document)
+					document->SetError(TIXML_ERROR_READING_END_TAG, p, data, encoding);
+                return 0;
+            }
 
 			// We should find the end tag now
 			if ( StringEqual( p, endTag.c_str(), false, encoding ) )
 			{
 				p += endTag.length();
-				return p;
+				const char* old_p = p;
+				p = SkipWhiteSpace( p, encoding );
+				if ( p && *p && *p == '>' ) {
+					++p;
+					return p;
+				}
+
+				if (!skip_errors && document) {
+					document->SetError(TIXML_ERROR_READING_END_TAG, p, data, encoding);
+					return 0;
+				}
+				else
+					return old_p;
 			}
 			else
 			{
@@ -1156,7 +1172,10 @@ const char* TiXmlElement::Parse( const char* p, TiXmlParsingData* data, TiXmlEnc
 			#endif
 			if ( node )
 			{
-				node->SetValue( attrib->Value() );
+				if (!skip_errors && document)
+					document->SetError( TIXML_ERROR_PARSING_ELEMENT, pErr, data, encoding );
+				else
+					node->SetValue(attrib->Value());
 				xr_delete(attrib);
 				return 0;
 			}
@@ -1343,11 +1362,26 @@ const char* TiXmlComment::Parse( const char* p, TiXmlParsingData* data, TiXmlEnc
 
 	if ( !StringEqual( p, startTag, false, encoding ) )
 	{
-		document->SetError( TIXML_ERROR_PARSING_COMMENT, p, data, encoding );
+		if ( document )
+		    document->SetError( TIXML_ERROR_PARSING_COMMENT, p, data, encoding );
 		return 0;
 	}
 	p += xr_strlen( startTag );
-	p = ReadText( p, &value, false, endTag, false, encoding );
+
+    // [ 1475201 ] TinyXML parses entities in comments
+    // Oops - ReadText doesn't work, because we don't want to parse the entities.
+    // p = ReadText( p, &value, false, endTag, false, encoding );
+    //
+    // we does not need actual content of xml comment, just need to read till the end of it
+
+    // Keep all the white space.
+    while (p && *p && !StringEqual(p, endTag, false, encoding))
+    {
+        ++p;
+    }
+    if (p && *p)
+        p += xr_strlen(endTag);
+
 	return p;
 }
 
@@ -1356,10 +1390,6 @@ const char* TiXmlAttribute::Parse( const char* p, TiXmlParsingData* data, TiXmlE
 {
 	p = SkipWhiteSpace( p, encoding );
 	if ( !p || !*p ) return 0;
-
-//	int tabsize = 4;
-//	if ( document )
-//		tabsize = document->TabSize();
 
 	if ( data )
 	{
@@ -1481,7 +1511,8 @@ const char* TiXmlText::Parse( const char* p, TiXmlParsingData* data, TiXmlEncodi
 
 		if ( !StringEqual( p, startTag, false, encoding ) )
 		{
-			document->SetError( TIXML_ERROR_PARSING_CDATA, p, data, encoding );
+			if ( document )
+			    document->SetError( TIXML_ERROR_PARSING_CDATA, p, data, encoding );
 			return 0;
 		}
 		p += xr_strlen( startTag );

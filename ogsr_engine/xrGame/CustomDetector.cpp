@@ -134,7 +134,7 @@ void CCustomDetector::OnStateSwitch(u32 S, u32 oldState)
         if (oldState != eHiding)
         {
             HUD_SOUND::PlaySound(sndHide, Fvector{}, this, !!GetHUDmode(), false, false);
-            PlayHUDMotion({ m_bFastAnimMode ? "anm_hide_fast" : "anm_hide" }, false, GetState());
+            PlayHUDMotion({ m_bFastAnimMode ? "anm_hide_fast" : "anm_hide" }, true, GetState());
             SetPending(TRUE);
         }
     }
@@ -150,7 +150,6 @@ void CCustomDetector::OnStateSwitch(u32 S, u32 oldState)
 
 void CCustomDetector::OnAnimationEnd(u32 state)
 {
-    inherited::OnAnimationEnd(state);
     switch (state)
     {
     case eShowing:
@@ -167,6 +166,10 @@ void CCustomDetector::OnAnimationEnd(u32 state)
         g_player_hud->detach_item(this);
     }
     break;
+    case eIdle:
+        SwitchState(eIdle);
+        break;
+    default: inherited::OnAnimationEnd(state);
     }
 }
 
@@ -326,6 +329,18 @@ void CCustomDetector::TurnDetectorInternal(bool b)
 }
 
 //void CCustomDetector::UpdateNightVisionMode(bool b_on) {}
+
+Fvector CCustomDetector::GetPositionForCollision() {
+    Fvector det_pos{}, det_dir{};
+    //Офсет подобрал через худ аждаст, это скорее всего временно, но такое решение подходит всем детекторам более-менее.
+    GetBoneOffsetPosDir("wpn_body", det_pos, det_dir, Fvector{ -0.247499f,-0.810510f,0.178999f });
+    return det_pos;
+}
+
+Fvector CCustomDetector::GetDirectionForCollision() {
+    //Пока и так нормально, в будущем мб придумаю решение получше.
+    return Device.vCameraDirection;
+}
 
 
 

@@ -153,12 +153,13 @@ void	CRenderTarget::phase_combine	()
 		CEnvDescriptorMixer& envdesc= *g_pGamePersistent->Environment().CurrentEnv		;
 		const float minamb			= 0.001f;
 		Fvector4 ambclr = { std::max(envdesc.ambient.x * 2, minamb), std::max(envdesc.ambient.y * 2, minamb), std::max(envdesc.ambient.z * 2, minamb), 0 };
-					ambclr.mul		(ps_r2_sun_lumscale_amb);
-#ifndef USE_COP_WEATHER_CONFIGS
-		Fvector4	envclr			= { envdesc.sky_color.x*2+EPS,	envdesc.sky_color.y*2+EPS,	envdesc.sky_color.z*2+EPS,	envdesc.weight					};
-#else
-		Fvector4	envclr			= { envdesc.hemi_color.x*2+EPS,	envdesc.hemi_color.y*2+EPS,	envdesc.hemi_color.z*2+EPS,	envdesc.weight					};
-#endif
+		ambclr.mul		(ps_r2_sun_lumscale_amb);
+
+		Fvector4 envclr;
+		if (!g_pGamePersistent->Environment().USED_COP_WEATHER)
+			envclr = { envdesc.sky_color.x * 2 + EPS,	envdesc.sky_color.y * 2 + EPS,	envdesc.sky_color.z * 2 + EPS,	envdesc.weight };
+		else
+			envclr = { envdesc.hemi_color.x * 2 + EPS,	envdesc.hemi_color.y * 2 + EPS,	envdesc.hemi_color.z * 2 + EPS,	envdesc.weight };
 
 		Fvector4	fogclr			= { envdesc.fog_color.x,	envdesc.fog_color.y,	envdesc.fog_color.z,		0	};
 					envclr.x		*= 2*ps_r2_sun_lumscale_hemi; 
@@ -234,6 +235,11 @@ void	CRenderTarget::phase_combine	()
 		RCache.set_Element			(s_combine->E[0]	);
 		//RCache.set_Geometry			(g_combine_VP		);
 		RCache.set_Geometry			(g_combine		);
+
+		Fmatrix m_inv_v;
+		m_inv_v.invert(Device.mView);
+		RCache.set_c("m_inv_v", m_inv_v);
+		RCache.set_c("SSLR_params", ps_ext_SSLR_L, 1.f, 1.f, 1.f);
 
 		RCache.set_c				("m_v2w",			m_v2w	);
 		RCache.set_c				("L_ambient",		ambclr	);
@@ -370,9 +376,6 @@ void	CRenderTarget::phase_combine	()
    // Postprocess anti-aliasing
    if (ps_r_pp_aa_mode)
 	   PhaseAA();
-
-   if (ps_r2_ls_flags_ext.test(R2FLAGEXT_SSLR))
-	   phase_SSLR();
 
    // Rain droplets on screen
    if (ps_r2_ls_flags_ext.test(R2FLAGEXT_RAIN_DROPS))

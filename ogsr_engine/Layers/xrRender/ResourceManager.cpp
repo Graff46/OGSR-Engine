@@ -13,6 +13,7 @@
 #include "tss.h"
 #include "blenders\blender.h"
 #include "blenders\blender_recorder.h"
+#include <execution>
 
 //	Already defined in Texture.cpp
 void fix_texture_name(LPSTR fn);
@@ -337,11 +338,13 @@ void CResourceManager::Delete(const Shader* S)
 void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
 {
 	if (!RDEVICE.b_is_Ready) return;
-	for (map_TextureIt t=m_textures.begin(); t!=m_textures.end(); t++)
-	{
-		if (needUnload) t->second->Unload();
-		t->second->Load();
-	}
+	
+	Msg("CResourceManager::DeferredUpload MT -> START, size = [%u]", m_textures.size());
+
+	// Теперь многопоточная загрузка текстур даёт очень существенный прирост скорости, проверено.
+	std::for_each(std::execution::par_unseq, m_textures.begin(), m_textures.end(), [needUnload](auto& pair) {if (needUnload) pair.second->Unload(); pair.second->Load(); });
+
+	Msg("CResourceManager::DeferredUpload -> END");		
 }
 /*
 void	CResourceManager::DeferredUnload	()
@@ -365,11 +368,7 @@ void	CResourceManager::ED_UpdateTextures(AStringVec* names)
 		for (map_TextureIt t=m_textures.begin(); t!=m_textures.end(); t++)
 			t->second->Unload();
 	}
-
-	// 2. Load
-	// DeferredUpload	();
 }
-#endif
 
 void	CResourceManager::_GetMemoryUsage(u32& m_base, u32& c_base, u32& m_lmaps, u32& c_lmaps)
 {
@@ -437,7 +436,7 @@ BOOL	CResourceManager::_GetDetailTexture(LPCSTR Name,LPCSTR& T, R_constant_setup
 	}
 }*/
 
-std::vector<ITexture*> CResourceManager::FindTexture(const char* Name) const
+xr_vector<ITexture*> CResourceManager::FindTexture(const char* Name) const
 {
 	R_ASSERT(Name && strlen(Name));
 
@@ -447,7 +446,7 @@ std::vector<ITexture*> CResourceManager::FindTexture(const char* Name) const
 
 	char* ch = strchr(filename, '*');
 
-	std::vector<ITexture*> res;
+	xr_vector<ITexture*> res;
 
 	if (!ch) // no wildcard?
 	{

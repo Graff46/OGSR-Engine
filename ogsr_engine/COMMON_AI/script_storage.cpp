@@ -15,46 +15,18 @@
 // см. luabind/src/create_class.cpp
 static constexpr const char* FILE_HEADER = "\
 local function script_name() \
-return '%s' \
+return '{0}' \
 end; \
 local this; \
-module('%s', package.seeall, function(m) this = m end); \
-%s";
+module('{0}', package.seeall, function(m) this = m end); \
+{1}";
 
 const char* get_lua_traceback(lua_State *L)
 {
-#if LUAJIT_VERSION_NUM < 20000
-	static char buffer[32768]; // global buffer
-	int top = lua_gettop(L);
-	// alpet: Lua traceback added
-	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
-	lua_getfield(L, -1, "traceback");
-	lua_pushstring(L, "\t");
-	lua_pushinteger(L, 1);
-
-	const char *traceback = "cannot get Lua traceback ";
-	strcpy_s(buffer, 32767, traceback);
-	__try
-	{
-		if (0 == lua_pcall(L, 2, 1, 0))
-		{
-			traceback = lua_tostring(L, -1);
-			strcpy_s(buffer, 32767, traceback);
-			lua_pop(L, 1);
-		}
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		Msg("!#EXCEPTION(get_lua_traceback): buffer = %s ", buffer);
-	}
-	lua_settop(L, top);
-	return buffer;
-#else
 	luaL_traceback(L, L, nullptr, 0);
 	auto tb = lua_tostring(L, -1);
 	lua_pop(L, 1);
 	return tb;
-#endif
 }
 
 //*********************************************************************************************
@@ -106,8 +78,8 @@ void CScriptStorage::LogVariable(lua_State * l, const char* name, int level)
 	int ntype = lua_type(l, -1);
 	type = lua_typename(l, ntype);
 
-	char tabBuffer[32] = { 0 };
-	memset(tabBuffer, '\t', level);
+	auto tabBuffer = std::make_unique<char[]>(level + 1);
+	memset(tabBuffer.get(), '\t', level);
 
 	char value[128];
 
@@ -136,7 +108,7 @@ void CScriptStorage::LogVariable(lua_State * l, const char* name, int level)
 	case LUA_TTABLE:
 		if (level <= 3)
 		{
-			Msg("%s Table: %s", tabBuffer, name);
+			Msg("%s Table: %s", tabBuffer.get(), name);
 			LogTable(l, name, level + 1);
 			return;
 		}
@@ -157,7 +129,7 @@ void CScriptStorage::LogVariable(lua_State * l, const char* name, int level)
 		if (r.is_valid())
 		{
 			r.get(l);
-			Msg("%s Userdata: %s", tabBuffer, name);
+			Msg("%s Userdata: %s", tabBuffer.get(), name);
 			LogTable(l, name, level + 1);
 			lua_pop(l, 1); //Remove userobject
 			return;
@@ -179,7 +151,7 @@ void CScriptStorage::LogVariable(lua_State * l, const char* name, int level)
 	}
 
 
-	Msg("%s %s %s : %s", tabBuffer, type, name, value);
+	Msg("%s %s %s : %s", tabBuffer.get(), type, name, value);
 }
 //*********************************************************************************************
 
@@ -277,25 +249,25 @@ void CScriptStorage::script_log(ScriptStorage::ELuaMessageType tLuaMessageType, 
 bool CScriptStorage::load_buffer(lua_State *L, const char* caBuffer, size_t tSize, const char* caScriptName, const char* caNameSpaceName) //KRodin: эта функция форматирует содержимое скрипта используя FILE_HEADER и после этого загружает его в lua
 {
 	int l_iErrorCode = 0;
+	const std::string_view strbuf{ caBuffer, tSize };
 	if (strcmp(GlobalNamespace, caNameSpaceName)) //Все скрипты кроме _G
 	{
 		//KRodin: обращаться к _G только с большой буквы! Иначе он загрузится ещё раз и это неизвестно к чему приведёт!
 		//Глобальное пространство инитится один раз после запуска луаджита, и никогда больше.
 		if (!strcmp("_g", caNameSpaceName))
 			return false;
-		//KRodin: Переделал, т.к. в оригинале тут происходило нечто, на мой взгляд, странное.
-		int buf_len = std::snprintf(nullptr, 0, FILE_HEADER, caNameSpaceName, caNameSpaceName, caBuffer);
-		auto strBuf = std::make_unique<char[]>(buf_len + 1);
-		std::snprintf(strBuf.get(), buf_len + 1, FILE_HEADER, caNameSpaceName, caNameSpaceName, caBuffer);
+
+		const std::string script = std::format(FILE_HEADER, caNameSpaceName, strbuf);
+
 		//Log("[CScriptStorage::load_buffer(1)] Loading buffer:");
-		//Log(strBuf.get());
-		l_iErrorCode = luaL_loadbuffer(L, strBuf.get(), buf_len /*+ 1 Нуль-терминатор на конце мешает походу*/, caScriptName);
+		//Log(script.c_str());
+		l_iErrorCode = luaL_loadbuffer(L, script.c_str(), script.size(), caScriptName);
 	}
 	else //_G.script и только он.
 	{
 		//Log("[CScriptStorage::load_buffer(2)] Loading buffer:");
-		//Log(caBuffer);
-		l_iErrorCode = luaL_loadbuffer(L, caBuffer, tSize, caScriptName);
+		//Log(strbuf.c_str());
+		l_iErrorCode = luaL_loadbuffer(L, strbuf.data(), strbuf.size(), caScriptName);
 	}
 	if (l_iErrorCode)
 	{
@@ -315,13 +287,9 @@ bool CScriptStorage::do_file(const char* caScriptName, const char* caNameSpaceNa
 		return false;
 	}
 	strconcat(sizeof(l_caLuaFileName), l_caLuaFileName, "@", caScriptName); //KRodin: приводит путь к виду @f:\games\s.t.a.l.k.e.r\gamedata\scripts\***.script
-	//
-	//KRodin: исправлено. Теперь содержимое скрипта сразу читается нормально, без мусора на конце.
-	auto strBuf = std::make_unique<char[]>(l_tpFileReader->length() + 1);
-	strncpy(strBuf.get(), (const char*)l_tpFileReader->pointer(), l_tpFileReader->length());
-	strBuf.get()[l_tpFileReader->length()] = 0;
-	//
-	bool loaded = load_buffer(lua(), strBuf.get(), (size_t)l_tpFileReader->length(), l_caLuaFileName, caNameSpaceName);
+
+	bool loaded = load_buffer(lua(), reinterpret_cast<const char*>(l_tpFileReader->pointer()), (size_t)l_tpFileReader->length(), l_caLuaFileName, caNameSpaceName);
+
 	FS.r_close(l_tpFileReader);
 	if (!loaded)
 		return false;

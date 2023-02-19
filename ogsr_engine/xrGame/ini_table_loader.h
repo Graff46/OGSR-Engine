@@ -109,7 +109,7 @@ typename CSIni_Table::ITEM_TABLE& CSIni_Table::table()
 		(*m_pTable)[cur_index].resize(cur_table_width);
 		for (std::size_t j = 0; j < cur_table_width; j++)
 		{
-			(*m_pTable)[cur_index][j] = convert(_GetItem(i.second.c_str(), (int)j, buffer));
+			(*m_pTable)[cur_index][j] = convert(_GetItem(i.second.c_str(),(int)j,buffer));
 		}
 	}
 

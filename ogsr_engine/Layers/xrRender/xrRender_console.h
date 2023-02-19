@@ -144,7 +144,6 @@ extern ECORE_API float ps_r2_visor_refl_radius;
 
 #if RENDER==R_R4
 extern ECORE_API float ps_ext_SSLR_L;
-extern ECORE_API float ps_ext_SSLR_blur;
 #endif
 
 // textures
@@ -183,9 +182,9 @@ enum
 	R2FLAG_VOLUMETRIC_LIGHTS	= (1<<21),
 	R2FLAG_STEEP_PARALLAX		= (1<<22),
 	R2FLAG_DOF					= (1<<23),
-
+#if RENDER==R_R1
 	R1FLAG_DETAIL_TEXTURES		= (1<<24),
-
+#endif
 	R2FLAG_DETAIL_BUMP			= (1<<25),
 
 	R3FLAG_DYN_WET_SURF			= (1<<26),
@@ -219,10 +218,14 @@ enum
 	R2FLAGEXT_SSLR 					= 1 << 15,
 	R2FLAG_VISOR_REFL				= 1 << 16,
 	R2FLAG_VISOR_REFL_CONTROL		= 1 << 17,
+	R2FLAGEXT_TERRAIN_PARALLAX = 1 << 18,
 };
 
 extern void						xrRender_initconsole	();
-extern BOOL						xrRender_test_hw		();
+
+#ifndef XRRENDER_STATIC
+extern BOOL xrRender_test_hw();
+#endif
 
 // Postprocess anti-aliasing types
 enum

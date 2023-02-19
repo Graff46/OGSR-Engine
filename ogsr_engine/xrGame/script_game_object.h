@@ -229,6 +229,7 @@ public:
 			LPCSTR				WhoHitSectionName	();
 
 			void				ChangeTeam			(u8 team, u8 squad, u8 group);
+			void				SetNpcPosition      (Fvector pos);
 
 	// CAI_Stalker
 			CScriptGameObject	*GetCurrentWeapon	() const;
@@ -282,9 +283,7 @@ public:
 	//передача порции информации InventoryOwner
 			bool				GiveInfoPortion		(LPCSTR info_id);
 			bool				DisableInfoPortion	(LPCSTR info_id);
-			bool				GiveGameNews		(LPCSTR news, LPCSTR texture_name, Frect tex_rect, int delay, int show_time);
 
-			void				AddIconedTalkMessage(LPCSTR text, LPCSTR texture_name, Frect tex_rect, LPCSTR templ_name);
 	//предикаты наличия/отсутствия порции информации у персонажа
 			bool				HasInfo				(LPCSTR info_id);
 			bool				DontHasInfo			(LPCSTR info_id);
@@ -396,6 +395,24 @@ public:
 			const CDangerObject	*GetBestDanger		();
 			CScriptGameObject	*GetBestItem		();
 
+/************************* Add by Zander *******************************/
+	// Эти функции работают с визуалом объекта.
+	// Вызвать дамп модели
+	void GetModelDump();
+	// Устанавливает видимость меша по индексу
+	void ShowModelMesh(const u32 id, const bool state);
+	// Возвращает видимость меша по индексу
+	bool GetShowMesh(const u32 id) const;
+	// Возвращает количество мешей модели
+	u32 GetMeshCount() const;
+	// Устанавливает видимость меша по индексу для худовой модели
+	void ShowModelMeshHUD(const u32 id, const bool state);
+	// Возвращает видимость меша по индексу для худовой модели
+	bool GetShowMeshHUD(const u32 id) const;
+	// Возвращает количество мешей модели худа
+	u32 GetMeshCountHUD() const;
+	/************************* End Add *************************************/
+	
 	_DECLARE_FUNCTION10			(GetActionCount,u32);
 	
 			const				CScriptEntityAction	*GetActionByIndex(u32 action_index = 0);
@@ -517,9 +534,9 @@ public:
 			bool				accessible_vertex_id	(u32 level_vertex_id);
 			u32					accessible_nearest		(const Fvector &position, Fvector &result);
 
-			const std::deque<MemorySpace::CVisibleObject>		&memory_visible_objects	() const;
-			const std::deque<MemorySpace::CSoundObject>			&memory_sound_objects	() const;
-			const std::deque<MemorySpace::CHitObject>			&memory_hit_objects		() const;
+			const xr_deque<MemorySpace::CVisibleObject>		&memory_visible_objects	() const;
+			const xr_deque<MemorySpace::CSoundObject>			&memory_sound_objects	() const;
+			const xr_deque<MemorySpace::CHitObject>			&memory_hit_objects		() const;
 			const xr_vector<MemorySpace::CNotYetVisibleObject>	&not_yet_visible_objects() const;
 			float				visibility_threshold	() const;
 			void				enable_vision			(bool value);
@@ -817,5 +834,8 @@ extern void sell_condition	(float friend_factor, float enemy_factor);
 extern void buy_condition	(CScriptIniFile *ini_file, LPCSTR section);
 extern void buy_condition	(float friend_factor, float enemy_factor);
 extern void show_condition	(CScriptIniFile *ini_file, LPCSTR section);
+
+void AddIconedTalkMessage(CScriptGameObject*, LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, LPCSTR templ_name);
+bool GiveGameNews(CScriptGameObject*, LPCSTR text, LPCSTR texture_name, const Frect& tex_rect, int delay, int show_time);
 
 #include "script_game_object_impl.h" // alpet: исправление error LNK2019: unresolved external symbol "public: class CGameObject & __thiscall CScriptGameObject::object(void)const "

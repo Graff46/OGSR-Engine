@@ -465,9 +465,13 @@ public:
 #endif
 */
 
+#ifdef XRRENDER_STATIC
+ENGINE_API BOOL r2_sun_static = FALSE;
+ENGINE_API BOOL r2_advanced_pp = TRUE;	//	advanced post process and effects
+#else
 ENGINE_API BOOL r2_sun_static = TRUE;
 ENGINE_API BOOL r2_advanced_pp = FALSE;	//	advanced post process and effects
-
+#endif
 
 #ifdef EXCLUDE_R1
 u32 renderer_value = 1;
@@ -488,6 +492,8 @@ public:
 		tokens					= vid_quality_token;
 
 		inherited::Execute		(args);
+
+#ifndef XRRENDER_STATIC
 		Msg("--[%s] Executing renderer: [%s], renderer_value: [%u]", __FUNCTION__, args, renderer_value);
 #ifdef EXCLUDE_R1
 		//	0..2 - r2
@@ -511,6 +517,7 @@ public:
 		r2_sun_static	= (renderer_value<2);
 
 		r2_advanced_pp  = (renderer_value>=3);
+#endif
 #endif
 	}
 
@@ -617,6 +624,9 @@ extern int			rsDIB_Size;
 //extern float		r__dtex_range;
 
 extern int			g_ErrorLineCount;
+
+extern float g_fontWidthScale;
+extern float g_fontHegihtScale;
 
 void CCC_Register()
 {
@@ -747,5 +757,8 @@ void CCC_Register()
 	extern BOOL debug_destroy;
 	CMD4(CCC_Integer, "debug_destroy", &debug_destroy, FALSE, TRUE );
 #endif
+
+	CMD4(CCC_Float, "g_font_scale_x", &g_fontWidthScale, 0.2f, 5.0f);
+	CMD4(CCC_Float, "g_font_scale_y", &g_fontHegihtScale, 0.2f, 5.0f);
 };
  

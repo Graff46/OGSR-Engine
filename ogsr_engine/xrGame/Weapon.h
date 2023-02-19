@@ -23,8 +23,6 @@ class CWeaponMagazined;
 class CParticlesObject;
 class CUIStaticItem;
 
-ENGINE_API extern float psHUD_FOV_def;
-
 constexpr float def_min_zoom_k = 0.3f;
 constexpr float def_zoom_step_count = 4.0f;
 
@@ -86,9 +84,6 @@ public:
 	virtual void			OnActiveItem		();
 	virtual void			OnHiddenItem		();
 
-	// Callback function added by Cribbledirge.
-	virtual IC void	StateSwitchCallback(GameObject::ECallbackType actor_type, GameObject::ECallbackType npc_type);
-
 //////////////////////////////////////////////////////////////////////////
 //  Network
 //////////////////////////////////////////////////////////////////////////
@@ -116,14 +111,6 @@ public:
 //  Weapon state
 //////////////////////////////////////////////////////////////////////////
 public:
-	enum EWeaponStates {
-		eFire = eLastBaseState + 1,
-		eFire2,
-		eReload,
-		eMisfire,
-		eMagEmpty,
-		eSwitch,
-	};
 	enum EWeaponSubStates{
 		eSubstateReloadBegin		=0,
 		eSubstateReloadInProcess,
@@ -141,7 +128,6 @@ public:
 	BOOL					IsUpdating			();
 
 
-	BOOL					IsMisfire			() const;
 	BOOL					CheckForMisfire		();
 
 	bool					IsTriStateReload	() const		{ return m_bTriStateReload;}
@@ -152,9 +138,7 @@ protected:
 	u8						m_sub_state;
 	u8						m_idle_state;
 	// Weapon fires now
-	bool					bWorking2;
-	// a misfire happens, you'll need to rearm weapon
-	bool					bMisfire;				
+	bool					bWorking2;			
 
 //////////////////////////////////////////////////////////////////////////
 //  Weapon Addons
@@ -169,7 +153,7 @@ public:
 			bool IsScopeAttached			() const;
 			bool IsSilencerAttached			() const;
 
-	bool			IsGrenadeMode() const;
+	virtual bool IsGrenadeMode() const { return false; }
 
 	virtual bool GrenadeLauncherAttachable() const;
 	virtual bool ScopeAttachable() const;
@@ -199,24 +183,24 @@ public:
 
                                                                                //названия секций подключаемых аддонов
     shared_str		m_sScopeName;
-    std::vector<shared_str> m_allScopeNames;
+    xr_vector<shared_str> m_allScopeNames;
     shared_str		m_sSilencerName;
     shared_str		m_sGrenadeLauncherName;
 
-	std::vector<shared_str> m_sWpn_scope_bones;
+	xr_vector<shared_str> m_sWpn_scope_bones;
 	shared_str m_sWpn_silencer_bone;
 	shared_str m_sWpn_launcher_bone;
 	shared_str m_sWpn_laser_bone;
 	shared_str m_sWpn_flashlight_bone;
-	std::vector<shared_str> m_sHud_wpn_scope_bones;
+	xr_vector<shared_str> m_sHud_wpn_scope_bones;
 	shared_str m_sHud_wpn_silencer_bone;
 	shared_str m_sHud_wpn_launcher_bone;
 	shared_str m_sHud_wpn_laser_bone;
 	shared_str m_sHud_wpn_flashlight_bone;
 
 private:
-	std::vector<shared_str> hidden_bones;
-	std::vector<shared_str> hud_hidden_bones;
+	xr_vector<shared_str> hidden_bones;
+	xr_vector<shared_str> hud_hidden_bones;
 
 protected:
 	//состояние подключенных аддонов
@@ -245,8 +229,6 @@ protected:
 	bool			m_bZoomEnabled;
 	//текущий фактор приближения
 	float			m_fZoomFactor;
-	//время приближения
-	float			m_fZoomRotateTime;
 	//текстура для снайперского прицела, в режиме приближения
 	CUIStaticItem*	m_UIScope;
 	//коэффициент увеличения прицеливания
@@ -255,9 +237,6 @@ protected:
 	float			m_fScopeZoomFactor;
 	//когда режим приближения включен
 	bool			m_bZoomMode;
-	//от 0 до 1, показывает насколько процентов
-	//мы перемещаем HUD  
-	float			m_fZoomRotationFactor;
 	//коэффициент увеличения во втором вьюпорте при зуме
 	float			m_fSecondVPZoomFactor;
 	//прятать перекрестие в режиме прицеливания
@@ -297,7 +276,7 @@ public:
 		if (pA && pA->active_cam() == eacLookAt)
 			return false;
 
-		return (m_bHideCrosshairInZoom || ZoomTexture()) && !psActorFlags.test(AF_CROSSHAIR_DBG);
+		return m_bHideCrosshairInZoom || ZoomTexture();
 	}
 
 	virtual void			OnZoomChanged		() {}
@@ -346,28 +325,20 @@ protected:
 	virtual void			UpdatePosition			(const Fmatrix& transform);	//.
 	virtual void			UpdateXForm				();
 
-private:
-	float m_fLR_MovingFactor{}, m_fLookout_MovingFactor{};
-	Fvector m_strafe_offset[3][2]{}, m_lookout_offset[3][2]{};
-
-protected:
-	virtual	u8				GetCurrentHudOffsetIdx	() override;
-	virtual void			UpdateHudAdditonal		(Fmatrix&);
+	u8 GetCurrentHudOffsetIdx() const override;
 	virtual bool			IsHudModeNow			();
-
-	IC		void			UpdateFireDependencies	()			{ if (dwFP_Frame==Device.dwFrame) return; UpdateFireDependencies_internal(); };
 
 	virtual void			LoadFireParams		(LPCSTR section, LPCSTR prefix);
 public:	
-	IC		const Fvector&	get_LastFP				()			{ UpdateFireDependencies(); return m_current_firedeps.vLastFP;	}
-	IC		const Fvector&	get_LastFP2				()			{ UpdateFireDependencies(); return m_current_firedeps.vLastFP2;	}
-	IC		const Fvector&	get_LastFD				()			{ UpdateFireDependencies(); return m_current_firedeps.vLastFD;	}
-	IC		const Fvector&	get_LastSP				()			{ UpdateFireDependencies(); return m_current_firedeps.vLastSP;	}
-	IC		const Fvector& get_LastShootPoint() { UpdateFireDependencies(); return m_current_firedeps.vLastShootPoint; }
+	IC		const Fvector& get_LastFP() { UpdateFireDependencies_internal(); return m_current_firedeps.vLastFP; }
+	IC		const Fvector& get_LastFP2() { UpdateFireDependencies_internal(); return m_current_firedeps.vLastFP2; }
+	IC		const Fvector& get_LastFD() { UpdateFireDependencies_internal(); return m_current_firedeps.vLastFD; }
+	IC		const Fvector& get_LastSP() { UpdateFireDependencies_internal(); return m_current_firedeps.vLastSP; }
+	IC		const Fvector& get_LastShootPoint() { UpdateFireDependencies_internal(); return m_current_firedeps.vLastShootPoint; }
 
 	virtual const Fvector&	get_CurrentFirePoint	()			{ return get_LastFP();				}
 	virtual const Fvector&	get_CurrentFirePoint2	()			{ return get_LastFP2();				}
-	virtual const Fmatrix&	get_ParticlesXFORM		()			{ UpdateFireDependencies(); return m_current_firedeps.m_FireParticlesXForm;	}
+	virtual const Fmatrix& get_ParticlesXFORM() { UpdateFireDependencies_internal(); return m_current_firedeps.m_FireParticlesXForm; }
 	virtual void			ForceUpdateFireParticles();
 
 	//////////////////////////////////////////////////////////////////////////
@@ -387,7 +358,9 @@ protected:
 	virtual void			Fire2End			();
 	virtual void			Reload				();
 			void			StopShooting		();
-    
+  
+	virtual void Misfire() {}
+	virtual void DeviceSwitch();
 
 	// обработка визуализации выстрела
 	virtual void			OnShot				(){};
@@ -470,6 +443,7 @@ protected:
 
 public:
 	IC int					GetAmmoElapsed		()	const		{	return /*int(m_magazine.size())*/iAmmoElapsed;}
+	virtual int GetAmmoElapsed2() const { return 0; }
 	IC int					GetAmmoMagSize		()	const		{	return iMagazineSize;						}
 	int						GetAmmoCurrent		(bool use_item_to_spawn = false)  const;
 	IC void					SetAmmoMagSize		(int _size) { iMagazineSize = _size; }
@@ -533,14 +507,10 @@ protected:
 	float					m_addon_holder_range_modifier;
 	float					m_addon_holder_fov_modifier;
 
-	float m_nearwall_last_hud_fov;
-
-	float m_nearwall_target_hud_fov = 0.f;
-	float m_nearwall_dist_max = 0.f;
-	float m_nearwall_dist_min = 0.f;
-	float m_nearwall_speed_mod = 0.f;
-
-	bool m_nearwall_on = false;
+protected:
+	virtual size_t GetWeaponTypeForCollision() const override { return CWeaponBase; } 
+	virtual Fvector GetPositionForCollision() override { return get_LastShootPoint(); }
+	virtual Fvector GetDirectionForCollision() override { return get_LastFD(); }
 
 public:
 	virtual	void			modify_holder_params		(float &range, float &fov) const;
@@ -556,14 +526,16 @@ private:
 public:
 	const float				&hit_probability			() const;
 	void					UpdateWeaponParams();
-	void UpdateSecondVP(); //
+	void UpdateSecondVP();
 	float GetZRotatingFactor() const { return m_fZoomRotationFactor; } //--#SM+#--
 	float GetSecondVPFov() const; //--#SM+#--
 	bool SecondVPEnabled() const;
-	float GetHudFov();
+	float GetHudFov() override;
 
 	virtual void OnBulletHit();
-	bool IsPartlyReloading();
+	virtual bool IsPartlyReloading() const {
+		return m_set_next_ammoType_on_reload == u32(-1) && GetAmmoElapsed() > 0 && !IsMisfire();
+	}
 
 	virtual void processing_deactivate() override {
 		UpdateLaser();
@@ -571,33 +543,39 @@ public:
 		inherited::processing_deactivate();
 	}
 
-	void GetBoneOffsetPosDir(const shared_str& bone_name, Fvector& dest_pos, Fvector& dest_dir, const Fvector& offset);
-	//Функция из ганслингера для приблизительной коррекции разности фовов худа и мира. Так себе на самом деле, но более годных способов я не нашел.
-	void CorrectDirFromWorldToHud(Fvector& dir);
-
-private:
+	Fvector laserdot_attach_offset{}, laser_pos{};
+protected:
 	bool has_laser{};
+private:
+	shared_str laserdot_attach_bone;
+	Fvector laserdot_world_attach_offset{};
 	ref_light laser_light_render;
 	CLAItem* laser_lanim{};
 	float laser_fBrightness{ 1.f };
 
 	void UpdateLaser();
 public:
-	void SwitchLaser(bool on) {
+	bool SwitchLaser(bool on) {
 		if (!has_laser)
-			return;
+			return false;
 
 		if (on)
 			m_flagsAddOnState |= CSE_ALifeItemWeapon::eWeaponAddonLaserOn;
 		else
 			m_flagsAddOnState &= ~CSE_ALifeItemWeapon::eWeaponAddonLaserOn;
+
+		return true;
 	}
 	inline bool IsLaserOn() const {
 		return m_flagsAddOnState & CSE_ALifeItemWeapon::eWeaponAddonLaserOn;
 	}
 
-private:
+	Fvector flashlight_attach_offset{}, flashlight_pos{};
+protected:
 	bool has_flashlight{};
+private:
+	shared_str flashlight_attach_bone;
+	Fvector flashlight_omni_attach_offset{}, flashlight_world_attach_offset{}, flashlight_omni_world_attach_offset{};
 	ref_light flashlight_render;
 	ref_light flashlight_omni;
 	ref_glow flashlight_glow;
@@ -606,16 +584,64 @@ private:
 
 	void UpdateFlashlight();
 public:
-	void SwitchFlashlight(bool on) {
+	bool SwitchFlashlight(bool on) {
 		if (!has_flashlight)
-			return;
+			return false;
 
 		if (on)
 			m_flagsAddOnState |= CSE_ALifeItemWeapon::eWeaponAddonFlashlightOn;
 		else
 			m_flagsAddOnState &= ~CSE_ALifeItemWeapon::eWeaponAddonFlashlightOn;
+
+		return true;
 	}
 	inline bool IsFlashlightOn() const {
 		return m_flagsAddOnState & CSE_ALifeItemWeapon::eWeaponAddonFlashlightOn;
 	}
+
+	void SwitchMisfire(bool on) {
+		if (on)
+			m_flagsAddOnState |= CSE_ALifeItemWeapon::eWeaponMisfire;
+		else
+			m_flagsAddOnState &= ~CSE_ALifeItemWeapon::eWeaponMisfire;
+	}
+	inline bool IsMisfire() const {
+		return m_flagsAddOnState & CSE_ALifeItemWeapon::eWeaponMisfire;
+	}
+
+
+	Fvector get_angle_offset() const override
+	{
+		Fvector v;
+		m_strapped_mode ? m_StrapOffset.getHPB(v) : m_Offset.getHPB(v);
+		return v;
+	}
+	Fvector get_pos_offset() const override
+	{
+		return m_strapped_mode ? m_StrapOffset.c : m_Offset.c;
+	}
+	void set_angle_offset(Fvector val) override
+	{
+		Fvector c = get_pos_offset();
+		Fmatrix& mat = m_strapped_mode ? m_StrapOffset : m_Offset;
+		mat.setHPB(VPUSH(val));
+		mat.c = c;
+	}
+	void rot(int axis, float val) override
+	{
+		Fvector v = get_angle_offset();
+		v[axis] += val;
+		set_angle_offset(v);
+	}
+	void mov(int axis, float val) override
+	{
+		Fvector c = get_pos_offset();
+		c[axis] += val;
+		if (m_strapped_mode)
+			m_StrapOffset.c = c;
+		else
+			m_Offset.c = c;
+	}
+	void SaveAttachableParams() override;
+	void ParseCurrentItem(CGameFont* F) override;
 };

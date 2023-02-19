@@ -69,11 +69,11 @@ void __stdcall AttachmentCallback(IKinematics *tpKinematics)
 
 	IKinematics				*kinematics = smart_cast<IKinematics*>(game_object->Visual());
 
-	xr_vector<CAttachableItem*>::const_iterator	I = attachment_owner->attached_objects().begin();
-	xr_vector<CAttachableItem*>::const_iterator	E = attachment_owner->attached_objects().end();
-	for ( ; I != E; ++I) {
-		(*I)->item().object().XFORM().mul_43	(kinematics->LL_GetBoneInstance((*I)->bone_id()).mTransform,(*I)->offset());
-		(*I)->item().object().XFORM().mulA_43	(game_object->XFORM());
+	for (const auto* it : attachment_owner->attached_objects()) {
+		Fmatrix bone_mtx;
+		kinematics->Bone_GetAnimPos(bone_mtx, it->bone_id(), u8(-1), false);
+		it->item().object().XFORM().mul_43(bone_mtx, it->offset());
+		it->item().object().XFORM().mulA_43(game_object->XFORM());
 	}
 }
 
@@ -188,7 +188,7 @@ CAttachableItem* CAttachmentOwner::attachedItem			(u16 id) const
 	return NULL;
 }
 
-CAttachableItem* CAttachmentOwner::attachedItem			(shared_str& section) const
+CAttachableItem* CAttachmentOwner::attachedItem(const shared_str& section) const
 {
 	xr_vector<CAttachableItem*>::const_iterator	I = m_attached_objects.begin();
 	xr_vector<CAttachableItem*>::const_iterator	E = m_attached_objects.end();

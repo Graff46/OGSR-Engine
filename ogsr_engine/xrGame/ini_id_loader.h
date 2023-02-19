@@ -28,8 +28,8 @@ public:
 
 protected:
 	typedef xr_vector<ITEM_DATA>	T_VECTOR;
-	static	T_VECTOR* m_pItemDataVector;
-
+	static	T_VECTOR*				m_pItemDataVector;
+	
 	template <bool isNum>
 	static void LoadItemData(u32 count, LPCSTR cfgRecord)
 	{

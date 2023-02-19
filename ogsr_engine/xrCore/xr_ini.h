@@ -9,7 +9,7 @@ class XRCORE_API CInifile {
   struct XRCORE_API Sect {
     shared_str Name;
     string_unordered_map<shared_str, shared_str> Data;
-    std::vector<Item> Unordered;
+    xr_vector<Item> Unordered;
     BOOL line_exist ( LPCSTR, LPCSTR* = nullptr );
     u32 line_count();
 
@@ -21,8 +21,6 @@ class XRCORE_API CInifile {
 	Fvector3	r_fvector3( LPCSTR );
   };
   using Root = string_unordered_map<shared_str, Sect*>;
-
-  static_assert(std::is_same_v<Root::key_equal, string_hash::transparent_key_equal>, "Invalid key_equal"); //Нужная проверка в будущем, не убирать!
 
   // factorisation
   static CInifile* Create  ( LPCSTR, BOOL = TRUE );

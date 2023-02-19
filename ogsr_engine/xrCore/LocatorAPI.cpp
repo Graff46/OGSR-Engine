@@ -69,7 +69,7 @@ void _check_open_file(const shared_str& _fname)
 {
 	xr_vector<_open_file>::iterator it	= std::find_if(g_open_files.begin(), g_open_files.end(), eq_fname_check(_fname) );
 	if(it!=g_open_files.end())
-		Log("file opened at least twice", _fname.c_str());
+		Msg("file opened at least twice: [%s]", _fname.c_str());
 }
 
 _open_file& find_free_item(const shared_str& _fname)
@@ -155,8 +155,8 @@ XRCORE_API void _dump_open_files(int mode)
 				Msg("[%d] fname:%s", _of._used ,_of._fn.c_str());
 		}
 	}
-	if(bShow)
-		Log("----total count=",g_open_files.size());
+	if (bShow)
+		Msg("----total count = [%u]", g_open_files.size());
 }
 
 CLocatorAPI::CLocatorAPI()
@@ -259,18 +259,18 @@ static IReader* open_chunk(void* ptr, const u32 ID, const char* archiveName, con
 				unsigned dest_sz{};
 
 				if (shouldDecrypt)
-					g_trivial_encryptor.decode(src_data, dwSize, src_data); // Try russian key first
+					g_trivial_encryptor.decode(src_data, dwSize, src_data); // Try WW key first
 
 				bool result = _decompressLZ(&dest, &dest_sz, src_data, dwSize, archiveSize);
 
-				if (!result && shouldDecrypt)// Let's try to decode with WW key
+				if (!result && shouldDecrypt)// Let's try to decode with Rus key
 				{
 					g_trivial_encryptor.encode(src_data, dwSize, src_data); // rollback
-					g_trivial_encryptor.decode(src_data, dwSize, src_data, trivial_encryptor::key_flag::worldwide);
+					g_trivial_encryptor.decode(src_data, dwSize, src_data, trivial_encryptor::key_flag::russian);
 					result = _decompressLZ(&dest, &dest_sz, src_data, dwSize, archiveSize);
 				}
 
-				ASSERT_FMT(result, "[%s] Can't decompress archive [%s]", __FUNCTION__, archiveName);
+				CHECK_OR_EXIT(result, make_string("[%s] Can't decompress archive [%s]", __FUNCTION__, archiveName));
 
 				xr_free			(src_data);
 				return xr_new<CTempReader>(dest,dest_sz,0);
@@ -549,7 +549,7 @@ void CLocatorAPI::_initialize	(u32 flags, LPCSTR target_folder, LPCSTR fs_name)
 		else 
 			append_path("$fs_root$", "", 0, FALSE);
 
-		Log								("using fs-ltx",fs_ltx);
+		Msg("using fs-ltx: [%s]", fs_ltx);
 	}
 
 	//-----------------------------------------------------------
@@ -633,15 +633,6 @@ void CLocatorAPI::_initialize	(u32 flags, LPCSTR target_folder, LPCSTR fs_name)
 			FS_Path* P			= xr_new<FS_Path>((p_it!=pathes.end())?p_it->second->m_Path:root,lp_add,lp_def,lp_capt,fl);
 			bNoRecurse			= !(fl&FS_Path::flRecurse);
 #ifdef RESTRICT_GAMEDATA
-#if __has_include("..\build_config_overrides\trivial_encryptor_ovr.h")
-#error Something strange...
-#endif
-			bool restricted = false;
-			if ( ( xr_strcmp( id, "$game_config$" ) == 0 || xr_strcmp( id, "$game_scripts$" ) == 0 ) )
-				restricted = !Core.ParamFlags.test( xrCore::ParamFlag::dbg );
-			if ( !restricted )
-				Recurse( P->m_Path, true );
-#elif __has_include("..\build_config_overrides\trivial_encryptor_ovr.h")
 			if (!strcmp(id, "$app_data_root$") || !strcmp(id, "$game_saves$") || !strcmp(id, "$logs$") || !strcmp(id, "$screenshots$"))
 				Recurse(P->m_Path);
 #else
@@ -658,7 +649,7 @@ void CLocatorAPI::_initialize	(u32 flags, LPCSTR target_folder, LPCSTR fs_name)
 		R_ASSERT		(path_exist("$app_data_root$"));
 	};
 		
-#if !__has_include("..\build_config_overrides\trivial_encryptor_ovr.h")
+#ifndef RESTRICT_GAMEDATA
 	if (!m_Flags.is(flTargetFolderOnly))
 		ProcessExternalArch();
 #endif
@@ -871,11 +862,6 @@ int CLocatorAPI::file_list(FS_FileSet& dest, LPCSTR path, u32 flags, LPCSTR mask
 
 void CLocatorAPI::file_from_cache_impl	(IReader *&R, LPSTR fname, const file &desc)
 {
-	if (desc.size_real<16*1024) {
-		R						= xr_new<CFileReader>(fname);
-		return;
-	}
-
 	R							= xr_new<CVirtualFileReader>(fname);
 }
 
@@ -956,87 +942,6 @@ void CLocatorAPI::file_from_archive	(CStreamReader *&R, LPCSTR fname, const file
 	);
 }
 
-void CLocatorAPI::copy_file_to_build	(IWriter *W, IReader *r)
-{
-    W->w				(r->pointer(),r->length());
-}
-
-void CLocatorAPI::copy_file_to_build	(IWriter *W, CStreamReader *r)
-{
-	u32					buffer_size = r->length();
-	u8					*buffer = xr_alloc<u8>(buffer_size);
-	r->r				(buffer,buffer_size);
-    W->w				(buffer,buffer_size);
-	xr_free				(buffer);
-	r->seek				(0);
-}
-
-template <typename T>
-void CLocatorAPI::copy_file_to_build	(T *&r, LPCSTR source_name)
-{
-	string_path	cpy_name;
-	string_path	e_cpy_name;
-	FS_Path* 	P; 
-	if (!(source_name==strstr(source_name,(P=get_path("$server_root$"))->m_Path)||
-        source_name==strstr(source_name,(P=get_path("$server_data_root$"))->m_Path)))
-		return;
-
-	update_path				(cpy_name,"$build_copy$",source_name+xr_strlen(P->m_Path));
-	IWriter* W = w_open		(cpy_name);
-    if (!W) {
-        Log					("!Can't build:",source_name);
-		return;
-	}
-
-	copy_file_to_build	(W,r);
-    w_close				(W);
-    set_file_age(cpy_name,get_file_age(source_name));
-    if (!m_Flags.is(flEBuildCopy))
-		return;
-
-    LPCSTR ext		= strext(cpy_name);
-    if (!ext)
-		return;
-
-    IReader* R		= 0;
-    if (0==xr_strcmp(ext,".dds")){
-        P			= get_path("$game_textures$");               
-        update_path	(e_cpy_name,"$textures$",source_name+xr_strlen(P->m_Path));
-        // tga
-        *strext		(e_cpy_name) = 0;
-        strcat_s(e_cpy_name,".tga");
-        r_close		(R=r_open(e_cpy_name));
-        // thm
-        *strext		(e_cpy_name) = 0;
-        strcat_s(e_cpy_name,".thm");
-        r_close		(R=r_open(e_cpy_name));
-		return;
-    }
-	
-	if (0==xr_strcmp(ext,".ogg")){
-        P			= get_path("$game_sounds$");                               
-        update_path	(e_cpy_name,"$sounds$",source_name+xr_strlen(P->m_Path));
-        // wav
-        *strext		(e_cpy_name) = 0;
-        strcat_s(e_cpy_name,".wav");
-        r_close		(R=r_open(e_cpy_name));
-        // thm
-        *strext		(e_cpy_name) = 0;
-        strcat_s(e_cpy_name,".thm");
-        r_close		(R=r_open(e_cpy_name));
-		return;
-    }
-	
-	if (0==xr_strcmp(ext,".object")){
-		strcpy_s(e_cpy_name, source_name);
-        // object thm
-        *strext		(e_cpy_name) = 0;
-        strcat_s(e_cpy_name,".thm");
-        R			= r_open(e_cpy_name);
-        if (R)		r_close	(R);
-    }
-}
-
 bool CLocatorAPI::check_for_file	(LPCSTR path, LPCSTR _fname, string_path& fname, const file *&desc)
 {
 	// проверить нужно ли пересканировать пути
@@ -1077,11 +982,6 @@ T *CLocatorAPI::r_open_impl	(LPCSTR path, LPCSTR _fname)
 		file_from_cache		(R,fname,*desc,source_name);
 	else
 		file_from_archive	(R,fname,*desc);
-
-#ifdef DEBUG
-	if (R && m_Flags.is(flBuildCopy|flReady))
-		copy_file_to_build	(R,source_name);
-#endif // DEBUG
 
 	if (m_Flags.test(flDumpFileActivity))
 		_register_open_file	(R,fname);

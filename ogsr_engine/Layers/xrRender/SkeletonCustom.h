@@ -83,6 +83,19 @@ public:
 #ifdef DEBUG
 	BOOL						dbg_single_use_marker;
 #endif
+	
+	/************************* Add by Zander *******************************/
+	void SetRFlag(const u32 id, const bool v) override { children.at(id)->setRZFlag(v); }
+	bool GetRFlag(const u32 id) const override { return children.at(id)->getRZFlag(); }
+	u32 RChildCount() const override { return children.size(); }
+	
+	Fvector3 RC_VisBox(const u32 id) override;
+	Fvector3 RC_VisCenter(const u32 id) override;
+	Fvector3 RC_VisBorderMin(const u32 id) override;
+	Fvector3 RC_VisBorderMax(const u32 id) override;
+	void RC_Dump() override;
+	/************************* End Add *************************************/
+
 			void				Bone_Calculate		(CBoneData* bd, Fmatrix* parent);
 			void				CLBone				(const CBoneData* bd, CBoneInstance &bi, const Fmatrix *parent, u8 mask_channel = (1<<0));
 
@@ -149,8 +162,10 @@ public:
 	const char* LL_BoneName_dbg(const u16 ID) const override;
 
 				CInifile*		_BCL	LL_UserData			()						{return pUserData;}
-	ICF			CBoneInstance&	_BCL	LL_GetBoneInstance	(u16 bone_id)			{	VERIFY(bone_id<LL_BoneCount()); VERIFY(bone_instances); return bone_instances[bone_id];	}
-	ICF const	CBoneInstance&	_BCL	LL_GetBoneInstance	(u16 bone_id) const		{	VERIFY(bone_id<LL_BoneCount()); VERIFY(bone_instances); return bone_instances[bone_id];	}
+
+	ICF CBoneInstance& LL_GetBoneInstance(u16 bone_id) { R_ASSERT(bone_id < LL_BoneCount()); R_ASSERT(bone_instances); return bone_instances[bone_id]; }
+	ICF const CBoneInstance& LL_GetBoneInstance(u16 bone_id) const { R_ASSERT(bone_id < LL_BoneCount()); R_ASSERT(bone_instances); return bone_instances[bone_id]; }
+
 	CBoneData&					_BCL	LL_GetData			(u16 bone_id)
     {
     	VERIFY(bone_id<LL_BoneCount());

@@ -70,7 +70,7 @@ CSavedGameWrapper::CSavedGameWrapper(LPCSTR saved_game_name)
         FS.r_close(stream);
         CALifeTimeManager time_manager(alife_section);
         m_game_time = time_manager.game_time();
-        seasonNameStr = Seasons::currentSeason;
+        seasonNameStr = Seasons::getSeasonName();
         m_actor_health = 1.f;
         m_level_id = ai().game_graph().header().levels().begin()->first;
         return;

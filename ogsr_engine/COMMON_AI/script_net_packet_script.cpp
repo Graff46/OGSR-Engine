@@ -110,4 +110,5 @@ void CScriptNetPacket::script_register(lua_State* L)
                   .def("r_clientID", &r_clientID)
                   .def("r_elapsed", &NET_Packet::r_elapsed)
                   .def("r_advance", &NET_Packet::r_advance)
-                  .def("r_eof", &r_eof)
+                  .def("r_eof", &r_eof)];
+};

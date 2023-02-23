@@ -69,6 +69,7 @@ public:
 	void SetLSFParams(float _speed, float _amount, float _jit);
 	void setParams(NET_Packet& p);
 	NET_Packet getLightParams();
+    IKinematics* K;
 
 	DECLARE_SCRIPT_REGISTER_FUNCTION
 };

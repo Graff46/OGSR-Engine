@@ -5,7 +5,7 @@
 #include "ui/UILoadingScreen.h"
 #include "..\xr_3da\x_ray.h"
 
-shared_str Seasons::currentSeason = "default";
+std::string Seasons::currentSeason = "default";
 void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelName)
 {
 	if (xr_strcmp(newSeason, currentSeason.c_str())) {
@@ -14,12 +14,12 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelNam
 		FS_Path* gte = FS.get_path("$game_textures_ex$");
 		FS_Path* lte = FS.get_path("$level_textures_ex$");
 		FS_Path* snd = FS.get_path("$sound_ex$");
-		gte->_set(xr_strconcat(tmp,  "seasons\\", newSeason, "\\textures"));
+		gte->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\textures"));
 		snd->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\sounds"));
 		lte->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\levels\\", locName));
-		FS.rescan_path(gte->m_Path, TRUE);
-		FS.rescan_path(lte->m_Path, TRUE);
-		FS.rescan_path(snd->m_Path, TRUE);
+        FS.rescan_physical_path(gte->m_Path, TRUE);
+        FS.rescan_physical_path(lte->m_Path, TRUE);
+        FS.rescan_physical_path(snd->m_Path, TRUE);
 
 		currentSeason = newSeason;
 
@@ -28,7 +28,7 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelNam
 			Device.m_pRender->ResourcesDeferredUpload(TRUE);
 			if (Device.b_is_Ready) Device.Reset();
 
-			SoundRender->reload();
+			//SoundRender->reload();
 
 #pragma todo("create reload all sounds from FS")
 		}
@@ -52,6 +52,11 @@ void Seasons::load(IReader& stream, shared_str levelName)
 
 	currentSeason = saveSeason.c_str();	
 };
+
+LPCSTR Seasons::getSeasonName() 
+{ 
+	return currentSeason.c_str(); 
+}
 
 void Seasons::reset()
 {

@@ -773,7 +773,7 @@ void CCar::ParseDefinitions()
     m_power_decrement_factor = READ_IF_EXISTS(ini, r_float, "car_definition", "power_decrement_factor", m_power_increment_factor);
     m_rpm_decrement_factor = READ_IF_EXISTS(ini, r_float, "car_definition", "rpm_decrement_factor", m_rpm_increment_factor);
     m_power_neutral_factor = READ_IF_EXISTS(ini, r_float, "car_definition", "power_neutral_factor", m_power_neutral_factor);
-    reverse_rule = READ_IF_EXISTS(ini,r_bool, "car_definition", "reverse_steer", false);
+    reverse_rule = READ_IF_EXISTS(ini, r_bool, "car_definition", "reverse_steer", false);
     R_ASSERT2(m_power_neutral_factor > 0.1f && m_power_neutral_factor < 1.f, "power_neutral_factor must be 0 - 1 !!");
     if (ini->line_exist("car_definition", "exhaust_particles"))
     {

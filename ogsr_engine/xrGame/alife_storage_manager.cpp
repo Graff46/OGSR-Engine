@@ -63,6 +63,8 @@ void CALifeStorageManager::save(LPCSTR save_name, bool update_name)
 
         g_ScriptVars.save(stream);
 
+        Seasons::save(stream);
+
         source_count = stream.tell();
         void* source_data = stream.pointer();
         dest_count = rtc_csize(source_count);

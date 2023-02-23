@@ -29,6 +29,7 @@ void CHangingLamp::Init()
     light_render = 0;
     light_ambient = 0;
     glow_render = 0;
+    K = nullptr;
 }
 
 void CHangingLamp::RespawnInit()
@@ -89,7 +90,7 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
     xr_delete(collidable.model);
     if (Visual())
     {
-        IKinematics* K = smart_cast<IKinematics*>(Visual());
+        K = smart_cast<IKinematics*>(Visual());
         R_ASSERT(Visual() && smart_cast<IKinematics*>(Visual()));
         light_bone = K->LL_BoneID(*lamp->light_main_bone);
         VERIFY(light_bone != BI_NONE);

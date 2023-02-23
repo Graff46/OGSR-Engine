@@ -53,13 +53,9 @@ void changeSeason(LPCSTR seasonName, bool needRreload)
 	Seasons::swithSeason(seasonName, needRreload);
 }
 
-LPCSTR getSeason()
-{
-	return Seasons::currentSeason.c_str();
-}
+LPCSTR getSeason() { return Seasons::getSeasonName(); }
 
 #pragma optimize("s",on)
-void game_sv_GameState::script_register(lua_State *L)
 void StopHudMotion() { g_player_hud->script_anim_stop(); }
 
 float MotionLength(LPCSTR hud_section, LPCSTR anm_name, float speed) { return g_player_hud->motion_length_script(hud_section, anm_name, speed); }

@@ -412,7 +412,7 @@ public:
 		{
 			// rescan pathes
 			FS_Path* P = FS.get_path("$game_scripts$");
-			FS.rescan_path(P->m_Path, TRUE);
+            FS.rescan_physical_path(P->m_Path, TRUE);
 			// run script
 			ai().script_engine().process_file(args, true);
 		}

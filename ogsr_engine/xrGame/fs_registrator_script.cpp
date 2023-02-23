@@ -159,7 +159,7 @@ CLocatorAPI* set_new_path(CLocatorAPI* fs, LPCSTR initial, LPCSTR newpath)
 {
 	FS_Path* fpath = fs->get_path(initial);
 	fpath->_set((LPSTR) newpath);
-	fs->rescan_path(fpath->m_Path, TRUE);
+    fs->rescan_physical_path(fpath->m_Path, TRUE);
 	return fs;
 }
 
@@ -242,7 +242,7 @@ static std::string get_last_write_time_string_short(const stdfs::directory_entry
 void rescan_path(CLocatorAPI* fs, PCSTR initial, bool recurse)
 {
 	FS_Path* fpath = fs->get_path(initial);
-	fs->rescan_path(fpath->m_Path, recurse);
+    fs->rescan_physical_path(fpath->m_Path, recurse);
 }
 
 #pragma optimize("s", on)

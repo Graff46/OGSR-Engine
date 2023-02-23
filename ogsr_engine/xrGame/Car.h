@@ -434,6 +434,9 @@ private:
     float m_steering_speed;
     float m_ref_radius;
     size_t m_current_transmission_num;
+    bool reverse_rule;
+    bool brpOn;
+    bool ctrlOn;
     ///////////////////////////////////////////////////
     CCarLights m_lights;
     ////////////////////////////////////////////////////
@@ -472,14 +475,14 @@ private:
     void TransmissionUp();
     void TransmissionDown();
     IC size_t CurrentTransmission() { return m_current_transmission_num; }
-    void PressRight();
-    void PressLeft();
+    void PressRight(bool reverseCall = false);
+    void PressLeft(bool reverseCalll = false);
     void PressForward();
     void PressBack();
     void PressBreaks();
 
-    void ReleaseRight();
-    void ReleaseLeft();
+    void ReleaseRight(bool reverseCalll = false);
+    void ReleaseLeft(bool reverseCalll = false);
     void ReleaseForward();
     void ReleaseBack();
     void ReleaseBreaks();

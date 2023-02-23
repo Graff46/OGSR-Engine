@@ -378,9 +378,12 @@ void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
         std::for_each(std::execution::par_unseq, m_textures.begin(), m_textures.end(), [needUnload](auto& pair) {if (needUnload) pair.second->Unload(); pair.second->Load(); });
     else
         for (auto& pair : m_textures)
+        {
             if (needUnload)
                 pair.second->Unload();
             pair.second->Load();
+        }
+            
 
     Msg("CResourceManager::DeferredUpload -> END");
 }
@@ -407,7 +410,7 @@ void	CResourceManager::ED_UpdateTextures(AStringVec* names)
 			t->second->Unload();
 	}
 }
-
+#endif
 void CResourceManager::_GetMemoryUsage(u32& m_base, u32& c_base, u32& m_lmaps, u32& c_lmaps)
 {
     m_base = c_base = m_lmaps = c_lmaps = 0;

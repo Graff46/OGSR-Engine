@@ -343,7 +343,7 @@ public:
     // SQ magnitude
     IC T square_magnitude(void) const { return x * x + y * y + z * z; }
     // magnitude
-    IC T magnitude(void) const { return _sqrt(square_magnitude()); }
+    IC T magnitude(void) const { return _sqrt(x * x + y * y + z * z); }
 
     // Normalize
     IC T normalize_magn(void)

@@ -501,7 +501,7 @@ void CCar::VisualUpdate(float fov)
         {
             HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(true);
             HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth() /* /100.f*/);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetSpeed(lin_vel.magnitude() / 1000.f * 3600.f / 100.f);
+            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetSpeed(lin_vel.magnitude() * 3.6);
             HUD().GetUI()->UIMainIngameWnd->CarPanel().SetRPM(m_current_rpm / m_max_rpm / 2.f);
         }
     }

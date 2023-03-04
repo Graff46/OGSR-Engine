@@ -254,7 +254,9 @@ void CALifeSimulator__release(CALifeSimulator* self, CSE_Abstract* object, bool)
     VERIFY(self);
     //	self->release						(object,true);
 
-    R_ASSERT(object);
+    if (object) 
+        return;
+
     CSE_ALifeObject* alife_object = smart_cast<CSE_ALifeObject*>(object);
     THROW(alife_object);
     if (!alife_object->m_bOnline)

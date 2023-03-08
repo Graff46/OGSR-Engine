@@ -70,7 +70,7 @@ void CUICarPanel::SetSpeed(float speed)
 
 void CUICarPanel::SetRPM(float rpm)
 {
-	//clamp(rpm, 0.f, angleRPM);
+	clamp(rpm, 0.f, angleRPM);
 	UIArrowRPM.SetHeading(-(rpm * angleRPM));
 }
 

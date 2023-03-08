@@ -29,7 +29,6 @@ public:
 
 public:
     BOOL bPresent;
-    BOOL bUserEnvironment;
     BOOL bEAX; // Boolean variable to indicate presence of EAX Extension
     BOOL bDeferredEAX;
     bool bEFX; // boolean variable to indicate presence of EFX Extension
@@ -55,7 +54,7 @@ protected:
     xr_vector<CSoundRender_Target*> s_targets_defer;
     u32 s_targets_pu; // parameters update
     SoundEnvironment_LIB* s_environment;
-    CSoundRender_Environment s_user_environment;
+    xr_vector<u16> s_environment_ids;
 
     int m_iPauseCounter;
 

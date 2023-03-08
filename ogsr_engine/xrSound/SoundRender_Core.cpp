@@ -44,7 +44,6 @@ CSoundRender_Core::CSoundRender_Core()
     bPresent = FALSE;
     bEAX = FALSE;
     bDeferredEAX = FALSE;
-    bUserEnvironment = FALSE;
     geom_MODEL = NULL;
     geom_ENV = NULL;
     geom_SOM = NULL;
@@ -141,8 +140,17 @@ void CSoundRender_Core::env_load()
     string_path fn;
     if (FS.exist(fn, "$game_data$", SNDENV_FILENAME))
     {
+        Msg("Loading of [%s]", SNDENV_FILENAME);
+
         s_environment = xr_new<SoundEnvironment_LIB>();
         s_environment->Load(fn);
+
+        for (u32 chunk = 0; chunk < s_environment->Library().size(); chunk++)
+        {
+            shared_str name = s_environment->Library()[chunk]->name;
+
+            Msg("~ env id=[%d] name=[%s]", chunk, name.c_str());
+        }
     }
 
     // Load geometry
@@ -216,13 +224,14 @@ void CSoundRender_Core::set_geometry_som(IReader* I)
 void CSoundRender_Core::set_geometry_env(IReader* I)
 {
     xr_delete(geom_ENV);
+    s_environment_ids.clear();
+
     if (0 == I)
         return;
     if (0 == s_environment)
         return;
 
     // Assosiate names
-    xr_vector<u16> ids;
     IReader* names = I->open_chunk(0);
     while (!names->eof())
     {
@@ -230,7 +239,8 @@ void CSoundRender_Core::set_geometry_env(IReader* I)
         names->r_stringZ(n, sizeof(n));
         int id = s_environment->GetID(n);
         R_ASSERT(id >= 0);
-        ids.push_back(u16(id));
+        s_environment_ids.push_back(u16(id));
+        Msg("~ set_geometry_env id=%d name[%s]=environment id[%d]", s_environment_ids.size() - 1, n, id);
     }
     names->close();
 
@@ -248,17 +258,7 @@ void CSoundRender_Core::set_geometry_env(IReader* I)
     R_ASSERT(H.version == CFORM_CURRENT_VERSION);
     Fvector* verts = (Fvector*)geom->pointer();
     CDB::TRI* tris = (CDB::TRI*)(verts + H.vertcount);
-#ifndef _M_X64
-    for (u32 it = 0; it < H.facecount; it++)
-    {
-        CDB::TRI* T = tris + it;
-        u16 id_front = (u16)((T->dummy & 0x0000ffff) >> 0); //	front face
-        u16 id_back = (u16)((T->dummy & 0xffff0000) >> 16); //	back face
-        R_ASSERT(id_front < (u16)ids.size());
-        R_ASSERT(id_back < (u16)ids.size());
-        T->dummy = u32(ids[id_back] << 16) | u32(ids[id_front]);
-    }
-#endif
+
     geom_ENV = xr_new<CDB::MODEL>();
     geom_ENV->build(verts, H.vertcount, tris, H.facecount);
     geom_ch->close();
@@ -417,48 +417,58 @@ CSoundRender_Environment* CSoundRender_Core::get_environment(const Fvector& P)
 {
     static CSoundRender_Environment identity;
 
-    if (bUserEnvironment)
+    if (geom_ENV)
     {
-        return &s_user_environment;
-    }
-    else
-    {
-        if (geom_ENV)
+        Fvector dir = {0, -1, 0};
+
+        // хитрый способ для проверки звуковых зон в 2х направлениях от камеры. но что то он хуже работает. часто не та зона выбираеться. пока убрал
+
+        //CDB::COLLIDER geom_DB1;
+        //geom_DB1.ray_options(CDB::OPT_ONLYNEAREST);
+        //geom_DB1.ray_query(geom_ENV, P, dir, 1000.f);
+
+        //CDB::COLLIDER geom_DB2;
+        //geom_DB2.ray_options(CDB::OPT_ONLYNEAREST);
+        //geom_DB2.ray_query(geom_ENV, P, Fvector(dir).invert(), 1000.f);
+
+        geom_DB.ray_options(CDB::OPT_ONLYNEAREST);
+        geom_DB.ray_query(geom_ENV, P, dir, 1000.f);
+
+        //if (geom_DB1.r_count() && geom_DB2.r_count())
+        if (geom_DB.r_count())
         {
-            Fvector dir = {0, -1, 0};
-            geom_DB.ray_options(CDB::OPT_ONLYNEAREST);
-            geom_DB.ray_query(geom_ENV, P, dir, 1000.f);
-            if (geom_DB.r_count())
+            //CDB::RESULT* r = geom_DB1.r_begin();
+            //CDB::RESULT* r2 = geom_DB2.r_begin();
+
+            //if (r2->range < r->range)
+            //    r = r2;
+
+            CDB::RESULT* r = geom_DB.r_begin();
+
+            CDB::TRI* T = geom_ENV->get_tris() + r->id;
+            Fvector* V = geom_ENV->get_verts();
+
+            Fvector tri_norm;
+            tri_norm.mknormal(V[T->verts[0]], V[T->verts[1]], V[T->verts[2]]);
+            float dot = dir.dotproduct(tri_norm);
+
+            if (dot <= 0)
             {
-                CDB::RESULT* r = geom_DB.r_begin();
-                CDB::TRI* T = geom_ENV->get_tris() + r->id;
-                Fvector* V = geom_ENV->get_verts();
-                Fvector tri_norm;
-                tri_norm.mknormal(V[T->verts[0]], V[T->verts[1]], V[T->verts[2]]);
-                float dot = dir.dotproduct(tri_norm);
-                if (dot < 0)
-                {
-                    u16 id_front = (u16)((T->dummy & 0x0000ffff) >> 0); //	front face
-                    return s_environment->Get(id_front);
-                }
-                else
-                {
-                    u16 id_back = (u16)((T->dummy & 0xffff0000) >> 16); //	back face
-                    return s_environment->Get(id_back);
-                }
+                u16 id_front = (u16)((((u32)T->dummy) & 0x0000ffff) >> 0); //	front face
+
+                return s_environment->Get(s_environment_ids[id_front]);
             }
             else
             {
-                identity.set_identity();
-                return &identity;
+                u16 id_back = (u16)((((u32)T->dummy) & 0xffff0000) >> 16); //	back face
+
+                return s_environment->Get(s_environment_ids[id_back]);
             }
         }
-        else
-        {
-            identity.set_identity();
-            return &identity;
-        }
     }
+
+    identity.set_identity();
+    return &identity;
 }
 
 void CSoundRender_Core::env_apply()
@@ -537,6 +547,7 @@ void CSoundRender_Core::i_efx_listener_set(CSound_environment* _E)
     float density = powf(E->EnvironmentSize, 3.0f) / 16.0f;
     if (density > 1.0f)
         density = 1.0f;
+
     alEffectf(effect, AL_REVERB_DENSITY, density);
     alEffectf(effect, AL_REVERB_DIFFUSION, E->EnvironmentDiffusion);
     alEffectf(effect, AL_REVERB_GAIN, mB_to_gain(E->Room));

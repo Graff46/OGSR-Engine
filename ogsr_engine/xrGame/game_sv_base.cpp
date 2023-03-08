@@ -11,12 +11,10 @@
 #include "..\xr_3da\xr_ioc_cmd.h"
 #include "string_table.h"
 
-#include "debug_renderer.h"
-
 #define MAPROT_LIST_NAME "maprot_list.ltx"
+
 string_path MAPROT_LIST = "";
 BOOL net_sv_control_hit = FALSE;
-BOOL g_bCollectStatisticData = FALSE;
 
 //-----------------------------------------------------------------
 u32 g_sv_base_dwRPointFreezeTime = 0;
@@ -166,7 +164,7 @@ u32 game_sv_GameState::get_alive_count(u32 team)
         if (!ps)
             continue;
         if (u32(ps->team) == team)
-            alive += (ps->testFlag(GAME_PLAYER_FLAG_VERY_VERY_DEAD)) ? 0 : 1;
+            alive += 1;
     }
     return alive;
 }
@@ -247,7 +245,7 @@ void game_sv_GameState::net_Export_State(NET_Packet& P, ClientID to)
     P.w_u32(m_start_time);
     P.w_u8(u8(g_sv_base_iVotingEnabled & 0xff));
     P.w_u8(u8(net_sv_control_hit));
-    P.w_u8(u8(g_bCollectStatisticData));
+    P.w_u8(u8(0));
 
     // Players
     u32 p_count = 0;
@@ -416,60 +414,9 @@ void game_sv_GameState::ReadOptions(shared_str& options)
     }
 };
 //-----------------------------------------------------------
-static bool g_bConsoleCommandsCreated_SV_Base = false;
 void game_sv_GameState::ConsoleCommands_Create(){};
 
 void game_sv_GameState::ConsoleCommands_Clear(){};
-
-void game_sv_GameState::assign_RP(CSE_Abstract* E, game_PlayerState* ps_who)
-{
-    VERIFY(E);
-
-    u8 l_uc_team = u8(-1);
-    CSE_Spectator* tpSpectator = smart_cast<CSE_Spectator*>(E);
-    if (tpSpectator)
-        l_uc_team = tpSpectator->g_team();
-    else
-    {
-        CSE_ALifeCreatureAbstract* tpTeamed = smart_cast<CSE_ALifeCreatureAbstract*>(E);
-        if (tpTeamed)
-            l_uc_team = tpTeamed->g_team();
-        else
-            R_ASSERT2(tpTeamed, "Non-teamed object is assigning to respawn point!");
-    }
-    xr_vector<RPoint>& rp = rpoints[l_uc_team];
-    //-----------------------------------------------------------
-    xr_vector<u32> xrp; //	= rpoints[l_uc_team];
-    for (u32 i = 0; i < rp.size(); i++)
-    {
-        if (rp[i].TimeToUnfreeze < Level().timeServer())
-            xrp.push_back(i);
-    }
-    u32 rpoint = 0;
-    if (xrp.size() && !tpSpectator)
-    {
-        rpoint = xrp[::Random.randI((int)xrp.size())];
-    }
-    else
-    {
-        if (!tpSpectator)
-        {
-            for (u32 i = 0; i < rp.size(); i++)
-            {
-                rp[i].TimeToUnfreeze = 0;
-            };
-        };
-        rpoint = ::Random.randI((int)rp.size());
-    }
-    //-----------------------------------------------------------
-    RPoint& r = rp[rpoint];
-    if (!tpSpectator)
-    {
-        r.TimeToUnfreeze = Level().timeServer() + g_sv_base_dwRPointFreezeTime;
-    };
-    E->o_Position.set(r.P);
-    E->o_Angle.set(r.A);
-}
 
 bool game_sv_GameState::IsPointFreezed(RPoint* rp) { return rp->TimeToUnfreeze > Level().timeServer(); };
 

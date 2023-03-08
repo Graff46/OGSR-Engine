@@ -11,13 +11,11 @@ class CUIGameCustom;
 class CUI;
 class CUIDialogWnd;
 
-struct WeaponUsageStatistic;
-
 class game_cl_GameState : public game_GameState, public ISheduled
 {
     typedef game_GameState inherited;
     shared_str m_game_type_name;
-    //	bool								m_bCrosshair;	//был ли показан прицел-курсор HUD перед вызовом меню
+
 protected:
     u16 m_u16VotingEnabled;
     bool m_bServerControlHits;
@@ -31,9 +29,7 @@ public:
     ClientID local_svdpnid;
     game_PlayerState* local_player;
     bool m_need_to_update;
-    //.	xr_vector<CGameObject*>				targets;
 
-    WeaponUsageStatistic* m_WeaponUsageStatistic;
     virtual void reset_ui();
 
 private:
@@ -46,7 +42,6 @@ protected:
     virtual float shedule_Scale();
     virtual bool shedule_Needed() { return true; };
 
-    void sv_GameEventGen(NET_Packet& P);
     void sv_EventSend(NET_Packet& P);
 
 public:
@@ -78,12 +73,6 @@ public:
 
     void u_EventGen(NET_Packet& P, u16 type, u16 dest);
     void u_EventSend(NET_Packet& P);
-
-    virtual void ChatSayTeam(const shared_str& phrase){};
-    virtual void ChatSayAll(const shared_str& phrase){};
-    virtual void OnChatMessage(NET_Packet* P){};
-    virtual void OnWarnMessage(NET_Packet* P){};
-    virtual void OnRadminMessage(u16 type, NET_Packet* P){};
 
     virtual void OnRender(){};
     virtual bool IsServerControlHits() { return m_bServerControlHits; };

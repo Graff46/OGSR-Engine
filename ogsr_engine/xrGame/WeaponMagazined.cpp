@@ -944,7 +944,7 @@ bool CWeaponMagazined::Action(s32 cmd, u32 flags)
     case kWPN_FIREMODE_PREV: {
         if (flags & CMD_START)
         {
-            OnPrevFireMode();
+            OnPrevFireMode(flags & CMD_OPT);
             return true;
         }
     }
@@ -952,7 +952,7 @@ bool CWeaponMagazined::Action(s32 cmd, u32 flags)
     case kWPN_FIREMODE_NEXT: {
         if (flags & CMD_START)
         {
-            OnNextFireMode();
+            OnNextFireMode(flags & CMD_OPT);
             return true;
         }
     }
@@ -1402,7 +1402,7 @@ void CWeaponMagazined::PlayAnimShoot()
     xr_strconcat(guns_shoot_anm, "anm_shoot", (IsZoomed() && !IsRotatingToZoom()) ? (IsScopeAttached() ? "_aim_scope" : "_aim") : "", iAmmoElapsed == 1 ? "_last" : "",
                  IsSilencerAttached() ? "_sil" : "");
 
-    PlayHUDMotion({guns_shoot_anm, "anim_shoot", "anm_shots"}, true, GetState());
+    PlayHUDMotion({guns_shoot_anm, "anim_shoot", "anm_shots"}, false, GetState());
 }
 
 void CWeaponMagazined::PlayAnimFakeShoot()
@@ -1514,18 +1514,22 @@ bool CWeaponMagazined::SwitchMode()
     return true;
 }
 
-void CWeaponMagazined::OnNextFireMode()
+void CWeaponMagazined::OnNextFireMode(bool opt)
 {
     if (m_aFireModes.size() < 2)
+        return;
+    if (opt && m_iCurFireMode + 1 == m_aFireModes.size())
         return;
     m_iCurFireMode = (m_iCurFireMode + 1 + m_aFireModes.size()) % m_aFireModes.size();
     SetQueueSize(GetCurrentFireMode());
     PlaySound(sndFireModes, get_LastFP());
 }
 
-void CWeaponMagazined::OnPrevFireMode()
+void CWeaponMagazined::OnPrevFireMode(bool opt)
 {
     if (m_aFireModes.size() < 2)
+        return;
+    if (opt && m_iCurFireMode == 0)
         return;
     m_iCurFireMode = (m_iCurFireMode - 1 + m_aFireModes.size()) % m_aFireModes.size();
     SetQueueSize(GetCurrentFireMode());

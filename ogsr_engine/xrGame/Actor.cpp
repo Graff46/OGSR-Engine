@@ -24,7 +24,6 @@
 #include "CustomOutfit.h"
 #include "actorcondition.h"
 #include "UIGameCustom.h"
-#include "game_cl_base_weapon_usage_statistic.h"
 
 // breakpoints
 #include "../xr_3da/xr_input.h"
@@ -923,7 +922,7 @@ void CActor::UpdateCL()
             outfit_cond = outfit->GetCondition();
         if (auto wpn = inventory().ActiveItem())
             wpn_cond = wpn->GetCondition();
-        shader_exports.set_actor_params(Fvector{this->GetHealth(), outfit_cond, wpn_cond});
+        shader_exports.set_actor_params(Fvector{this->conditions().GetHealth(), outfit_cond, wpn_cond});
     }
 }
 
@@ -1007,18 +1006,7 @@ void CActor::shedule_Update(u32 DT)
     //------------------------------------------------
     {
         g_cl_CheckControls(mstate_wishful, NET_SavedAccel, NET_Jump, dt);
-        {
-            /*
-            if (mstate_real & mcJump)
-            {
-                NET_Packet	P;
-                u_EventGen(P, GE_ACTOR_JUMPING, ID());
-                P.w_sdir(NET_SavedAccel);
-                P.w_float(NET_Jump);
-                u_EventSend(P);
-            }
-            */
-        }
+
         g_cl_Orientate(mstate_real, dt);
         g_Orientate(mstate_real, dt);
 

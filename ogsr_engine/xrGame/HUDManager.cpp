@@ -6,7 +6,7 @@
 #include "..\xr_3da\igame_level.h"
 #include "clsid_game.h"
 #include "Car.h"
-#include "Spectator.h"
+#include "ui/UIMessagesWindow.h"
 
 CFontManager::CFontManager()
 {
@@ -226,7 +226,7 @@ bool need_render_hud()
     if (A && (!A->HUDview() || !A->g_Alive()))
         return false;
 
-    if (smart_cast<CCar*>(O) || smart_cast<CSpectator*>(O))
+    if (smart_cast<CCar*>(O))
         return false;
 
     return true;
@@ -234,7 +234,7 @@ bool need_render_hud()
 
 void CHUDManager::Render_First()
 {
-    if (!psHUD_Flags.is(HUD_WEAPON | HUD_WEAPON_RT))
+    if (!psHUD_Flags.is(HUD_WEAPON_RT))
         return;
 
     if (pUI == nullptr)
@@ -253,7 +253,7 @@ void CHUDManager::Render_First()
 
 void CHUDManager::Render_Last()
 {
-    if (!psHUD_Flags.is(HUD_WEAPON | HUD_WEAPON_RT))
+    if (!psHUD_Flags.is(HUD_WEAPON_RT))
         return;
     if (0 == pUI)
         return;
@@ -386,7 +386,7 @@ void CHUDManager::net_Relcase(CObject* object)
 #include "player_hud.h"
 bool CHUDManager::RenderActiveItemUIQuery()
 {
-    if (!psHUD_Flags.is(HUD_WEAPON | HUD_WEAPON_RT))
+    if (!psHUD_Flags.is(HUD_WEAPON_RT))
         return false;
 
     if (!need_render_hud())

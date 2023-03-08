@@ -44,16 +44,9 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
 
     switch (type)
     {
-    case GE_GAME_EVENT: {
-        u16 game_event_type;
-        P.r_u16(game_event_type);
-        game->AddDelayedEvent(P, game_event_type, timestamp, sender);
-    }
-    break;
     case GE_INFO_TRANSFER:
     case GE_WPN_STATE_CHANGE:
     case GE_ZONE_STATE_CHANGE:
-    case GE_ACTOR_JUMPING:
     case GEG_PLAYER_ATTACH_HOLDER:
     case GEG_PLAYER_DETACH_HOLDER:
     case GEG_PLAYER_ACTIVATEARTEFACT:
@@ -126,14 +119,8 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
         VERIFY(verify_entities());
     }
     break;
-    case GE_HIT:
-    case GE_HIT_STATISTIC: {
+    case GE_HIT:{
         P.r_pos -= 2;
-        if (type == GE_HIT_STATISTIC)
-        {
-            P.B.count -= 4;
-            P.w_u32(sender.value());
-        };
         game->AddDelayedEvent(P, GAME_EVENT_ON_HIT, 0, ClientID());
     }
     break;

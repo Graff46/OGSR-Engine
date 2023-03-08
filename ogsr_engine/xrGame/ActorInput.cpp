@@ -69,13 +69,7 @@ void CActor::IR_OnKeyboardPress(int cmd)
         {
             mstate_wishful &= ~mcSprint;
         }
-        //-----------------------------
-        {
-            NET_Packet P;
-            P.w_begin(M_PLAYER_FIRE);
-            P.w_u16(ID());
-            u_EventSend(P);
-        }
+
     }
     break;
     default: {
@@ -100,11 +94,6 @@ void CActor::IR_OnKeyboardPress(int cmd)
     {
     case kJUMP: {
         mstate_wishful |= mcJump;
-        {
-            //				NET_Packet	P;
-            //				u_EventGen(P, GE_ACTOR_JUMPING, ID());
-            //				u_EventSend(P);
-        }
     }
     break;
     case kCROUCH_TOGGLE: {
@@ -195,6 +184,13 @@ void CActor::IR_OnMouseWheel(int direction)
             OnNextWeaponSlot();
         else
             OnPrevWeaponSlot();
+    }
+    else
+    {
+        if (direction > 0)
+            inventory().Action(kWPN_FIREMODE_NEXT, CMD_START | CMD_OPT);
+        else
+            inventory().Action(kWPN_FIREMODE_PREV, CMD_START | CMD_OPT);
     }
 }
 void CActor::IR_OnKeyboardRelease(int cmd)

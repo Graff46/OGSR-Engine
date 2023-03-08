@@ -30,19 +30,10 @@ public:
     u32 net_LastMoveUpdateTime;
 
     game_PlayerState* ps;
-    struct
-    {
-        u8 m_maxPingWarnings;
-        u32 m_dwLastMaxPingWarningTime;
-    } m_ping_warn;
-    struct
-    {
-        BOOL m_has_admin_rights;
-        u32 m_dwLoginTime;
-    } m_admin_rights;
 
     xrClientData();
     virtual ~xrClientData();
+
     virtual void Clear();
 };
 
@@ -132,14 +123,10 @@ protected:
 
     virtual bool Check_ServerAccess(IClient* CL, string512& reason) { return true; }
 
-    virtual bool NeedToCheckClient_GameSpy_CDKey() { return false; }
-    virtual void Check_GameSpy_CDKey_Success(IClient* CL);
-
     virtual bool NeedToCheckClient_BuildVersion(IClient* CL);
     virtual void Check_BuildVersion_Success(IClient* CL);
 
     void SendConnectionData(IClient* CL);
-    void OnChatMessage(NET_Packet* P, xrClientData* CL);
 
 public:
     // constr / destr

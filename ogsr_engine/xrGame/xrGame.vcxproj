@@ -1332,7 +1332,6 @@
     <ClInclude Include="antirad.h" />
     <ClInclude Include="BottleItem.h" />
     <ClInclude Include="FoodItem.h" />
-    <ClInclude Include="ItemHealth.h" />
     <ClInclude Include="medkit.h" />
     <ClInclude Include="BoneProtections.h" />
     <ClInclude Include="CustomOutfit.h" />
@@ -1352,14 +1351,12 @@
     <ClInclude Include="searchlight.h" />
     <ClInclude Include="trade.h" />
     <ClInclude Include="CustomZone.h" />
-    <ClInclude Include="FryupZone.h" />
     <ClInclude Include="GraviZone.h" />
     <ClInclude Include="level_changer.h" />
     <ClInclude Include="Mincer.h" />
     <ClInclude Include="MosquitoBald.h" />
     <ClInclude Include="RadioactiveZone.h" />
     <ClInclude Include="script_zone.h" />
-    <ClInclude Include="team_base_zone.h" />
     <ClInclude Include="TorridZone.h" />
     <ClInclude Include="ZoneVisual.h" />
     <ClInclude Include="space_restrictor.h" />
@@ -1380,7 +1377,6 @@
     <ClInclude Include="DelayedActionFuse.h" />
     <ClInclude Include="InventoryBox.h" />
     <ClInclude Include="ParticlesObject.h" />
-    <ClInclude Include="Spectator.h" />
     <ClInclude Include="date_time.h" />
     <ClInclude Include="NET_Queue.h" />
     <ClInclude Include="..\COMMON_AI\xrMessages.h" />
@@ -1421,7 +1417,6 @@
     <ClInclude Include="..\COMMON_AI\game_base_space.h" />
     <ClInclude Include="game_cl_single.h" />
     <ClInclude Include="game_cl_base.h" />
-    <ClInclude Include="game_cl_base_weapon_usage_statistic.h" />
     <ClInclude Include="game_sv_base.h" />
     <ClInclude Include="game_sv_event_queue.h" />
     <ClInclude Include="xr_time.h" />
@@ -1652,7 +1647,6 @@
     <ClInclude Include="HUDManager.h" />
     <ClInclude Include="UIGameCustom.h" />
     <ClInclude Include="UIGameSP.h" />
-    <ClInclude Include="UIGame_custom_script.h" />
     <ClInclude Include="ui\UIGameLog.h" />
     <ClInclude Include="HUDCrosshair.h" />
     <ClInclude Include="HUDTarget.h" />
@@ -2275,7 +2269,6 @@
     <ClCompile Include="antirad.cpp" />
     <ClCompile Include="BottleItem.cpp" />
     <ClCompile Include="FoodItem.cpp" />
-    <ClCompile Include="ItemHealth.cpp" />
     <ClCompile Include="medkit.cpp" />
     <ClCompile Include="BoneProtections.cpp" />
     <ClCompile Include="CustomOutfit.cpp" />
@@ -2295,7 +2288,6 @@
     <ClCompile Include="trade.cpp" />
     <ClCompile Include="trade2.cpp" />
     <ClCompile Include="CustomZone.cpp" />
-    <ClCompile Include="FryupZone.cpp" />
     <ClCompile Include="GraviZone.cpp" />
     <ClCompile Include="level_changer.cpp" />
     <ClCompile Include="Mincer.cpp" />
@@ -2305,7 +2297,6 @@
     <ClCompile Include="RadioactiveZone.cpp" />
     <ClCompile Include="script_zone.cpp" />
     <ClCompile Include="script_zone_script.cpp" />
-    <ClCompile Include="team_base_zone.cpp" />
     <ClCompile Include="TorridZone.cpp" />
     <ClCompile Include="ZoneVisual.cpp" />
     <ClCompile Include="space_restrictor.cpp" />
@@ -2336,7 +2327,6 @@
     <ClCompile Include="DelayedActionFuse.cpp" />
     <ClCompile Include="InventoryBox.cpp" />
     <ClCompile Include="ParticlesObject.cpp" />
-    <ClCompile Include="Spectator.cpp" />
     <ClCompile Include="xrGame.cpp" />
     <ClCompile Include="console_commands.cpp" />
     <ClCompile Include="date_time.cpp" />
@@ -2352,7 +2342,6 @@
     <ClCompile Include="game_base.cpp" />
     <ClCompile Include="game_cl_single.cpp" />
     <ClCompile Include="game_cl_base.cpp" />
-    <ClCompile Include="game_cl_base_weapon_usage_statistic.cpp" />
     <ClCompile Include="game_sv_base.cpp" />
     <ClCompile Include="game_sv_base_script.cpp" />
     <ClCompile Include="game_sv_event_queue.cpp" />
@@ -2593,7 +2582,6 @@
     <ClCompile Include="UIGameCustom.cpp" />
     <ClCompile Include="UIGameCustom_script.cpp" />
     <ClCompile Include="UIGameSP.cpp" />
-    <ClCompile Include="UIGame_custom_script.cpp" />
     <ClCompile Include="ui\UIGameLog.cpp" />
     <ClCompile Include="HUDCrosshair.cpp" />
     <ClCompile Include="HUDTarget.cpp" />

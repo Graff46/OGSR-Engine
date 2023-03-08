@@ -142,7 +142,6 @@ public:
     virtual void OnEvent(NET_Packet& P, u16 type);
     virtual void Hit(SHit* pHDS){};
     virtual void SetHitInfo(CObject* who, CObject* weapon, s16 element, Fvector Pos, Fvector Dir){};
-    virtual BOOL BonePassBullet(int boneID) { return FALSE; }
 
     //игровое имя объекта
     virtual LPCSTR Name() const;
@@ -269,9 +268,6 @@ public:
     virtual void On_B_NotCurrentEntity(){};
 
     CSE_ALifeDynamicObject* alife_object() const; // alpet: возвращает серверный экземпляр для этого объекта
-    virtual void UpdateXFORM(const Fmatrix& upd); // alpet: для обновления позиции и направления
-    virtual float GetHealth() const { return -1; } // alpet: для универсального доступа к переменным класса вроде fHealth
-    virtual void SetHealth(float h) {}
 
 protected:
     xr_vector<FeelTouchAddon*> feel_touch_addons;

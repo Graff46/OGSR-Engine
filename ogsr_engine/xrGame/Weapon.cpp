@@ -833,6 +833,14 @@ void CWeapon::OnH_B_Chield()
     m_set_next_ammoType_on_reload = u32(-1);
 }
 
+void CWeapon::OnBeforeDrop()
+{
+    if (auto io = smart_cast<CActor*>(H_Parent()); io && this == io->inventory().ActiveItem())
+        shader_exports.set_dof_params(0.f, 0.f, 0.f, 0.f);
+
+    inherited::OnBeforeDrop();
+}
+
 u8 CWeapon::idle_state()
 {
     auto* actor = smart_cast<CActor*>(H_Parent());
@@ -1264,11 +1272,8 @@ void CWeapon::SpawnAmmo(u32 boxCurr, LPCSTR ammoSect, u32 ParentID)
 
     CSE_Abstract* D = F_entity_Create(ammoSect);
 
-    // KRodin: GOVNOKOD DETECTED!
-    if (D->m_tClassID == CLSID_OBJECT_AMMO || D->m_tClassID == CLSID_OBJECT_A_M209 || D->m_tClassID == CLSID_OBJECT_A_VOG25 || D->m_tClassID == CLSID_OBJECT_A_OG7B)
+    if (auto l_pA = smart_cast<CSE_ALifeItemAmmo*>(D))
     {
-        CSE_ALifeItemAmmo* l_pA = smart_cast<CSE_ALifeItemAmmo*>(D);
-        R_ASSERT(l_pA);
         l_pA->m_boxSize = (u16)pSettings->r_s32(ammoSect, "box_size");
         D->s_name = ammoSect;
         D->set_name_replace("");
@@ -1757,8 +1762,10 @@ void CWeapon::create_physic_shell()
     // физики происходят краши в ode которые исправить невозможно.
     if (IS_OGSR_GA)
     {
-        m_pPhysicsShell = P_build_SimpleShell(this, 0.3f, false);
-        m_pPhysicsShell->SetMaterial(smart_cast<IKinematics*>(Visual())->LL_GetData(smart_cast<IKinematics*>(Visual())->LL_GetBoneRoot()).game_mtl_idx);
+        auto vis = smart_cast<IKinematics*>(Visual());
+        auto& rootBoneData = vis->LL_GetData(vis->LL_GetBoneRoot());
+        m_pPhysicsShell = P_build_SimpleShell(this, rootBoneData.mass, false);
+        m_pPhysicsShell->SetMaterial(rootBoneData.game_mtl_idx);
     }
     else
         CPhysicsShellHolder::create_physic_shell();

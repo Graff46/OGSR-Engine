@@ -922,8 +922,93 @@ public:
         if (auto tpGame = smart_cast<game_sv_Single*>(Level().Server->game))
             tpGame->alife().spawn_item(args, Actor()->Position(), Actor()->ai_location().level_vertex_id(), Actor()->ai_location().game_vertex_id(), ALife::_OBJECT_ID(-1));
     }
+
+    virtual void fill_tips(vecTips& tips, u32 mode)
+    {
+        if (!ai().get_alife())
+        {
+            Msg("! ALife simulator is needed to perform specified command!");
+            return;
+        }
+
+        for (const auto& it : pSettings->sections())
+        {
+            auto& section = it.first;
+
+            if (pSettings->line_exist(section, "class"))
+            {
+                tips.push_back(section);
+            }
+        }
+
+        std::sort(tips.begin(), tips.end());
+
+        // tips.push_back((*itb).second.name());
+    }
 };
 //#endif // MASTER_GOLD
+
+class CCC_SpawnToInventory : public IConsole_Command
+{
+public:
+    CCC_SpawnToInventory(LPCSTR N) : IConsole_Command(N) {}
+
+    void Execute(LPCSTR args)
+    {
+        if (!g_pGameLevel)
+            return;
+
+        if (!pSettings->section_exist(args))
+        {
+            Msg("! Can't find section: %s", args);
+            return;
+        }
+
+        if (auto tpGame = smart_cast<game_sv_Single*>(Level().Server->game))
+        {
+            NET_Packet packet;
+            packet.w_begin(M_SPAWN);
+            packet.w_stringZ(args);
+
+            CSE_Abstract* item =
+                tpGame->alife().spawn_item(args, Actor()->Position(), Actor()->ai_location().level_vertex_id(), Actor()->ai_location().game_vertex_id(), 0, false);
+            item->Spawn_Write(packet, FALSE);
+            tpGame->alife().server().FreeID(item->ID, 0);
+            F_entity_Destroy(item);
+
+            ClientID clientID;
+            clientID.set(0xffff);
+
+            u16 dummy;
+            packet.r_begin(dummy);
+            VERIFY(dummy == M_SPAWN);
+            tpGame->alife().server().Process_spawn(packet, clientID);
+        }
+    }
+
+    virtual void fill_tips(vecTips& tips, u32 mode)
+    {
+        if (!ai().get_alife())
+        {
+            Msg("! ALife simulator is needed to perform specified command!");
+            return;
+        }
+
+        for (const auto& it : pSettings->sections())
+        {
+            auto& section = it.first;
+
+            if (pSettings->line_exist(section, "class"))
+            {
+                tips.push_back(section);
+            }
+        }
+
+        std::sort(tips.begin(), tips.end());
+
+        // tips.push_back((*itb).second.name());
+    }
+};
 
 #include "GamePersistent.h"
 
@@ -1256,16 +1341,6 @@ public:
     virtual void Execute(LPCSTR) { Level().Objects.dump_all_objects(); }
 };
 
-class CCC_Net_SV_GuaranteedPacketMode : public CCC_Integer
-{
-protected:
-    int* value_blin;
-
-public:
-    CCC_Net_SV_GuaranteedPacketMode(LPCSTR N, int* V, int _min = 0, int _max = 2) : CCC_Integer(N, V, _min, _max), value_blin(V){};
-
-    virtual void Execute(LPCSTR args) { CCC_Integer::Execute(args); }
-};
 
 // Change weather immediately
 class CCC_SetWeather : public IConsole_Command
@@ -1330,7 +1405,6 @@ void CCC_RegisterCommands()
     CMD1(CCC_ALifeSwitchFactor, "al_switch_factor"); // set switch factor
 #endif // MASTER_GOLD
 
-    CMD3(CCC_Mask, "hud_weapon", &psHUD_Flags, HUD_WEAPON);
     CMD3(CCC_Mask, "hud_info", &psHUD_Flags, HUD_INFO);
     CMD3(CCC_Mask, "hud_draw", &psHUD_Flags, HUD_DRAW);
     CMD3(CCC_Mask, "hud_crosshair_build", &psHUD_Flags, HUD_CROSSHAIR_BUILD); // билдокурсор
@@ -1447,6 +1521,7 @@ void CCC_RegisterCommands()
     //#ifndef MASTER_GOLD
     CMD1(CCC_JumpToLevel, "jump_to_level");
     CMD1(CCC_Spawn, "g_spawn");
+    CMD1(CCC_SpawnToInventory, "g_spawn_to_inventory");
     CMD3(CCC_Mask, "g_god", &psActorFlags, AF_GODMODE);
     CMD3(CCC_Mask, "g_unlimitedammo", &psActorFlags, AF_UNLIMITEDAMMO);
     CMD3(CCC_Mask, "g_ammunition_on_belt", &psActorFlags, AF_AMMO_ON_BELT);

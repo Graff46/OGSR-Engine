@@ -1618,9 +1618,6 @@
     <Filter Include="Core\Client\Objects\zones\CustomZone">
       <UniqueIdentifier>{03d13b75-6939-4a29-aaf8-583151a32320}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Core\Client\Objects\zones\FryUpZone">
-      <UniqueIdentifier>{895a5fa9-f93e-453c-9743-a4161d45f1ed}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core\Client\Objects\zones\GraviZone">
       <UniqueIdentifier>{720332d5-5c89-4443-8064-f8022951e0ea}</UniqueIdentifier>
     </Filter>
@@ -1638,9 +1635,6 @@
     </Filter>
     <Filter Include="Core\Client\Objects\zones\ScriptZone">
       <UniqueIdentifier>{d79f70d3-fd7e-47c1-b6bc-9416253ec191}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core\Client\Objects\zones\TeamBaseZone">
-      <UniqueIdentifier>{5287b2df-d9e1-4d37-a487-20e0f066064a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Core\Client\Objects\zones\TorridZone">
       <UniqueIdentifier>{1efac8fd-63e6-41d0-bcc9-d206ac3c098c}</UniqueIdentifier>
@@ -1689,9 +1683,6 @@
     </Filter>
     <Filter Include="Core\Client\Particles">
       <UniqueIdentifier>{2c8a7a52-126a-4222-bfe0-fb0cecb7778c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core\Client\Spectator">
-      <UniqueIdentifier>{0290c1df-dbfc-4ca1-97e4-a7fa48173f7b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Core\Common">
       <UniqueIdentifier>{3c431256-4aff-4ffb-98f8-b9de32037b7d}</UniqueIdentifier>
@@ -2067,9 +2058,6 @@
     </Filter>
     <Filter Include="AI\AScript\ScriptClasses\UI\GameTypes\Single">
       <UniqueIdentifier>{67495a73-3875-48d9-abbc-406d30c4f780}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="AI\AScript\ScriptClasses\UI\GameTypes\Game_custom_script">
-      <UniqueIdentifier>{ec75fb56-3830-4c84-9cd7-cbb2cf18637a}</UniqueIdentifier>
     </Filter>
     <Filter Include="AI\AScript\ScriptClasses\UI\Multiplayer">
       <UniqueIdentifier>{499cf20f-fe69-480c-b83b-fd8741d95f63}</UniqueIdentifier>
@@ -4698,9 +4686,6 @@
     <ClInclude Include="FoodItem.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Food &amp; Drugs</Filter>
     </ClInclude>
-    <ClInclude Include="ItemHealth.h">
-      <Filter>Core\Client\Objects\items &amp; weapons\Food &amp; Drugs</Filter>
-    </ClInclude>
     <ClInclude Include="medkit.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Food &amp; Drugs</Filter>
     </ClInclude>
@@ -4749,9 +4734,6 @@
     <ClInclude Include="CustomZone.h">
       <Filter>Core\Client\Objects\zones\CustomZone</Filter>
     </ClInclude>
-    <ClInclude Include="FryupZone.h">
-      <Filter>Core\Client\Objects\zones\FryUpZone</Filter>
-    </ClInclude>
     <ClInclude Include="GraviZone.h">
       <Filter>Core\Client\Objects\zones\GraviZone</Filter>
     </ClInclude>
@@ -4769,9 +4751,6 @@
     </ClInclude>
     <ClInclude Include="script_zone.h">
       <Filter>Core\Client\Objects\zones\ScriptZone</Filter>
-    </ClInclude>
-    <ClInclude Include="team_base_zone.h">
-      <Filter>Core\Client\Objects\zones\TeamBaseZone</Filter>
     </ClInclude>
     <ClInclude Include="TorridZone.h">
       <Filter>Core\Client\Objects\zones\TorridZone</Filter>
@@ -4832,9 +4811,6 @@
     </ClInclude>
     <ClInclude Include="ParticlesObject.h">
       <Filter>Core\Client\Particles</Filter>
-    </ClInclude>
-    <ClInclude Include="Spectator.h">
-      <Filter>Core\Client\Spectator</Filter>
     </ClInclude>
     <ClInclude Include="date_time.h">
       <Filter>Core\Common\DateTime</Filter>
@@ -4954,9 +4930,6 @@
       <Filter>Core\Server\Games\client\single</Filter>
     </ClInclude>
     <ClInclude Include="game_cl_base.h">
-      <Filter>Core\Server\Games\client\base</Filter>
-    </ClInclude>
-    <ClInclude Include="game_cl_base_weapon_usage_statistic.h">
       <Filter>Core\Server\Games\client\base</Filter>
     </ClInclude>
     <ClInclude Include="game_sv_base.h">
@@ -5645,9 +5618,6 @@
     </ClInclude>
     <ClInclude Include="UIGameSP.h">
       <Filter>AI\AScript\ScriptClasses\UI\GameTypes\Single</Filter>
-    </ClInclude>
-    <ClInclude Include="UIGame_custom_script.h">
-      <Filter>AI\AScript\ScriptClasses\UI\GameTypes\Game_custom_script</Filter>
     </ClInclude>
     <ClInclude Include="ui\UIGameLog.h">
       <Filter>AI\AScript\ScriptClasses\UI\Multiplayer\HUD\GameLog</Filter>
@@ -7820,9 +7790,6 @@
     <ClCompile Include="FoodItem.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Food &amp; Drugs</Filter>
     </ClCompile>
-    <ClCompile Include="ItemHealth.cpp">
-      <Filter>Core\Client\Objects\items &amp; weapons\Food &amp; Drugs</Filter>
-    </ClCompile>
     <ClCompile Include="medkit.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Food &amp; Drugs</Filter>
     </ClCompile>
@@ -7880,9 +7847,6 @@
     <ClCompile Include="CustomZone.cpp">
       <Filter>Core\Client\Objects\zones\CustomZone</Filter>
     </ClCompile>
-    <ClCompile Include="FryupZone.cpp">
-      <Filter>Core\Client\Objects\zones\FryUpZone</Filter>
-    </ClCompile>
     <ClCompile Include="GraviZone.cpp">
       <Filter>Core\Client\Objects\zones\GraviZone</Filter>
     </ClCompile>
@@ -7909,9 +7873,6 @@
     </ClCompile>
     <ClCompile Include="script_zone_script.cpp">
       <Filter>Core\Client\Objects\zones\ScriptZone</Filter>
-    </ClCompile>
-    <ClCompile Include="team_base_zone.cpp">
-      <Filter>Core\Client\Objects\zones\TeamBaseZone</Filter>
     </ClCompile>
     <ClCompile Include="TorridZone.cpp">
       <Filter>Core\Client\Objects\zones\TorridZone</Filter>
@@ -8003,9 +7964,6 @@
     <ClCompile Include="ParticlesObject.cpp">
       <Filter>Core\Client\Particles</Filter>
     </ClCompile>
-    <ClCompile Include="Spectator.cpp">
-      <Filter>Core\Client\Spectator</Filter>
-    </ClCompile>
     <ClCompile Include="xrGame.cpp">
       <Filter>Core\Common</Filter>
     </ClCompile>
@@ -8049,9 +8007,6 @@
       <Filter>Core\Server\Games\client\single</Filter>
     </ClCompile>
     <ClCompile Include="game_cl_base.cpp">
-      <Filter>Core\Server\Games\client\base</Filter>
-    </ClCompile>
-    <ClCompile Include="game_cl_base_weapon_usage_statistic.cpp">
       <Filter>Core\Server\Games\client\base</Filter>
     </ClCompile>
     <ClCompile Include="game_sv_base.cpp">
@@ -8767,9 +8722,6 @@
     </ClCompile>
     <ClCompile Include="UIGameSP.cpp">
       <Filter>AI\AScript\ScriptClasses\UI\GameTypes\Single</Filter>
-    </ClCompile>
-    <ClCompile Include="UIGame_custom_script.cpp">
-      <Filter>AI\AScript\ScriptClasses\UI\GameTypes\Game_custom_script</Filter>
     </ClCompile>
     <ClCompile Include="ui\UIGameLog.cpp">
       <Filter>AI\AScript\ScriptClasses\UI\Multiplayer\HUD\GameLog</Filter>

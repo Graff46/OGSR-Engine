@@ -40,8 +40,11 @@ void CUICarPanel::Init(float x, float y, float width, float height)
 
 	angleSpeed = deg2rad(uiXml.ReadAttribFlt("speedometer", 0, "angle", 90.f));
 	angleRPM = deg2rad(uiXml.ReadAttribFlt("tachometer", 0, "angle", 90.f));
-	max_speed = uiXml.ReadAttribFlt("speedometer", 0, "max_speed", 100.f) * 0.277;
+	max_speed = uiXml.ReadAttribFlt("speedometer", 0, "max_speed", 100.f);
 	rev_max_speed = 1 / max_speed;
+
+	defaultColor = UIStaticGear.GetTextColor();
+	UIStaticGear.SetTextColor(color_rgba(128.f, 128.f, 128.f, 255.f));
 
 	Show(false);
 	Enable(false);
@@ -82,4 +85,13 @@ void CUICarPanel::SetCarGear(u8 gear)
 void CUICarPanel::SetCarGear(LPCSTR gear)
 {
 	UIStaticGear.SetText(gear);
+}
+
+void CUICarPanel::setColor(bool start)
+{
+	u32 clr = color_rgba(128.f, 128.f, 128.f, 255.f);
+	if (start)
+		clr = defaultColor;
+
+	UIStaticGear.SetTextColor(clr);
 }

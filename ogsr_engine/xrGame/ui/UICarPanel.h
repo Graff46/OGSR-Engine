@@ -20,6 +20,7 @@ private:
 	float angleRPM;
 	float max_speed;
 	float rev_max_speed;
+	u32 defaultColor;
 public: 
 
 	// Установить 
@@ -29,4 +30,5 @@ public:
 	void SetSpeed(float speed);
 	void SetRPM(float rmp);
 	void Init(float x, float y, float width, float height);
+	void setColor(bool start = false);
 };

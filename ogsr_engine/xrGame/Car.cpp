@@ -499,10 +499,10 @@ void CCar::VisualUpdate(float fov)
 
         if (HUD().GetUI()) //
         {
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(true);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth() /* /100.f*/);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetSpeed(lin_vel.magnitude() * 3.6);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetRPM(m_current_rpm / m_max_rpm / 2.f);
+            car_panel->Show(true);
+            car_panel->SetCarHealth(GetfHealth() /* /100.f*/);
+            car_panel->SetSpeed(lin_vel.magnitude() * 3.6);
+            car_panel->SetRPM(m_current_rpm / m_max_rpm / 2.f);
         }
     }
 
@@ -979,6 +979,7 @@ void CCar::Init()
     CDamageManager::reload("car_definition", "damage", ini);
 
 	car_panel = &HUD().GetUI()->UIMainIngameWnd->CarPanel();
+    car_panel->setColor(false);
     HandBreak();
     Transmission(1);
 }
@@ -1031,6 +1032,8 @@ void CCar::StartEngine()
     m_current_rpm = 0.f;
     m_current_engine_power = 0.f;
     b_starting = true;
+
+    car_panel->setColor(true);
 }
 void CCar::StopEngine()
 {
@@ -1044,6 +1047,8 @@ void CCar::StopEngine()
     b_engine_on = false;
     UpdatePower(); // set engine friction;
     m_current_rpm = 0.f;
+
+    car_panel->setColor(false);
 }
 
 void CCar::Stall()
@@ -1056,6 +1061,8 @@ void CCar::Stall()
     b_engine_on = false;
     UpdatePower(); // set engine friction;
     m_current_rpm = 0.f;
+
+    car_panel->setColor(false);
 }
 void CCar::ReleasePedals()
 {

@@ -25,11 +25,17 @@ class UILoadingScreen : public ILoadingScreen, public CUIWindow
     CUIStatic* loadingHeader;
     CUIStatic* loadingTipNumber;
     CUIStatic* loadingTip;
+    CUIStatic* textures_progress_static;
 
     u32 maxTip;
 
+    xr_vector<LPCSTR> textures_progress;
+    int current_texture_progress;
+    int textures_progress_count;
+
 public:
     UILoadingScreen();
+    ~UILoadingScreen();
 
     void Initialize() override;
 
@@ -43,4 +49,6 @@ public:
     void SetLevelLogo(const char* name) override;
     void SetStageTitle(const char* title) override;
     void SetStageTip() override;
+
+    void playSnd(bool play = true);
 };

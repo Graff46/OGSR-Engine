@@ -17,9 +17,10 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelNam
 		gte->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\textures"));
 		snd->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\sounds"));
 		lte->_set(xr_strconcat(tmp, "seasons\\", newSeason, "\\levels\\", locName));
-        FS.rescan_physical_path(gte->m_Path, TRUE);
-        FS.rescan_physical_path(lte->m_Path, TRUE);
-        FS.rescan_physical_path(snd->m_Path, TRUE);
+
+        FS.rescan_physical_path(gte->m_Path, TRUE, TRUE);
+        FS.rescan_physical_path(lte->m_Path, TRUE, TRUE);
+        FS.rescan_physical_path(snd->m_Path, TRUE, TRUE);
 
 		currentSeason = newSeason;
 

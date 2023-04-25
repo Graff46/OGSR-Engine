@@ -1255,12 +1255,22 @@ void CLocatorAPI::set_file_age(LPCSTR nm, u32 age)
     }
 }
 
-void CLocatorAPI::rescan_physical_path(LPCSTR full_path, BOOL bRecurse)
+void CLocatorAPI::rescan_physical_path(LPCSTR full_path, BOOL bRecurse, BOOL force)
 {
-    auto I = file_find_it(full_path);
+    files_it I;
+
+    if (force)
+    {
+        file desc_f;
+        desc_f.name = full_path;
+        I = files.lower_bound(desc_f);
+    }    
+    else
+        I = file_find_it(full_path);
+
     if (I == files.end())
         return;
-
+    
     Msg("[rescan_physical_path] files count before: [%d]", files.size());
 
     const size_t base_len = strlen(full_path);

@@ -868,6 +868,14 @@ void run_xrdemo(LPCSTR xrdemoName)
     g_pGameLevel->Cameras().AddCamEffector(xr_new<CDemoPlay>(fn, 1.0f, loops));
 }
 
+void reinit(CEnvironment* self, bool condCOPWeather = true)
+{
+    self->init(condCOPWeather);
+
+    self->load_weathers();
+    self->load_weather_effects();
+}
+
 #pragma optimize("s", on)
 void CLevel::script_register(lua_State* L)
 {
@@ -881,7 +889,9 @@ void CLevel::script_register(lua_State* L)
               class_<CEnvironment>("CEnvironment")
                   .def("current", current_environment)
                   .def("ForceReselectEnvs", &CEnvironment::ForceReselectEnvs)
-                  .def("getCurrentWeather", &CEnvironment::getCurrentWeather),
+                  .def("getCurrentWeather", &CEnvironment::getCurrentWeather)
+                  .def("reinit", reinit)
+                  .def_readonly("COP_weather", &CEnvironment::USED_COP_WEATHER),
 
               class_<CPHCall>("CPHCall").def("set_pause", &CPHCall::setPause),
 

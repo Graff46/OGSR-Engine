@@ -1340,6 +1340,7 @@ void CCar::ReleaseBreaks()
 		brpOn = false;
 		return;
 	}
+
     ReleaseHandBreak();
     brp = false;
 }

@@ -167,8 +167,6 @@ void CGamePersistent::Start(LPCSTR op)
 
 void CGamePersistent::Disconnect()
 {
-	Seasons::reset();
-
     // destroy ambient particles
     CParticlesObject::Destroy(ambient_particles);
 

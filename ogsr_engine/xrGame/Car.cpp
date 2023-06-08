@@ -664,6 +664,7 @@ bool CCar::attach_Actor(CGameObject* actor)
     PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();
+
     car_panel->Show(true);
 	car_panel->SetCarHealth(Health());
 	car_panel->SetCarGear(CurrentTransmission());
@@ -2078,4 +2079,59 @@ void CCar::SyncNetState()
     }
 
     co->health = GetfHealth();
+}
+
+#include "actor_anim_defs.h"
+#include "ai/stalker/ai_stalker.h"
+#include "stalker_animation_manager.h"
+bool CCar::attach_NPC_Vehicle(CGameObject* npc)
+{
+    //if (vehicle->Owner()->ID() == npc->ID()) detach
+    CHolderCustom* vehicle = smart_cast<CHolderCustom*>(this);
+
+    if (!vehicle)
+        return false;
+
+    IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(npc->Visual());
+    R_ASSERT(npcAV);
+
+    if (!vehicle->attach_Actor(this))
+        return false;
+
+    // temp play animation
+    u16 anim_type = DriverAnimationType();
+
+    SActorVehicleAnims* m_vehicle_anims = xr_new<SActorVehicleAnims>();
+    m_vehicle_anims->Create(npcAV);
+
+    SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
+    npcAV->PlayCycle(anims.idles[0], FALSE);
+
+    // ResetCallbacks
+    IKinematics* npcV = smart_cast<IKinematics*>(npc->Visual());
+
+    u16 spine0_bone = npcV->LL_BoneID("bip01_spine");
+    u16 spine1_bone = npcV->LL_BoneID("bip01_spine1");
+    u16 shoulder_bone = npcV->LL_BoneID("bip01_spine2");
+    u16 head_boneRC = npcV->LL_BoneID("bip01_head");
+    npcV->LL_GetBoneInstance(u16(spine0_bone)).reset_callback();
+    npcV->LL_GetBoneInstance(u16(spine1_bone)).reset_callback();
+    npcV->LL_GetBoneInstance(u16(shoulder_bone)).reset_callback();
+    npcV->LL_GetBoneInstance(u16(head_boneRC)).reset_callback();
+    // ResetCallbacks
+
+    CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);
+
+    u16 head_bone = npcAV->dcast_PKinematics()->LL_BoneID("bip01_head");
+    npcAV->dcast_PKinematics()->LL_GetBoneInstance(head_bone).set_callback(bctPhysics, stalker->animation().VehicleHeadCallback, this);
+
+    character_physics_support()->movement()->DestroyCharacter();
+    // TODO:
+    //mstate_wishful = 0; 
+    //m_holderID = car->ID();
+    smart_cast<CInventoryOwner*>(npc)->inventory().SetSlotsBlocked(INV_STATE_CAR, true);
+    
+    stalker->CStepManager::on_animation_start(MotionID(), 0);
+
+    return true;
 }

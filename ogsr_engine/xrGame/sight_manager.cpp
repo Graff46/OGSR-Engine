@@ -220,6 +220,9 @@ bool CSightManager::need_correction(float x1, float x2, float x3)
 
 void CSightManager::Exec_Look(float dt)
 {
+    if (!enabled())
+        return;
+
     START_PROFILE("Sight Manager")
 
     typedef MonsterSpace::SBoneRotation CBoneRotation;

@@ -470,7 +470,7 @@ void CCar::UpdateCL()
             m_memory->set_camera(m_car_weapon->ViewCameraPos(), m_car_weapon->ViewCameraDir(), m_car_weapon->ViewCameraNorm());
     }
     ASCUpdate();
-    if (Owner())
+    if (OwnerActor())
         return;
     //	UpdateEx			(g_fov);
     VisualUpdate(90);
@@ -497,7 +497,7 @@ void CCar::VisualUpdate(float fov)
             Owner()->XFORM().mul_43(XFORM(), m_sits_transforms);
         }
 
-        if (HUD().GetUI()) //
+        if ((OwnerActor()) && (HUD().GetUI())) //
         {
             car_panel->Show(true);
             car_panel->SetCarHealth(GetfHealth() /* /100.f*/);
@@ -562,7 +562,8 @@ void CCar::Hit(SHit* pHDS)
         CDelayedActionFuse::CheckCondition(GetfHealth());
     }
     CDamagableItem::HitEffect();
-    if (Owner() && Owner()->ID() == Level().CurrentEntity()->ID())
+
+    if (OwnerActor())
         car_panel->SetCarHealth(GetfHealth()/* /100.f */);
 }
 
@@ -572,7 +573,8 @@ void CCar::ChangeCondition(float fDeltaCondition)
     CDamagableItem::HitEffect();
     if (Local() && !g_Alive() && !AlreadyDie())
         KillEntity(Initiator());
-    if (Owner() && Owner()->ID() == Level().CurrentEntity()->ID())
+
+    if (OwnerActor())
         car_panel->SetCarHealth(GetfHealth()/* /100.f */);
 }
 
@@ -622,6 +624,7 @@ void CCar::detach_Actor()
 {
     if (!Owner())
         return;
+
     Owner()->setVisible(1);
     CHolderCustom::detach_Actor();
     PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
@@ -658,16 +661,20 @@ bool CCar::attach_Actor(CGameObject* actor)
     CBoneInstance& instance = K->LL_GetBoneInstance(u16(id));
     m_sits_transforms.set(instance.mTransform);
     actor->XFORM().mul_43(XFORM(), m_sits_transforms);
+    
+    if (OwnerActor())
+    {
+        OnCameraChange(ectFirst);
 
-    OnCameraChange(ectFirst);
+        car_panel->Show(true);
+        car_panel->SetCarHealth(Health());
+        car_panel->SetCarGear(CurrentTransmission());
+    }
+
     PPhysicsShell()->Enable();
     PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();
-
-    car_panel->Show(true);
-	car_panel->SetCarHealth(Health());
-	car_panel->SetCarGear(CurrentTransmission());
 
     return true;
 }
@@ -2084,6 +2091,10 @@ void CCar::SyncNetState()
 #include "actor_anim_defs.h"
 #include "ai/stalker/ai_stalker.h"
 #include "stalker_animation_manager.h"
+
+#include "stalker_movement_manager.h"
+#include "sight_manager.h"
+#include "stalker_planner.h"
 bool CCar::attach_NPC_Vehicle(CGameObject* npc)
 {
     //if (vehicle->Owner()->ID() == npc->ID()) detach
@@ -2095,7 +2106,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc)
     IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(npc->Visual());
     R_ASSERT(npcAV);
 
-    if (!vehicle->attach_Actor(this))
+    if (!vehicle->attach_Actor(npc))
         return false;
 
     // temp play animation
@@ -2103,6 +2114,9 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc)
 
     SActorVehicleAnims* m_vehicle_anims = xr_new<SActorVehicleAnims>();
     m_vehicle_anims->Create(npcAV);
+
+    CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);
+    stalker->animation().clear_script_animations();
 
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
@@ -2120,12 +2134,14 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc)
     npcV->LL_GetBoneInstance(u16(head_boneRC)).reset_callback();
     // ResetCallbacks
 
-    CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);
-
     u16 head_bone = npcAV->dcast_PKinematics()->LL_BoneID("bip01_head");
     npcAV->dcast_PKinematics()->LL_GetBoneInstance(head_bone).set_callback(bctPhysics, stalker->animation().VehicleHeadCallback, this);
 
-    character_physics_support()->movement()->DestroyCharacter();
+    stalker->character_physics_support()->movement()->DestroyCharacter();
+    stalker->brain().active(false);
+    stalker->movement().enable_movement(false);
+    stalker->sight().enable(false);
+    
     // TODO:
     //mstate_wishful = 0; 
     //m_holderID = car->ID();

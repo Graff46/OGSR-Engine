@@ -6066,6 +6066,9 @@
     <ClInclude Include="SimpleDetectorSHOC.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Devices\Detectors</Filter>
     </ClInclude>
+    <ClInclude Include="CarPassengers.h">
+      <Filter>Core\Client\Objects\vehicles\Car</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -8847,6 +8850,9 @@
     </ClCompile>
     <ClCompile Include="SimpleDetectorSHOC.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Devices\Detectors</Filter>
+    </ClCompile>
+    <ClCompile Include="CarPassengers.cpp">
+      <Filter>Core\Client\Objects\vehicles\Car</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

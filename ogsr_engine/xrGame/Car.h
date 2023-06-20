@@ -17,6 +17,7 @@
 #include "PHDestroyable.h"
 #include "DelayedActionFuse.h"
 #include "ui/UICarPanel.h"
+#include "CarPassengers.h"
 
 // refs
 class ENGINE_API CBoneInstance;
@@ -534,7 +535,7 @@ public:
     void cam_Update(float dt, float fov);
     void detach_Actor();
     bool attach_Actor(CGameObject* actor) override;
-    bool attach_NPC_Vehicle(CGameObject* npc);
+    bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
     void detach_NPC_Vehicle(CGameObject* npc);
     bool is_Door(u16 id, xr_map<u16, SDoor>::iterator& i);
     bool is_Door(u16 id);
@@ -621,6 +622,8 @@ public:
     bool IsEngineOn();
     bool IsLightsOn();
     void SwitchLights();
+
+    CarPassengers* passengers;
 
 private:
     template <class T>

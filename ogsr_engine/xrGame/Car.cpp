@@ -96,6 +96,7 @@ CCar::CCar()
     m_current_rpm = 0.f;
     m_current_engine_power = 0.f;
     car_panel = NULL;
+    passengers = xr_new<CarPassengers>();
 
 #ifdef DEBUG
     InitDebug();
@@ -505,6 +506,13 @@ void CCar::VisualUpdate(float fov)
             car_panel->SetRPM(m_current_rpm / m_max_rpm / 2.f);
         }
     }
+
+    if (m_pPhysicsShell->isEnabled()) 
+    {
+        for (const auto& place : passengers->getOccupiedPlaces()) 
+            place.first->XFORM().mul_43(XFORM(), *place.second);     
+    }
+    
 
     UpdateExhausts();
     m_lights.Update();
@@ -986,6 +994,8 @@ void CCar::Init()
     car_panel->setColor(false);
     HandBreak();
     Transmission(1);
+
+    passengers->create(pKinematics);
 }
 
 void CCar::Revert() { m_pPhysicsShell->applyForce(0, 1.5f * EffectiveGravity() * m_pPhysicsShell->getMass(), 0); }
@@ -2091,7 +2101,7 @@ void CCar::SyncNetState()
 #include "stalker_movement_manager.h"
 #include "sight_manager.h"
 #include "stalker_planner.h"
-bool CCar::attach_NPC_Vehicle(CGameObject* npc)
+bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
 {
     //if (vehicle->Owner()->ID() == npc->ID()) detach
     CHolderCustom* vehicle = smart_cast<CHolderCustom*>(this);
@@ -2102,7 +2112,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc)
     IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(npc->Visual());
     R_ASSERT(npcAV);
 
-    if (!vehicle->attach_Actor(npc))
+    if (driver ? !vehicle->attach_Actor(npc) : !passengers->addPassenger(npc))
         return false;
 
     // temp play animation
@@ -2164,12 +2174,14 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 
     if (sh)
         sh->Activate();
-    //m_holder->detach_Actor(); //
+    
+    if (Owner()->ID() == npc->ID())
+        (smart_cast<CHolderCustom*>(this))->detach_Actor();
+    else
+        passengers->removePassenger(npc);
 
 
     npc->setVisible(1);
-
-    CHolderCustom::detach_Actor();
 
     PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
 

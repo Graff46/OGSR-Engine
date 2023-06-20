@@ -34,7 +34,7 @@ void CCar::script_register(lua_State* L)
                   .def("IsEngineOn", &CCar::IsEngineOn)
                   .def("SwitchEngine", &CCar::SwitchEngine)
                   .def("SwitchLights", &CCar::SwitchLights)
-                  .def("attach", [](CCar* car, CScriptGameObject* npc) {return car->attach_NPC_Vehicle(&npc->object());})
+                  .def("attach", [](CCar* car, CScriptGameObject* npc, bool driver = false) {return car->attach_NPC_Vehicle(&npc->object(), driver);})
                   .def_readonly("handbrake", &CCar::brp)
                   .def("detach", [](CCar* car, CScriptGameObject* npc) {return car->detach_NPC_Vehicle(&npc->object());})
                   .def(constructor<>())];

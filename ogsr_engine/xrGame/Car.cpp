@@ -2160,11 +2160,11 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
 
 #include "PHShellSplitter.h"
 #include "xrserver_objects_alife_monsters.h"
+#include "ai_object_location.h"
+#include "restricted_object.h"
+#include "alife_simulator.h"
 void CCar::detach_NPC_Vehicle(CGameObject* npc)
 {
-    if (!Owner())
-        return;
-
     CCar* car = smart_cast<CCar*>(this);
     CPHShellSplitterHolder* sh = car->PPhysicsShell()->SplitterHolder();
     if (sh)
@@ -2200,41 +2200,30 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 #endif
     //
 
-    stalker->character_physics_support()->movement()->SetPosition(this->ExitPosition());
-    stalker->character_physics_support()->movement()->SetVelocity(this->ExitVelocity());
+    Fvector posExit;
+    m_doors.begin()->second.GetExitPosition(posExit);
 
-    /*r_model_yaw = -m_holder->Camera()->yaw;
-    r_torso.yaw = r_model_yaw;
-    r_model_yaw_dest = r_model_yaw;
-    m_holder = NULL;*/
+    stalker->character_physics_support()->movement()->SetPosition(posExit);
+    stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity());
+
+    CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(npc->alife_object());
     
-    //SetCallbacks();
-    //IKinematics* V = smart_cast<IKinematics*>(Visual());
-    //VERIFY(V);
-    /*u16 spine0_bone = V->LL_BoneID("bip01_spine");
-    u16 spine1_bone = V->LL_BoneID("bip01_spine1");
-    u16 shoulder_bone = V->LL_BoneID("bip01_spine2");
-    u16 head_bone = V->LL_BoneID("bip01_head");*/
-    /*V->LL_GetBoneInstance(u16(spine0_bone)).set_callback(bctCustom, Spin0Callback, this);
-    V->LL_GetBoneInstance(u16(spine1_bone)).set_callback(bctCustom, Spin1Callback, this);
-    V->LL_GetBoneInstance(u16(shoulder_bone)).set_callback(bctCustom, ShoulderCallback, this);
-    V->LL_GetBoneInstance(u16(head_bone)).set_callback(bctCustom, HeadCallback, this);*/
-    //SetCallbacks();
+    if (ai().game_graph().valid_vertex_id(tpHuman->m_tGraphID))
+        stalker->ai_location().game_vertex(tpHuman->m_tGraphID);
 
-    //IKinematicsAnimated* VA = smart_cast<IKinematicsAnimated*>(npc->Visual());
-    //R_ASSERT(VA);
+    if (ai().game_graph().valid_vertex_id(tpHuman->m_tNextGraphID) && stalker->movement().restrictions().accessible(ai().game_graph().vertex(tpHuman->m_tNextGraphID)->level_point()))
+        stalker->movement().set_game_dest_vertex(tpHuman->m_tNextGraphID);
 
-    //SActorMotions* m_anims = xr_new<SActorMotions>();
-    //VA->PlayCycle(m_anims->m_normal.legs_idle);
-    //->PlayCycle(m_anims->m_normal.m_torso_idle);
+    stalker->CStepManager::reload(stalker->cNameSect().c_str());
+
     stalker->animation().reload(stalker);
 
     stalker->character_physics_support()->movement()->EnableCharacter();
-    stalker->brain().active(true);
     stalker->movement().enable_movement(true);
+    //stalker->movement().reinit();
+    stalker->brain().active(true);
     stalker->sight().enable(true);
 
-    CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(npc->alife_object());
     CStalkerMovementManager* movement = &stalker->movement();
     movement->m_head.current.yaw = movement->m_head.target.yaw = movement->m_body.current.yaw =
         movement->m_body.target.yaw = angle_normalize_signed(-tpHuman->o_torso.yaw);
@@ -2243,4 +2232,6 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 
     //.	SetWeaponHideState(whs_CAR, FALSE);
     smart_cast<CInventoryOwner*>(npc)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
+    
+    tpHuman->alife().switch_offline(smart_cast<CSE_ALifeDynamicObject*>(tpHuman));
 }

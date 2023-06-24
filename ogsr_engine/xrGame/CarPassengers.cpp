@@ -24,26 +24,26 @@ void CarPassengers::create(IKinematics* pKinematics)
 	}
 }
 
-bool CarPassengers::addPassenger(CGameObject* npc)
+const Fmatrix* CarPassengers::addPassenger(CAI_Stalker* npc)
 {
 	for (const Fmatrix& place : list)
 	{
 		if (!occupiedPlaces.contains(npc)) 
 		{
 			occupiedPlaces.emplace(npc, &place);
-			return true;
+			return &place;
 		}
 	}
 
-	return false;
+	return nullptr;
 }
 
-void CarPassengers::removePassenger(CGameObject* npc)
+void CarPassengers::removePassenger(CAI_Stalker* npc)
 {
 	occupiedPlaces.erase(npc);
 }
 
-std::map<CGameObject*, const Fmatrix*> CarPassengers::getOccupiedPlaces()
+std::map<CAI_Stalker*, const Fmatrix*> CarPassengers::getOccupiedPlaces()
 {
-	return occupiedPlaces
+	return occupiedPlaces;
 }

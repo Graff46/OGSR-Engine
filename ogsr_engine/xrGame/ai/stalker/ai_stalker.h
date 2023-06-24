@@ -119,6 +119,7 @@ public:
     CInventoryItem* m_best_ammo;
     const CInventoryItem* m_best_found_item_to_kill;
     const CInventoryItem* m_best_found_ammo;
+    CHolderCustom* m_holderCustom = nullptr;
 
     // covers being used
 public:

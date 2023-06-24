@@ -220,7 +220,7 @@ bool CSightManager::need_correction(float x1, float x2, float x3)
 
 void CSightManager::Exec_Look(float dt)
 {
-    if (!enabled())
+    if (!!object().m_holderCustom)
         return;
 
     START_PROFILE("Sight Manager")

@@ -4,7 +4,7 @@
 
 void CarPassengers::create(IKinematics* pKinematics)
 {
-	CInifile* ini = pKinematics->LL_UserData();
+	/*CInifile* ini = pKinematics->LL_UserData();
 
 	if (ini->section_exist("passengers"))
 	{
@@ -19,28 +19,38 @@ void CarPassengers::create(IKinematics* pKinematics)
 				Fvector offsetVec = ini->r_fvector3("passengers", item.first.c_str());
 				mx.c.add( offsetVec );
 			}
-			list.push_back(mx);
+
+			list.emplace(mx, false); 
 		}
-	}
+	}*/
 }
 
 const Fmatrix* CarPassengers::addPassenger(CAI_Stalker* npc)
 {
-	for (const Fmatrix& place : list)
+	/*for (const auto& place : list)
 	{
-		if (!occupiedPlaces.contains(npc)) 
+		if ((!place.second) && (!occupiedPlaces.contains(npc)))
 		{
-			occupiedPlaces.emplace(npc, &place);
-			return &place;
-		}
-	}
+			occupiedPlaces.emplace(npc, &place.first);
+			//doorId.emplace(npc, car->calcDoorForPlace(npc->XFORM().c));
 
-	return nullptr;
+			list.at(place.first) = true;
+
+			return &place.first;
+		}
+	}*/
+	const Fmatrix mx;
+	return &mx;
 }
 
 void CarPassengers::removePassenger(CAI_Stalker* npc)
 {
-	occupiedPlaces.erase(npc);
+	/*if (occupiedPlaces.contains(npc))
+	{
+		const Fmatrix* mx = occupiedPlaces.at(npc);
+		list.at(*mx) = false;
+		occupiedPlaces.erase(npc);
+	}*/
 }
 
 std::map<CAI_Stalker*, const Fmatrix*> CarPassengers::getOccupiedPlaces()

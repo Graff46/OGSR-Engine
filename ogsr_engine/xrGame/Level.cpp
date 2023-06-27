@@ -738,6 +738,36 @@ void CLevel::OnChangeCurrentWeather(const char* sect)
         funct(sect);
 }
 
+#include "alife_simulator.h"
+#include "alife_object_registry.h"
+#include "ai_object_location.h"
+void CLevel::LoadCars()
+{
+    CObject* npc;
+    CObject* car;
+    for (const auto& kv : Level().NPCid2CarIdToIsDriver)
+    {
+        npc = Level().Objects.net_Find(kv.first);
+        car = Level().Objects.net_Find(kv.second.carID);
+        if (npc && car)
+            smart_cast<CCar*>(car)->attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), kv.second.isDriver);
+        else if (car)
+        {
+            CSE_ALifeDynamicObject *se_npc = ai().get_alife()->objects().object(kv.first, true);
+            CCar *Ccar = smart_cast<CCar*>(car);
+            if (se_npc && Ccar)
+            {
+                CGameGraph& gg = ai().game_graph();
+                if (gg.valid_vertex_id(se_npc->m_tGraphID))
+                {
+                    if (gg.vertex(se_npc->m_tGraphID)->level_id() != ai().level_graph().level_id())
+                        se_npc->alife().teleport_object(kv.first, Ccar->ai_location().game_vertex_id(), Ccar->ai_location().level_vertex_id(), Ccar->Position());
+                }
+            }
+        }
+    }
+}
+
 u32 GameID() { return Game().Type(); }
 
 #include "..\xr_3da\IGame_Persistent.h"

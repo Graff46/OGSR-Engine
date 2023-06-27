@@ -1,5 +1,6 @@
 #pragma once
-#include "ai\stalker\ai_stalker.h"
+#include "ai\stalker\ai_stalker.h";
+//class CCar;
 
 class CarPassengers
 {
@@ -10,7 +11,7 @@ public:
 	std::map<CAI_Stalker*, const Fmatrix*> getOccupiedPlaces();
 
 private:
-	std::list<Fmatrix> list;
+	std::vector<Fmatrix> list;
 	std::map<CAI_Stalker*, const Fmatrix*> occupiedPlaces;
+	std::map<CAI_Stalker*, u16> doorId;
 };
-

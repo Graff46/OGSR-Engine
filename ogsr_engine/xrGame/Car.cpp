@@ -31,6 +31,8 @@
 #include "car_memory.h"
 #include "script_callback_ex.h"
 #include "script_game_object.h"
+#include "../xr_3da/x_ray.h"
+#include "CarPassengers.h"
 
 BONE_P_MAP CCar::bone_map = BONE_P_MAP();
 
@@ -198,6 +200,20 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
         m_memory->reload(pUserData->r_string("visual_memory_definition", "section"));
     }
 
+    if (!pApp->ShowLoadingScreen())
+    {
+        for (const auto& kv : Level().NPCid2CarIdToIsDriver)
+        {
+            if (kv.second.carID == ID())
+            {
+                CObject* npc = Level().Objects.net_Find(kv.first);
+
+                if (npc)
+                    attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), kv.second.isDriver);
+            }
+        }
+    }
+
     return (CScriptEntity::net_Spawn(DC) && R);
 }
 
@@ -264,6 +280,8 @@ void CCar::net_Destroy()
     CPHDestroyable::RespawnInit();
     CPHCollisionDamageReceiver::Clear();
     b_breaks = false;
+
+    throwOutAll();
 }
 
 void CCar::net_Save(NET_Packet& P)
@@ -509,16 +527,7 @@ void CCar::VisualUpdate(float fov)
     }
 
     for (const auto& place : passengers->getOccupiedPlaces())
-    {
         place.first->XFORM().mul_43(XFORM(), *place.second);
-        /*MonsterSpace::SBoneRotation p;
-        p.current = Orientation();
-        p.target = Orientation();
-        p.speed = 1.f;
-        place.first->movement().set_head_orientation(p);*/
-    }
-        
-    
 
     UpdateExhausts();
     m_lights.Update();
@@ -1836,14 +1845,17 @@ void CCar::CarExplode()
     b_exploded = true;
     CExplosive::GenExplodeEvent(Position(), Fvector().set(0.f, 1.f, 0.f));
 
-    CActor* A = OwnerActor();
+    /*CActor* A = OwnerActor();
     if (A)
     {
         if (!m_doors.empty())
             m_doors.begin()->second.GetExitPosition(m_exit_position);
         else
             m_exit_position.set(Position());
-        A->detach_Vehicle();
+        A->detach_Vehicle();*/
+    if (CActor* A = OwnerActor())
+    {
+        throwOutAll();
         if (A->g_Alive() <= 0.f)
             A->character_physics_support()->movement()->DestroyCharacter();
     }
@@ -1971,9 +1983,7 @@ IC void CCar::fill_doors_map(LPCSTR S, xr_map<u16, SDoor>& doors)
         doors.insert(mk_pair(bone_id, door));
         BONE_P_PAIR_IT J = bone_map.find(bone_id);
         if (J == bone_map.end())
-        {
             bone_map.insert(mk_pair(bone_id, physicsBone()));
-        }
     }
 }
 
@@ -2128,6 +2138,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     stalker->animation().reinit();
 
     stalker->m_holderCustom = vehicle;
+    Level().NPCid2CarIdToIsDriver.erase(npc->ID());
 
     stalker->character_physics_support()->movement()->DisableCharacter();
     stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
@@ -2216,6 +2227,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     //
 
     Fvector posExit;
+    //u16 exitDoor = passengers->getOccupiedPlaces().contains(stalker) ? passengers->getOccupiedPlaces().at(stalker).second : calcDoorForPlace(m_sits_transforms.c);
     m_doors.begin()->second.GetExitPosition(posExit);
 
     stalker->character_physics_support()->movement()->SetPosition(posExit);
@@ -2246,9 +2258,47 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     movement->m_body.current.pitch = movement->m_body.target.pitch = 0;
     
     stalker->m_holderCustom = nullptr;
+    Level().NPCid2CarIdToIsDriver.erase(npc->ID());
 
     //.	SetWeaponHideState(whs_CAR, FALSE);
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
     
     tpHuman->alife().switch_offline(smart_cast<CSE_ALifeDynamicObject*>(tpHuman));
+}
+
+void CCar::throwOutAll()
+{
+    if (CActor* A = OwnerActor())
+    {
+        if (!m_doors.empty())
+            m_doors.begin()->second.GetExitPosition(m_exit_position);
+        else
+            m_exit_position.set(Position());
+        A->detach_Vehicle();
+    }
+    else if (CGameObject* npc = Owner())
+        detach_NPC_Vehicle(npc);
+
+    for (const auto& itm : passengers->getOccupiedPlaces())
+        detach_NPC_Vehicle(smart_cast<CGameObject*>(itm.first));
+}
+
+int CCar::calcDoorForPlace(Fvector posPlace)
+{
+    /*u8 minDist = u8(-1);
+    u8 dist;
+    //u16 DoorId = u16(-1);
+    IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
+
+    for (const auto& door : m_doors)
+    {
+        dist = pKinematics->LL_GetTransform(door.first).c.distance_to(posPlace);
+        if (dist < minDist)
+        {
+            minDist = dist;
+            //DoorId = (u16) door.first;
+        }
+    }*/
+
+    return 0;
 }

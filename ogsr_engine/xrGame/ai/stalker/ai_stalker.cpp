@@ -346,6 +346,8 @@ void CAI_Stalker::Load(LPCSTR section)
     m_can_select_items = !!pSettings->r_bool(section, "can_select_items");
 }
 
+#include "Car.h"
+#include "../../../xr_3da/x_ray.h"
 BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 {
     CSE_Abstract* e = (CSE_Abstract*)(DC);
@@ -437,6 +439,17 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 
     m_pPhysics_support->in_NetSpawn(e);
 
+    if (!pApp->ShowLoadingScreen())
+    {
+        if (Level().NPCid2CarIdToIsDriver.contains(ID()))
+        {
+            CarStorIsDriver *carStor = &Level().NPCid2CarIdToIsDriver.at(ID());
+            CObject* obj = Level().Objects.net_Find(carStor->carID);
+            if (obj)
+                smart_cast<CCar*>(obj)->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), carStor->isDriver);
+        }
+    }
+  
     return (TRUE);
 }
 
@@ -949,11 +962,20 @@ bool CAI_Stalker::can_attach(const CInventoryItem* inventory_item) const
     return (CObjectHandler::can_attach(inventory_item));
 }
 
+#include "holder_custom.h"
 void CAI_Stalker::save(NET_Packet& packet)
 {
     inherited::save(packet);
     CInventoryOwner::save(packet);
     brain().save(packet);
+
+    if (m_holderCustom)
+    {
+        ALife::_OBJECT_ID id = smart_cast<CGameObject*>(m_holderCustom)->ID();
+
+        packet.w_u16(id);
+        packet.w_u8(m_holderCustom->Owner()->ID() == ID() ? 1 : 0);
+    }
 }
 
 void CAI_Stalker::load(IReader& packet)
@@ -961,6 +983,12 @@ void CAI_Stalker::load(IReader& packet)
     inherited::load(packet);
     CInventoryOwner::load(packet);
     brain().load(packet);
+
+    ALife::_OBJECT_ID id = packet.r_u16();
+    bool isDriver = (bool) packet.r_u8();
+
+    if (id)
+        Level().NPCid2CarIdToIsDriver.emplace( ID(), CarStorIsDriver{id, isDriver});
 }
 
 void CAI_Stalker::load_critical_wound_bones()

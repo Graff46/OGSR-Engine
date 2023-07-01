@@ -1,15 +1,21 @@
 #include "stdafx.h"
 #include "CarPassengers.h"
 #include "..\Include/xrRender/Kinematics.h"
+#include "Car.h"
+
+CarPassengers::CarPassengers(CCar* obj) 
+{
+	car = obj;
+}
 
 void CarPassengers::create(IKinematics* pKinematics)
 {
-	/*CInifile* ini = pKinematics->LL_UserData();
+	CInifile* ini = pKinematics->LL_UserData();
 
 	if (ini->section_exist("passengers"))
 	{
 		CInifile::Sect& section = ini->r_section("passengers");
-
+		u8 id = 0;
 		for (const auto& item : section.Data)
 		{
 			u16 idBone = item.first == "root" ? pKinematics->LL_GetBoneRoot() : pKinematics->LL_BoneID(item.first);
@@ -20,40 +26,43 @@ void CarPassengers::create(IKinematics* pKinematics)
 				mx.c.add( offsetVec );
 			}
 
-			list.emplace(mx, false); 
+			id++;
+			list.emplace(id, Place{id, mx, false, 0});
 		}
-	}*/
+	}
 }
 
 const Fmatrix* CarPassengers::addPassenger(CAI_Stalker* npc)
 {
-	/*for (const auto& place : list)
+	if (occupiedPlaces.contains(npc))
+		return nullptr;
+
+	for (auto& [id, place] : list)
 	{
-		if ((!place.second) && (!occupiedPlaces.contains(npc)))
+		if (!place.occupied)
 		{
-			occupiedPlaces.emplace(npc, &place.first);
-			//doorId.emplace(npc, car->calcDoorForPlace(npc->XFORM().c));
+			//place.setProps(true, car->calcDoorForPlace(place.position()));
+			place.exitDoorId = car->calcDoorForPlace(&place.xform.c);
+			place.occupied = true;
+			occupiedPlaces.emplace(npc, &place);
 
-			list.at(place.first) = true;
-
-			return &place.first;
+			return &place.xform;
 		}
-	}*/
-	const Fmatrix mx;
-	return &mx;
+	}
+
+	return nullptr;
 }
 
 void CarPassengers::removePassenger(CAI_Stalker* npc)
 {
-	/*if (occupiedPlaces.contains(npc))
+	if (occupiedPlaces.contains(npc))
 	{
-		const Fmatrix* mx = occupiedPlaces.at(npc);
-		list.at(*mx) = false;
+		occupiedPlaces.at(npc)->setProps(false);
 		occupiedPlaces.erase(npc);
-	}*/
+	}
 }
 
-std::map<CAI_Stalker*, const Fmatrix*> CarPassengers::getOccupiedPlaces()
+xr_unordered_map<CAI_Stalker*, CarPassengers::Place*>* CarPassengers::getOccupiedPlaces()
 {
-	return occupiedPlaces;
+	return &occupiedPlaces;
 }

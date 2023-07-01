@@ -32,7 +32,6 @@
 #include "script_callback_ex.h"
 #include "script_game_object.h"
 #include "../xr_3da/x_ray.h"
-#include "CarPassengers.h"
 
 BONE_P_MAP CCar::bone_map = BONE_P_MAP();
 
@@ -98,7 +97,7 @@ CCar::CCar()
     m_current_rpm = 0.f;
     m_current_engine_power = 0.f;
     car_panel = NULL;
-    passengers = xr_new<CarPassengers>();
+    passengers = xr_new<CarPassengers>(this);
 
 #ifdef DEBUG
     InitDebug();
@@ -213,7 +212,6 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
             }
         }
     }
-
     return (CScriptEntity::net_Spawn(DC) && R);
 }
 
@@ -526,8 +524,8 @@ void CCar::VisualUpdate(float fov)
         }
     }
 
-    for (const auto& place : passengers->getOccupiedPlaces())
-        place.first->XFORM().mul_43(XFORM(), *place.second);
+    for (const auto& place : *passengers->getOccupiedPlaces())
+        place.first->XFORM().mul_43(XFORM(), place.second->xform);
 
     UpdateExhausts();
     m_lights.Update();
@@ -1853,9 +1851,9 @@ void CCar::CarExplode()
         else
             m_exit_position.set(Position());
         A->detach_Vehicle();*/
+    throwOutAll();
     if (CActor* A = OwnerActor())
     {
-        throwOutAll();
         if (A->g_Alive() <= 0.f)
             A->character_physics_support()->movement()->DestroyCharacter();
     }
@@ -2063,13 +2061,13 @@ void CCar::Die(CObject* who)
     CarExplode();
 }
 
-Fvector CCar::ExitVelocity()
+Fvector CCar::ExitVelocity(Fvector exitPos)
 {
     CPhysicsShell* P = PPhysicsShell();
     if (!P || !P->isActive())
         return Fvector().set(0, 0, 0);
     CPhysicsElement* E = P->get_ElementByStoreOrder(0);
-    Fvector v = ExitPosition();
+    Fvector v = exitPos;
     dBodyGetPointVel(E->get_body(), v.x, v.y, v.z, cast_fp(v));
     return v;
 }
@@ -2192,7 +2190,9 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 {
     CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);
 
-    if ( (Owner() && (Owner()->ID() != stalker->ID())) || (!passengers->getOccupiedPlaces().contains(stalker)))
+    bool isDriver = (Owner() && (Owner()->ID() == stalker->ID()));
+
+    if ( (!isDriver) && (!passengers->getOccupiedPlaces()->contains(stalker)))
         return;
 
     CPHShellSplitterHolder* sh = PPhysicsShell()->SplitterHolder();
@@ -2202,36 +2202,41 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     if (sh)
         sh->Activate();
     
-    if ((Owner()) && (Owner()->ID() == stalker->ID()))
+    if (isDriver)
         (smart_cast<CHolderCustom*>(this))->detach_Actor();
-    else
-        passengers->removePassenger(stalker);
 
     stalker->setVisible(1);
 
-    PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
+    //PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
 
     NeutralDrive();
     Unclutch();
     ResetKeys();
     m_current_rpm = m_min_rpm;
 
-    HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(false);
     /// Break();
     // H_SetParent(NULL);
     HandBreak();
-    processing_deactivate();
+
+    if ((!Owner()) && (passengers->getOccupiedPlaces()->empty()))
+        processing_deactivate();
 #ifdef DEBUG
     DBgClearPlots();
 #endif
     //
 
-    Fvector posExit;
-    //u16 exitDoor = passengers->getOccupiedPlaces().contains(stalker) ? passengers->getOccupiedPlaces().at(stalker).second : calcDoorForPlace(m_sits_transforms.c);
-    m_doors.begin()->second.GetExitPosition(posExit);
+    if ((isDriver) && (idDoorsExit4Driver == u16(-1)))
+        idDoorsExit4Driver = calcDoorForPlace(&m_sits_transforms.c);
 
-    stalker->character_physics_support()->movement()->SetPosition(posExit);
-    stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity());
+    Fvector posExit;
+    u16 exitDoor = passengers->getOccupiedPlaces()->contains(stalker) ? passengers->getOccupiedPlaces()->at(stalker)->exitDoorId : idDoorsExit4Driver;
+    m_doors.at(exitDoor).GetExitPosition(posExit);
+    Msg("m_doors %f, %f, %f", posExit.x, posExit.y, posExit.z);
+    passengers->removePassenger(stalker);
+
+    //stalker->character_physics_support()->movement()->SetPosition(posExit);
+    npc->lua_game_object()->SetNpcPosition(posExit);
+    //stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity(posExit));
 
     CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(stalker->alife_object());
 
@@ -2263,7 +2268,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     //.	SetWeaponHideState(whs_CAR, FALSE);
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
     
-    tpHuman->alife().switch_offline(smart_cast<CSE_ALifeDynamicObject*>(tpHuman));
+    //tpHuman->alife().switch_offline(smart_cast<CSE_ALifeDynamicObject*>(tpHuman));
 }
 
 void CCar::throwOutAll()
@@ -2279,26 +2284,26 @@ void CCar::throwOutAll()
     else if (CGameObject* npc = Owner())
         detach_NPC_Vehicle(npc);
 
-    for (const auto& itm : passengers->getOccupiedPlaces())
+    for (const auto& itm : *passengers->getOccupiedPlaces())
         detach_NPC_Vehicle(smart_cast<CGameObject*>(itm.first));
 }
 
-int CCar::calcDoorForPlace(Fvector posPlace)
+u8 CCar::calcDoorForPlace(const Fvector* posPlace)
 {
-    /*u8 minDist = u8(-1);
+    u8 minDist = u8(-1);
     u8 dist;
-    //u16 DoorId = u16(-1);
+    u16 DoorId = u16(-1);
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
 
     for (const auto& door : m_doors)
     {
-        dist = pKinematics->LL_GetTransform(door.first).c.distance_to(posPlace);
+        dist = pKinematics->LL_GetTransform(door.first).c.distance_to(*posPlace);
         if (dist < minDist)
         {
             minDist = dist;
-            //DoorId = (u16) door.first;
+            DoorId = (u16) door.first;
         }
-    }*/
+    }
 
-    return 0;
+    return DoorId;
 }

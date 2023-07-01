@@ -878,7 +878,7 @@ void reinit(CEnvironment* self, bool condCOPWeather = true)
 
 void reload_cars()
 {
-    CLevel().LoadCars();
+    Level().LoadCars();
 }
 
 #pragma optimize("s", on)

@@ -530,7 +530,8 @@ public:
     virtual bool allowWeapon() const { return false; }; //	{return true;};
     virtual bool HUDView() const;
     virtual Fvector ExitPosition() { return m_exit_position; }
-    virtual Fvector ExitVelocity();
+    virtual Fvector ExitVelocity(Fvector exitPos);
+    virtual Fvector ExitVelocity() { return ExitVelocity(m_exit_position); };
     void GetVelocity(Fvector& vel) { m_pPhysicsShell->get_LinearVel(vel); }
     void cam_Update(float dt, float fov);
     void detach_Actor();
@@ -538,7 +539,7 @@ public:
     bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
     void detach_NPC_Vehicle(CGameObject* npc);
     void throwOutAll();
-    int calcDoorForPlace(Fvector posPlace);
+    u8 calcDoorForPlace(const Fvector* posPlace);
     bool is_Door(u16 id, xr_map<u16, SDoor>::iterator& i);
     bool is_Door(u16 id);
     bool DoorOpen(u16 id);
@@ -635,6 +636,8 @@ private:
 
     // Inventory for the car
     CInventory* inventory;
+
+    u16 idDoorsExit4Driver = u16(-1);
 
     virtual void reinit();
     virtual void reload(LPCSTR section);

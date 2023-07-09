@@ -473,7 +473,6 @@ void CActor::ActorUse()
                 {
                     // Msg("--[%s] Actor Captured object: [%s]", __FUNCTION__, object->cName().c_str());
                     character_physics_support()->movement()->PHCaptureObject(object, (u16)RQ.element);
-
                     return;
                 }
             }

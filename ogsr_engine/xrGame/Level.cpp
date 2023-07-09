@@ -743,6 +743,11 @@ void CLevel::OnChangeCurrentWeather(const char* sect)
 #include "ai_object_location.h"
 void CLevel::LoadCars()
 {
+    auto callback = fastdelegate::MakeDelegate(Actor(), &CActor::on_requested_spawn);
+    ALife::_OBJECT_ID idHolder = Actor()->HolderID();
+    if (idHolder != ALife::_OBJECT_ID(-1))
+        Level().client_spawn_manager().add(idHolder, Actor()->ID(), callback);
+
     CObject* npc;
     CObject* car;
     for (const auto& kv : Level().NPCid2CarIdToIsDriver)

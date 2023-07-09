@@ -12,7 +12,7 @@ void CarPassengers::create(IKinematics* pKinematics)
 {
 	CInifile* ini = pKinematics->LL_UserData();
 
-	if (ini->section_exist("passengers"))
+	/*if (ini->section_exist("passengers"))
 	{
 		CInifile::Sect& section = ini->r_section("passengers");
 		u8 id = 0;
@@ -29,10 +29,35 @@ void CarPassengers::create(IKinematics* pKinematics)
 			id++;
 			list.emplace(id, Place{id, mx, false, 0});
 		}
+	}*/
+
+	if (ini->section_exist("passengers"))
+	{
+		u8 id = 0;
+
+		LPCSTR str = ini->r_string("passengers", "places");
+		string32 boneName;
+		string32 vecStr;
+		u8 count = _GetItemCount(str, '|');
+		for (u8 i = 0; i < count; i++)
+		{
+			_GetItem(str, i, boneName, '|');
+			_GetItem(str, ++i, vecStr, '|');
+
+			Fvector offset{};
+			sscanf(vecStr, "%f,%f,%f", &offset.x, &offset.y, &offset.z); 
+
+			u16 idBone = strcmp(boneName, "root") ? pKinematics->LL_BoneID(boneName) : pKinematics->LL_GetBoneRoot();
+			Fmatrix mx = pKinematics->LL_GetTransform(idBone);
+
+			mx.c.sub(offset);
+
+			list.emplace(++id, Place{ id, mx, false, 0 });
+		}	
 	}
 }
 
-const Fmatrix* CarPassengers::addPassenger(CAI_Stalker* npc)
+const Fmatrix* CarPassengers::addPassenger(CGameObject* npc)
 {
 	if (occupiedPlaces.contains(npc))
 		return nullptr;
@@ -41,7 +66,6 @@ const Fmatrix* CarPassengers::addPassenger(CAI_Stalker* npc)
 	{
 		if (!place.occupied)
 		{
-			//place.setProps(true, car->calcDoorForPlace(place.position()));
 			place.exitDoorId = car->calcDoorForPlace(&place.xform.c);
 			place.occupied = true;
 			occupiedPlaces.emplace(npc, &place);
@@ -53,16 +77,21 @@ const Fmatrix* CarPassengers::addPassenger(CAI_Stalker* npc)
 	return nullptr;
 }
 
-void CarPassengers::removePassenger(CAI_Stalker* npc)
+void CarPassengers::removePassenger(CGameObject* npc)
 {
 	if (occupiedPlaces.contains(npc))
 	{
-		occupiedPlaces.at(npc)->setProps(false);
+		occupiedPlaces.at(npc)->occupied = false;
 		occupiedPlaces.erase(npc);
 	}
 }
 
-xr_unordered_map<CAI_Stalker*, CarPassengers::Place*>* CarPassengers::getOccupiedPlaces()
+xr_unordered_map<CGameObject*, CarPassengers::Place*>* CarPassengers::getOccupiedPlaces()
 {
 	return &occupiedPlaces;
+}
+
+const u8 CarPassengers::vacantSits()
+{
+	return list.size() - occupiedPlaces.size();
 }

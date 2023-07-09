@@ -31,10 +31,11 @@ void CCar::cam_Update(float dt, float fov)
     {
     case ectFirst:
         // rotate head
-        if (OwnerActor())
-            OwnerActor()->Orientation().yaw = -active_camera->yaw;
-        if (OwnerActor())
-            OwnerActor()->Orientation().pitch = -active_camera->pitch;
+        if (ActorInside())
+        {
+            Actor()->Orientation().yaw = -active_camera->yaw;
+            Actor()->Orientation().pitch = -active_camera->pitch;
+        }   
         break;
     case ectChase: break;
     case ectFree: break;
@@ -46,16 +47,16 @@ void CCar::cam_Update(float dt, float fov)
 
 void CCar::OnCameraChange(int type)
 {
-    if (Owner())
+    if (ActorInside())
     {
         if (type == ectFirst)
         {
-            Owner()->setVisible(FALSE);
+            Actor()->setVisible(FALSE);
             current_camera_position = m_camera_position;
         }
         else if (active_camera->tag == ectFirst) //-V595
         {
-            Owner()->setVisible(TRUE);
+            Actor()->setVisible(TRUE);
             current_camera_position = m_camera_position_2;
         }
     }
@@ -63,6 +64,10 @@ void CCar::OnCameraChange(int type)
     if (!active_camera || active_camera->tag != type)
     {
         active_camera = camera[type];
+
+        if (actorPassenger)
+            current_camera_position.add(camDelta);
+
         if (ectFree == type)
         {
             Fvector xyz;

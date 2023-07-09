@@ -386,6 +386,9 @@ private:
 	Fvector m_camera_position_2;
 	Fvector current_camera_position;
 
+    bool actorPassenger = false;
+    Fvector camDelta;
+
 public:
     IC CCameraBase* get_active_camera() { return active_camera; };
 
@@ -535,7 +538,7 @@ public:
     void GetVelocity(Fvector& vel) { m_pPhysicsShell->get_LinearVel(vel); }
     void cam_Update(float dt, float fov);
     void detach_Actor();
-    bool attach_Actor(CGameObject* actor) override;
+    bool attach_Actor(CGameObject* actor, bool isPassengers = false) override;
     bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
     void detach_NPC_Vehicle(CGameObject* npc);
     void throwOutAll();
@@ -570,7 +573,9 @@ public:
     // Input
     virtual void OnMouseMove(int x, int y);
     virtual void OnKeyboardPress(int dik);
+    virtual void OnKeyPress(int dik, bool manual);
     virtual void OnKeyboardRelease(int dik);
+    virtual void OnKeyRelease(int dik, bool manual);
     virtual void OnKeyboardHold(int dik);
     virtual void vfProcessInputKey(int iCommand, bool bPressed);
     virtual void OnEvent(NET_Packet& P, u16 type);
@@ -605,6 +610,8 @@ public:
     // Inventory for the car
     CInventory* GetInventory() { return inventory; }
     void VisualUpdate(float fov = 90.0f);
+    Fvector calcExitPosition(Fvector* pos);
+    bool ActorInside() { return OwnerActor() || actorPassenger; };
 
 protected:
     virtual void SpawnInitPhysics(CSE_Abstract* D);

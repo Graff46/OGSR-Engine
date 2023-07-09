@@ -733,6 +733,7 @@ public:
 
 private:
     ALife::_OBJECT_ID m_holder_id;
+    bool isPassenger = false;
 
     xr_map<EGameActions, bool> m_blocked_actions; // Вектор с заблокированными действиями. Real Wolf. 14.10.2014.
 public:

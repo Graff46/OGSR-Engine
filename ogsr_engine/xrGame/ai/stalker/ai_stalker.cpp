@@ -477,6 +477,12 @@ void CAI_Stalker::net_Destroy()
     xr_delete(m_ce_ambush);
     xr_delete(m_ce_best_by_time);
     xr_delete(m_boneHitProtection);
+
+    if (m_holderCustom)
+    {
+        CCar* car = smart_cast<CCar*>(m_holderCustom);
+        car->passengers->removePassenger(smart_cast<CGameObject*>(this));
+    }
 }
 
 void CAI_Stalker::net_Save(NET_Packet& P)
@@ -974,8 +980,14 @@ void CAI_Stalker::save(NET_Packet& packet)
         ALife::_OBJECT_ID id = smart_cast<CGameObject*>(m_holderCustom)->ID();
 
         packet.w_u16(id);
-        packet.w_u8(m_holderCustom->Owner()->ID() == ID() ? 1 : 0);
+        CGameObject* owner = m_holderCustom->Owner();
+        packet.w_u8(((owner) && (owner->ID() == ID())) ? 1 : 0);
     }
+    else 
+    {
+        packet.w_u16(u16(-1));
+        packet.w_u8(0);
+    } 
 }
 
 void CAI_Stalker::load(IReader& packet)
@@ -987,7 +999,7 @@ void CAI_Stalker::load(IReader& packet)
     ALife::_OBJECT_ID id = packet.r_u16();
     bool isDriver = (bool) packet.r_u8();
 
-    if (id)
+    if (id != u16(-1))
         Level().NPCid2CarIdToIsDriver.emplace( ID(), CarStorIsDriver{id, isDriver});
 }
 

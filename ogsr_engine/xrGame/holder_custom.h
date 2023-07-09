@@ -41,7 +41,7 @@ public:
     virtual void cam_Update(float dt, float fov = 90.0f) = 0;
 
     virtual bool Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos) = 0;
-    virtual bool attach_Actor(CGameObject* actor);
+    virtual bool attach_Actor(CGameObject* actor, bool isPassengers = false);
     virtual void detach_Actor();
     virtual bool allowWeapon() const = 0;
     virtual bool HUDView() const = 0;

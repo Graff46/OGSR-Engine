@@ -31,19 +31,31 @@ void CActor::attach_Vehicle(CHolderCustom* vehicle)
 
     if (m_holder)
         return;
+
+    CCar* car = smart_cast<CCar*>(vehicle);
+
+    if (car)
+    {
+        if (((car) && (car->Owner()) && (car->passengers->vacantSits() > 0)))
+            isPassenger = true;
+
+        if (((!isPassenger) && (vehicle->Owner())) || ((isPassenger) && (car->passengers->vacantSits() < 1)))
+            return;
+    }
+
     PickupModeOff();
-    m_holder = vehicle;
+    m_holder = vehicle;// isPassenger ? nullptr : vehicle;
 
     IKinematicsAnimated* V = smart_cast<IKinematicsAnimated*>(Visual());
     R_ASSERT(V);
 
-    if (!m_holder->attach_Actor(this))
+    if (!vehicle->attach_Actor(this, isPassenger))
     {
         m_holder = NULL;
         return;
     }
     // temp play animation
-    CCar* car = smart_cast<CCar*>(m_holder);
+    
     u16 anim_type = car->DriverAnimationType();
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     V->PlayCycle(anims.idles[0], FALSE);
@@ -54,13 +66,15 @@ void CActor::attach_Vehicle(CHolderCustom* vehicle)
 
     character_physics_support()->movement()->DestroyCharacter();
     mstate_wishful = 0;
+    
+    //if (isPassenger)
     m_holderID = car->ID();
 
     SetWeaponHideState(INV_STATE_CAR, true);
 
     CStepManager::on_animation_start(MotionID(), 0);
 
-    this->callback(GameObject::eAttachVehicle)(car->lua_game_object());
+    this->callback(GameObject::eAttachVehicle)(car->lua_game_object(), this->lua_game_object());
 }
 
 void CActor::detach_Vehicle()
@@ -83,8 +97,16 @@ void CActor::detach_Vehicle()
         sh->Activate();
     m_holder->detach_Actor(); //
 
-    character_physics_support()->movement()->SetPosition(m_holder->ExitPosition());
-    character_physics_support()->movement()->SetVelocity(m_holder->ExitVelocity());
+    Fvector exitPosition = m_holder->ExitPosition();
+    Fvector exitVelocity = m_holder->ExitVelocity();
+    if (car->passengers->getOccupiedPlaces()->contains(smart_cast<CGameObject*>(this)))
+    {
+        exitPosition.set(car->calcExitPosition(&Position()));
+        exitVelocity.set( car->ExitVelocity(exitPosition) );
+    }
+
+    character_physics_support()->movement()->SetPosition(exitPosition);
+    character_physics_support()->movement()->SetVelocity(exitVelocity);
 
     r_model_yaw = -m_holder->Camera()->yaw;
     r_torso.yaw = r_model_yaw;
@@ -100,7 +122,7 @@ void CActor::detach_Vehicle()
     //.	SetWeaponHideState(whs_CAR, FALSE);
     SetWeaponHideState(INV_STATE_CAR, false);
 
-    this->callback(GameObject::eDetachVehicle)(car->lua_game_object());
+    this->callback(GameObject::eDetachVehicle)(car->lua_game_object(), this->lua_game_object());
 }
 
 bool CActor::use_Vehicle(CHolderCustom* object)

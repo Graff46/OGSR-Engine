@@ -436,19 +436,26 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     {
         movement().locations().Load(*SpecificCharacter().terrain_sect());
     }
-
-    m_pPhysics_support->in_NetSpawn(e);
-
-    if (!pApp->ShowLoadingScreen())
+    
+    CCar* car{};
+    if (1)
     {
         if (Level().NPCid2CarIdToIsDriver.contains(ID()))
         {
             CarStorIsDriver *carStor = &Level().NPCid2CarIdToIsDriver.at(ID());
             CObject* obj = Level().Objects.net_Find(carStor->carID);
-            if (obj)
-                smart_cast<CCar*>(obj)->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), carStor->isDriver);
+            if (obj) 
+            {
+                car = smart_cast<CCar*>(obj);
+                car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), carStor->isDriver, true);
+            }
         }
     }
+
+    m_pPhysics_support->in_NetSpawn(e);
+
+    if (car)
+        car->predNPCattach(this);
   
     return (TRUE);
 }

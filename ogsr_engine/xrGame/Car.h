@@ -539,7 +539,8 @@ public:
     void cam_Update(float dt, float fov);
     void detach_Actor();
     bool attach_Actor(CGameObject* actor, bool isPassengers = false) override;
-    bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
+    bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false, bool load = false);
+    void predNPCattach(CAI_Stalker* stalker);
     void detach_NPC_Vehicle(CGameObject* npc);
     void throwOutAll();
     u8 calcDoorForPlace(const Fvector* posPlace);

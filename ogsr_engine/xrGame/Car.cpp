@@ -2147,7 +2147,7 @@ void CCar::SyncNetState()
 #include "stalker_movement_manager.h"
 #include "sight_manager.h"
 #include "stalker_planner.h"
-bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
+bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
 {
     if (CPHDestroyable::Destroyed())
         return false;
@@ -2173,19 +2173,20 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     PPhysicsShell()->Enable();
     PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
-    ReleaseBreaks();
-
-    //stalker->animation().clear_script_animations();
-    stalker->animation().reinit();
+    ReleaseBreaks();  
 
     stalker->m_holderCustom = vehicle;
     Level().NPCid2CarIdToIsDriver.erase(npc->ID());
 
-    stalker->character_physics_support()->movement()->DisableCharacter();
+    if (!load)
+    {
+        stalker->animation().reinit();
+        stalker->character_physics_support()->movement()->DisableCharacter();
+        stalker->movement().enable_movement(false);
+        stalker->sight().enable(false);
+    }
     stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
     stalker->brain().active(false);
-    stalker->movement().enable_movement(false);
-    stalker->sight().enable(false);
 
     // temp play animation
     u16 anim_type = DriverAnimationType();
@@ -2198,20 +2199,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
 
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
-
-    // ResetCallbacks
-    IKinematics* npcV = smart_cast<IKinematics*>(npc->Visual());
-
-    u16 spine0_bone = npcV->LL_BoneID("bip01_spine");
-    u16 spine1_bone = npcV->LL_BoneID("bip01_spine1");
-    u16 shoulder_bone = npcV->LL_BoneID("bip01_spine2");
-    u16 head_boneRC = npcV->LL_BoneID("bip01_head");
-    npcV->LL_GetBoneInstance(u16(spine0_bone)).reset_callback();
-    npcV->LL_GetBoneInstance(u16(spine1_bone)).reset_callback();
-    npcV->LL_GetBoneInstance(u16(shoulder_bone)).reset_callback();
-    npcV->LL_GetBoneInstance(u16(head_boneRC)).reset_callback();
-    // ResetCallbacks
-
+    
     //u16 head_bone = npcAV->dcast_PKinematics()->LL_BoneID("bip01_head");
     //npcAV->dcast_PKinematics()->LL_GetBoneInstance(head_bone).set_callback(bctPhysics, stalker->animation().VehicleHeadCallback, this);
     
@@ -2223,6 +2211,30 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     stalker->CStepManager::on_animation_start(MotionID(), 0);
 
     return true;
+}
+
+void CCar::predNPCattach(CAI_Stalker* stalker)
+{
+    stalker->animation().reinit();
+    stalker->character_physics_support()->movement()->DisableCharacter();
+    
+    stalker->movement().enable_movement(false);
+    stalker->sight().enable(false);
+    
+    u16 anim_type = DriverAnimationType();
+
+    SActorVehicleAnims* m_vehicle_anims = xr_new<SActorVehicleAnims>();
+    IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(stalker->Visual());
+    m_vehicle_anims->Create(npcAV);
+
+    Fmatrix* placeMatrix = &m_sits_transforms;
+    if (passengers->getOccupiedPlaces()->contains(smart_cast<CGameObject*>(stalker)))
+        placeMatrix = &passengers->getOccupiedPlaces()->at(smart_cast<CGameObject*>(stalker))->xform;
+    
+    stalker->XFORM().mul_43(XFORM(), *placeMatrix);
+
+    SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
+    npcAV->PlayCycle(anims.idles[0], FALSE);
 }
 
 #include "PHShellSplitter.h"

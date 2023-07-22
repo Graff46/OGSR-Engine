@@ -438,30 +438,36 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     }
     
     CCar* car{};
-    if (1)
+    CarStorIsDriver* carStor;
+    if (Level().NPCid2CarIdToIsDriver.contains(ID()))
     {
-        if (Level().NPCid2CarIdToIsDriver.contains(ID()))
+        carStor = &Level().NPCid2CarIdToIsDriver.at(ID());
+        CObject* obj = Level().Objects.net_Find(carStor->carID);
+        if (obj) 
         {
-            CarStorIsDriver *carStor = &Level().NPCid2CarIdToIsDriver.at(ID());
-            CObject* obj = Level().Objects.net_Find(carStor->carID);
-            if (obj) 
-            {
-                car = smart_cast<CCar*>(obj);
-                car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), carStor->isDriver, true);
-            }
+            car = smart_cast<CCar*>(obj);
+            XFORM().mulA_43(car->XFORM());
         }
     }
 
     m_pPhysics_support->in_NetSpawn(e);
 
     if (car)
-        car->predNPCattach(this);
-  
+        car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), carStor->isDriver);
+
     return (TRUE);
 }
 
 void CAI_Stalker::net_Destroy()
 {
+    if (m_holderCustom)
+    {
+        CCar* car = smart_cast<CCar*>(m_holderCustom);
+        CGameObject* obj = smart_cast<CGameObject*>(this);
+        car->passengers->removePassenger(obj);
+        car->detach_NPC_Vehicle(obj);
+    }
+
     m_pPhysics_support->SyncNetState();
     inherited::net_Destroy();
     CInventoryOwner::net_Destroy();
@@ -484,12 +490,6 @@ void CAI_Stalker::net_Destroy()
     xr_delete(m_ce_ambush);
     xr_delete(m_ce_best_by_time);
     xr_delete(m_boneHitProtection);
-
-    if (m_holderCustom)
-    {
-        CCar* car = smart_cast<CCar*>(m_holderCustom);
-        car->passengers->removePassenger(smart_cast<CGameObject*>(this));
-    }
 }
 
 void CAI_Stalker::net_Save(NET_Packet& P)

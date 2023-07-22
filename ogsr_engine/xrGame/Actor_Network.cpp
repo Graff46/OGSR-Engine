@@ -212,10 +212,12 @@ BOOL CActor::net_Spawn(CSE_Abstract* DC)
         m_HeavyBreathSnd.stop();
     }
 
-    //auto callback = fastdelegate::MakeDelegate(this, &CActor::on_requested_spawn);
     m_holder_id = E->m_holderID;
-    /*if (E->m_holderID != ALife::_OBJECT_ID(-1))
-        Level().client_spawn_manager().add(E->m_holderID, ID(), callback);*/
+    if (E->m_holderID != ALife::_OBJECT_ID(-1))
+    {
+        auto callback = fastdelegate::MakeDelegate(this, &CActor::on_requested_spawn);
+        Level().client_spawn_manager().add(E->m_holderID, ID(), callback);
+    } 
     // F
     //-------------------------------------------------------------
     m_iLastHitterID = u16(-1);

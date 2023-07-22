@@ -173,4 +173,5 @@ void CActor::on_requested_spawn(CObject* object)
 {
     CCar* car = smart_cast<CCar*>(object);
     attach_Vehicle(car);
+    car->PPhysicsShell()->EnableCollision();
 }

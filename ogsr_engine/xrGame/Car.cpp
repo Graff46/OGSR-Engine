@@ -253,6 +253,9 @@ void CCar::net_Destroy()
     {
         pKinematics->LL_GetBoneInstance(m_bone_steer).reset_callback();
     }
+
+    throwOutAll();
+
     CScriptEntity::net_Destroy();
     inherited::net_Destroy();
     CExplosive::net_Destroy();
@@ -278,8 +281,6 @@ void CCar::net_Destroy()
     CPHDestroyable::RespawnInit();
     CPHCollisionDamageReceiver::Clear();
     b_breaks = false;
-
-    throwOutAll();
 }
 
 void CCar::net_Save(NET_Packet& P)
@@ -414,7 +415,9 @@ void CCar::RestoreNetState(CSE_PHSkeleton* /*po*/)
         dd.sub(activation_shape.Position(), center);
         activation_shape.Destroy();
         sof.c.add(dd);
-        PPhysicsShell()->EnableCollision();
+        
+        if (Actor()->HolderID() != ID())
+            PPhysicsShell()->EnableCollision();
     }
 
     replace.mul(sof, inv);
@@ -2170,22 +2173,25 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
     else if (!placeMatrix)
         return false;
 
-    PPhysicsShell()->Enable();
-    PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
-    processing_activate();
-    ReleaseBreaks();  
+    
 
     stalker->m_holderCustom = vehicle;
     Level().NPCid2CarIdToIsDriver.erase(npc->ID());
 
     if (!load)
     {
+        PPhysicsShell()->Enable();
+        PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
+        processing_activate();
+        ReleaseBreaks(); 
+
         stalker->animation().reinit();
         stalker->character_physics_support()->movement()->DisableCharacter();
         stalker->movement().enable_movement(false);
         stalker->sight().enable(false);
+        stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
     }
-    stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
+    
     stalker->brain().active(false);
 
     // temp play animation
@@ -2199,13 +2205,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
 
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
-    
-    //u16 head_bone = npcAV->dcast_PKinematics()->LL_BoneID("bip01_head");
-    //npcAV->dcast_PKinematics()->LL_GetBoneInstance(head_bone).set_callback(bctPhysics, stalker->animation().VehicleHeadCallback, this);
-    
-    // TODO:
-    //mstate_wishful = 0; 
-    //m_holderID = car->ID();
+
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, true);
     
     stalker->CStepManager::on_animation_start(MotionID(), 0);
@@ -2220,6 +2220,7 @@ void CCar::predNPCattach(CAI_Stalker* stalker)
     
     stalker->movement().enable_movement(false);
     stalker->sight().enable(false);
+    character_physics_support()->movement()->PHCharacter()->b_exist = false;
     
     u16 anim_type = DriverAnimationType();
 
@@ -2268,7 +2269,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
         sh->Activate();
     
     if (isDriver)
-        (smart_cast<CHolderCustom*>(this))->detach_Actor();
+        CHolderCustom::detach_Actor();
 
     stalker->setVisible(1);
 

@@ -680,7 +680,9 @@ void CApplication::Level_Set(u32 L)
     Level_Current = L;
     FS.get_path("$level$")->_set(Levels[L].folder);
     string_path tmp;
-    FS.get_path("$level_textures_ex$")->_set(xr_strconcat(tmp, "seasons\\", Seasons::getSeasonName(), "\\levels\\", Levels[L].folder));
+    FS_Path* gte = FS.get_path("$level_textures_ex$"); 
+    gte->_set(xr_strconcat(tmp, "seasons\\", Seasons::getSeasonName(), "\\levels\\", Levels[L].folder));
+    FS.rescan_physical_path(gte->m_Path, TRUE, TRUE);
 
     string_path temp, temp2;
     strconcat(sizeof(temp), temp, "intro\\intro_", Levels[L].folder);

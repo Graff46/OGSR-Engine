@@ -2260,8 +2260,6 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
         return;
 
     CPHShellSplitterHolder* sh = PPhysicsShell()->SplitterHolder();
-    //if (sh)
-    //    sh->Deactivate();
 
     if (sh)
         sh->Activate();
@@ -2271,15 +2269,11 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 
     stalker->setVisible(1);
 
-    //PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
-
     NeutralDrive();
     Unclutch();
     ResetKeys();
     m_current_rpm = m_min_rpm;
 
-    /// Break();
-    // H_SetParent(NULL);
     HandBreak();
 
     if ((!Owner()) && (passengers->getOccupiedPlaces()->empty()))
@@ -2298,16 +2292,8 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 
     passengers->removePassenger(npc);
 
-    //stalker->character_physics_support()->movement()->SetPosition(posExit);
-    //stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity(posExit));
 
     CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(stalker->alife_object());
-
-    /*if (ai().game_graph().valid_vertex_id(tpHuman->m_tGraphID))
-        stalker->ai_location().game_vertex(tpHuman->m_tGraphID);
-
-    if (ai().game_graph().valid_vertex_id(tpHuman->m_tNextGraphID) && stalker->movement().restrictions().accessible(ai().game_graph().vertex(tpHuman->m_tNextGraphID)->level_point()))
-        stalker->movement().set_game_dest_vertex(tpHuman->m_tNextGraphID);*/
 
     stalker->CStepManager::reload(stalker->cNameSect().c_str());
 
@@ -2316,11 +2302,9 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     stalker->character_physics_support()->movement()->EnableCharacter();
     stalker->character_physics_support()->movement()->PHCharacter()->b_exist = true;
     stalker->movement().enable_movement(true);
-    //stalker->movement().reinit();
+
     stalker->brain().active(true);
     stalker->sight().enable(true);
-
-    //npc->lua_game_object()->SetNpcPosition(posExit);
 
     stalker->character_physics_support()->movement()->SetPosition(posExit);
     stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity(posExit));
@@ -2333,10 +2317,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     stalker->m_holderCustom = nullptr;
     Level().NPCid2CarIdToIsDriver.erase(npc->ID());
 
-    //.	SetWeaponHideState(whs_CAR, FALSE);
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
-    
-    //tpHuman->alife().switch_offline(smart_cast<CSE_ALifeDynamicObject*>(tpHuman));
 }
 
 void CCar::throwOutAll()

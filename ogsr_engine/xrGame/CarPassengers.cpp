@@ -12,25 +12,6 @@ void CarPassengers::create(IKinematics* pKinematics)
 {
 	CInifile* ini = pKinematics->LL_UserData();
 
-	/*if (ini->section_exist("passengers"))
-	{
-		CInifile::Sect& section = ini->r_section("passengers");
-		u8 id = 0;
-		for (const auto& item : section.Data)
-		{
-			u16 idBone = item.first == "root" ? pKinematics->LL_GetBoneRoot() : pKinematics->LL_BoneID(item.first);
-			Fmatrix mx = pKinematics->LL_GetTransform(idBone);
-
-			if (item.second.size()) {
-				Fvector offsetVec = ini->r_fvector3("passengers", item.first.c_str());
-				mx.c.add( offsetVec );
-			}
-
-			id++;
-			list.emplace(id, Place{id, mx, false, 0});
-		}
-	}*/
-
 	if (ini->section_exist("passengers"))
 	{
 		u8 id = 0;

@@ -1038,7 +1038,6 @@ void CCar::Init()
         id = pKinematics->LL_BoneID(ini->r_string("car_definition", "driver_place"));
     else
     {
-        Owner()->setVisible(0);
         id = pKinematics->LL_GetBoneRoot();
     }
     Fmatrix* sitTransform = &pKinematics->LL_GetTransform(id);
@@ -2173,10 +2172,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
     else if (!placeMatrix)
         return false;
 
-    
-
     stalker->m_holderCustom = vehicle;
-    Level().NPCid2CarIdToIsDriver.erase(npc->ID());
 
     if (!load)
     {
@@ -2209,6 +2205,8 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, true);
     
     stalker->CStepManager::on_animation_start(MotionID(), 0);
+
+    Level().NPCid2CarIdToIsDriver.insert_or_assign(stalker->ID(), CarStorIsDriver{ ID(), driver});
 
     return true;
 }
@@ -2301,7 +2299,6 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     passengers->removePassenger(npc);
 
     //stalker->character_physics_support()->movement()->SetPosition(posExit);
-    npc->lua_game_object()->SetNpcPosition(posExit);
     //stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity(posExit));
 
     CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(stalker->alife_object());
@@ -2322,6 +2319,11 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     //stalker->movement().reinit();
     stalker->brain().active(true);
     stalker->sight().enable(true);
+
+    //npc->lua_game_object()->SetNpcPosition(posExit);
+
+    stalker->character_physics_support()->movement()->SetPosition(posExit);
+    stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity(posExit));
 
     CStalkerMovementManager* movement = &stalker->movement();
     movement->m_head.current.yaw = movement->m_head.target.yaw = movement->m_body.current.yaw =

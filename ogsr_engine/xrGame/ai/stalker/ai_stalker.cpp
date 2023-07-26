@@ -63,6 +63,8 @@
 #include "../../team_hierarchy_holder.h"
 #include "../../squad_hierarchy_holder.h"
 #include "../../group_hierarchy_holder.h"
+#include "Car.h"
+#include "../../../xr_3da/x_ray.h"
 
 #ifdef DEBUG
 #include "../../alife_simulator.h"
@@ -306,6 +308,15 @@ void CAI_Stalker::Die(CObject* who)
     //запретить использование слотов в инвенторе
     inventory().SetSlotsUseful(false);
 
+    if (m_holderCustom)
+    {
+        CCar* car = smart_cast<CCar*>(m_holderCustom);
+        CGameObject* obj = smart_cast<CGameObject*>(this);
+        car->passengers->removePassenger(obj);
+        m_holderCustom = nullptr;
+        Level().NPCid2CarIdToIsDriver.erase(ID());
+    }
+
 #pragma todo("KD: Поскольку весь лут непися пока обрабатывается в скриптах, в этом месте отключено удаление лута")
 #if 0
 	if (inventory().GetActiveSlot() >= inventory().m_slots.size())
@@ -346,8 +357,6 @@ void CAI_Stalker::Load(LPCSTR section)
     m_can_select_items = !!pSettings->r_bool(section, "can_select_items");
 }
 
-#include "Car.h"
-#include "../../../xr_3da/x_ray.h"
 BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 {
     CSE_Abstract* e = (CSE_Abstract*)(DC);
@@ -460,14 +469,6 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 
 void CAI_Stalker::net_Destroy()
 {
-    if (m_holderCustom)
-    {
-        CCar* car = smart_cast<CCar*>(m_holderCustom);
-        CGameObject* obj = smart_cast<CGameObject*>(this);
-        car->passengers->removePassenger(obj);
-        car->detach_NPC_Vehicle(obj);
-    }
-
     m_pPhysics_support->SyncNetState();
     inherited::net_Destroy();
     CInventoryOwner::net_Destroy();

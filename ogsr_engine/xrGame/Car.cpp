@@ -219,7 +219,15 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
         m_memory->reload(pUserData->r_string("visual_memory_definition", "section"));
     }
 
-    return (CScriptEntity::net_Spawn(DC) && R);
+    bool result = (CScriptEntity::net_Spawn(DC) && R);
+
+    if (ID() == Actor()->HolderID()) 
+    {
+        Actor()->attach_Vehicle(smart_cast<CHolderCustom*>(this));
+        PPhysicsShell()->EnableCollision();
+    }
+
+    return result;
 }
 
 void CCar::ActorObstacleCallback(bool& do_colide, bool bo1, dContact& c, SGameMtl* material_1, SGameMtl* material_2)
@@ -430,7 +438,8 @@ void CCar::RestoreNetState(CSE_PHSkeleton* /*po*/)
         activation_shape.Destroy();
         sof.c.add(dd);
         
-        PPhysicsShell()->EnableCollision();
+        if (ID() != Actor()->HolderID())
+            PPhysicsShell()->EnableCollision();
     }
 
     replace.mul(sof, inv);

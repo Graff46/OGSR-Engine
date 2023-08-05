@@ -3,6 +3,7 @@
 #include "Car.h"
 #include "CarWeapon.h"
 #include "script_game_object.h"
+#include "xrServer_Objects_ALife_Monsters.h"
 
 using namespace luabind;
 
@@ -47,5 +48,7 @@ void CCar::script_register(lua_State* L)
                   .def("attach", &attachNPC)
                   .def("detach", &detachNPC)
                   .def_readonly("handbrake", &CCar::brp)
+                  .def("set_actor_as_passenger", &CCar::setActorAsPassenger)
+                  .def("actor_inside", &CCar::ActorInside)
                   .def(constructor<>())];
 }

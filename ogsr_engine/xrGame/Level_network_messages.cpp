@@ -15,6 +15,7 @@
 
 #include "HudManager.h"
 #include "UIGameSP.h"
+#include "NpcCarStor.h"
 
 void CLevel::ClientReceive()
 {
@@ -78,6 +79,7 @@ void CLevel::ClientReceive()
             break;
         case M_RELOAD_GAME:
         case M_LOAD_GAME:
+            NpcCarStor::clear();
         case M_CHANGE_LEVEL: {
 
             // костыль для автозакрытия любого диалога в случае смены уровня
@@ -85,6 +87,8 @@ void CLevel::ClientReceive()
             {
                 HUD().GetUI()->StartStopMenu(HUD().GetUI()->MainInputReceiver(), true);
             }
+
+            NpcCarStor::setFlagClear(m_type != M_CHANGE_LEVEL);
 
             if (m_type == M_LOAD_GAME)
             {

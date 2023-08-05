@@ -40,12 +40,6 @@ class CFogOfWarMngr;
 class CBulletManager;
 class CMapManager;
 
-struct CarStorIsDriver
-{
-    ALife::_OBJECT_ID carID;
-    bool isDriver;
-};
-
 #include "..\xr_3da\feel_touch.h"
 
 class GlobalFeelTouch : public Feel::Touch
@@ -313,7 +307,6 @@ public:
     void OnDestroyObject(u16 id) override;
     virtual void OnChangeCurrentWeather(const char* sect) override;
 
-    xr_map<ALife::_OBJECT_ID, CarStorIsDriver> NPCid2CarIdToIsDriver;
     void LoadCars();
 
     DECLARE_SCRIPT_REGISTER_FUNCTION

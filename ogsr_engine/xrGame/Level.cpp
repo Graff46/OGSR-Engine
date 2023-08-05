@@ -52,6 +52,8 @@
 #include "UIGameSP.h"
 #include "ui/UIPDAWnd.h"
 #include "ui/UIBtnHint.h"
+#include "NpcCarStor.h"
+
 
 CPHWorld* ph_world = 0;
 
@@ -160,6 +162,8 @@ extern CAI_Space* g_ai_space;
 
 CLevel::~CLevel()
 {
+    NpcCarStor::clear();
+
     xr_delete(g_player_hud);
     //	g_pGameLevel		= NULL;
     Msg("- Destroying level");
@@ -743,14 +747,14 @@ void CLevel::OnChangeCurrentWeather(const char* sect)
 #include "ai_object_location.h"
 void CLevel::LoadCars()
 {
-    auto callback = fastdelegate::MakeDelegate(Actor(), &CActor::on_requested_spawn);
+    /*auto callback = fastdelegate::MakeDelegate(Actor(), &CActor::on_requested_spawn);
     ALife::_OBJECT_ID idHolder = Actor()->HolderID();
     if (idHolder != ALife::_OBJECT_ID(-1))
         Level().client_spawn_manager().add(idHolder, Actor()->ID(), callback);
 
     CObject* npc;
     CObject* car;
-    for (const auto& kv : Level().NPCid2CarIdToIsDriver)
+    //for (const auto& kv : NpcCarStor::)
     {
         npc = Level().Objects.net_Find(kv.first);
         car = Level().Objects.net_Find(kv.second.carID);
@@ -762,15 +766,11 @@ void CLevel::LoadCars()
             CCar *Ccar = smart_cast<CCar*>(car);
             if (se_npc && Ccar)
             {
-                CGameGraph& gg = ai().game_graph();
-                if (gg.valid_vertex_id(se_npc->m_tGraphID))
-                {
-                    if (gg.vertex(se_npc->m_tGraphID)->level_id() != ai().level_graph().level_id())
-                        se_npc->alife().teleport_object(kv.first, Ccar->ai_location().game_vertex_id(), Ccar->ai_location().level_vertex_id(), Ccar->Position());
-                }
+                if (ai().game_graph().valid_vertex_id(se_npc->m_tGraphID))
+                    se_npc->alife().teleport_object(kv.first, Ccar->ai_location().game_vertex_id(), Ccar->ai_location().level_vertex_id(), Ccar->Position());
             }
         }
-    }
+    }*/
 }
 
 u32 GameID() { return Game().Type(); }

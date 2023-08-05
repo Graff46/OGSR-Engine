@@ -53,6 +53,9 @@ void CCar::OnCameraChange(int type)
         {
             Actor()->setVisible(FALSE);
             current_camera_position = m_camera_position;
+
+            if (actorPassenger)
+                current_camera_position.add(camDelta);
         }
         else if (active_camera->tag == ectFirst) //-V595
         {
@@ -64,9 +67,6 @@ void CCar::OnCameraChange(int type)
     if (!active_camera || active_camera->tag != type)
     {
         active_camera = camera[type];
-
-        if (actorPassenger)
-            current_camera_position.add(camDelta);
 
         if (ectFree == type)
         {

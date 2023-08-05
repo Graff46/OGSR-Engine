@@ -36,7 +36,7 @@ void CActor::attach_Vehicle(CHolderCustom* vehicle)
 
     if (car)
     {
-        if (((car) && (car->Owner()) && (car->passengers->vacantSits() > 0)))
+        if (((car) && (car->Owner()) && (car->passengers->vacantSits() > 0)) || (car->getActorAsPassenger()))
             isPassenger = true;
 
         if (((!isPassenger) && (vehicle->Owner())) || ((isPassenger) && (car->passengers->vacantSits() < 1)))
@@ -99,10 +99,14 @@ void CActor::detach_Vehicle()
 
     Fvector exitPosition = m_holder->ExitPosition();
     Fvector exitVelocity = m_holder->ExitVelocity();
-    if (car->passengers->getOccupiedPlaces()->contains(smart_cast<CGameObject*>(this)))
+
+    CGameObject* obj = smart_cast<CGameObject*>(this);
+    if (car->passengers->getOccupiedPlaces()->contains(obj))
     {
         exitPosition.set(car->calcExitPosition(&Position()));
         exitVelocity.set( car->ExitVelocity(exitPosition) );
+
+        car->passengers->removePassenger(obj);
     }
 
     character_physics_support()->movement()->SetPosition(exitPosition);
@@ -172,6 +176,7 @@ bool CActor::use_Vehicle(CHolderCustom* object)
 void CActor::on_requested_spawn(CObject* object)
 {
     CCar* car = smart_cast<CCar*>(object);
+    car->PPhysicsShell()->DisableCollision();
     attach_Vehicle(car);
     car->PPhysicsShell()->EnableCollision();
 }

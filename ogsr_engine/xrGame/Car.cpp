@@ -32,6 +32,7 @@
 #include "script_callback_ex.h"
 #include "script_game_object.h"
 #include "../xr_3da/x_ray.h"
+#include "NpcCarStor.h"
 
 BONE_P_MAP CCar::bone_map = BONE_P_MAP();
 
@@ -160,6 +161,9 @@ void CCar::Load(LPCSTR section)
         self->spatial.type |= STYPE_VISIBLEFORAI;
 }
 
+#include "alife_simulator.h"
+#include "alife_object_registry.h"
+#include "ai_object_location.h"
 BOOL CCar::net_Spawn(CSE_Abstract* DC)
 {
 #ifdef DEBUG
@@ -171,6 +175,22 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
 
     PKinematics(Visual())->CalculateBones_Invalidate();
     PKinematics(Visual())->CalculateBones();
+
+    bool isDriver;
+    ALife::_OBJECT_ID npcId;
+    if (NpcCarStor::getFromCarId(ID(), npcId, isDriver))
+    {
+        CObject* npc = Level().Objects.net_Find(npcId);
+        CSE_ALifeDynamicObject* se_npc;
+
+        if (npc)
+            attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), isDriver);
+        else if(se_npc = ai().get_alife()->objects().object(npcId, true))
+        {
+            if (ai().game_graph().valid_vertex_id(se_npc->m_tGraphID))
+                se_npc->alife().teleport_object(npcId, ai_location().game_vertex_id(), ai_location().level_vertex_id(), Position());
+        }
+    }
 
     CPHSkeleton::Spawn(e);
     setEnabled(TRUE);
@@ -199,19 +219,6 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
         m_memory->reload(pUserData->r_string("visual_memory_definition", "section"));
     }
 
-    if (!pApp->ShowLoadingScreen())
-    {
-        for (const auto& kv : Level().NPCid2CarIdToIsDriver)
-        {
-            if (kv.second.carID == ID())
-            {
-                CObject* npc = Level().Objects.net_Find(kv.first);
-
-                if (npc)
-                    attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), kv.second.isDriver);
-            }
-        }
-    }
     return (CScriptEntity::net_Spawn(DC) && R);
 }
 
@@ -254,7 +261,14 @@ void CCar::net_Destroy()
         pKinematics->LL_GetBoneInstance(m_bone_steer).reset_callback();
     }
 
-    throwOutAll();
+    if (CActor* A = OwnerActor())
+    {
+        if (!m_doors.empty())
+            m_doors.begin()->second.GetExitPosition(m_exit_position);
+        else
+            m_exit_position = calcExitPosition(&m_sits_transforms.c);
+        A->detach_Vehicle();
+    }
 
     CScriptEntity::net_Destroy();
     inherited::net_Destroy();
@@ -416,8 +430,7 @@ void CCar::RestoreNetState(CSE_PHSkeleton* /*po*/)
         activation_shape.Destroy();
         sof.c.add(dd);
         
-        if (Actor()->HolderID() != ID())
-            PPhysicsShell()->EnableCollision();
+        PPhysicsShell()->EnableCollision();
     }
 
     replace.mul(sof, inv);
@@ -490,7 +503,7 @@ void CCar::UpdateCL()
             m_memory->set_camera(m_car_weapon->ViewCameraPos(), m_car_weapon->ViewCameraDir(), m_car_weapon->ViewCameraNorm());
     }
     ASCUpdate();
-    if (OwnerActor())
+    if (ActorInside())
         return;
     //	UpdateEx			(g_fov);
     VisualUpdate(90);
@@ -649,11 +662,11 @@ void CCar::ApplyDamage(u16 level)
 }
 void CCar::detach_Actor()
 {
-    if (!OwnerActor())
+    if (!ActorInside())
         return;
 
-    Owner()->setVisible(1);
-    CHolderCustom::detach_Actor();
+    Actor()->setVisible(1);
+
     PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
     NeutralDrive();
     Unclutch();
@@ -662,13 +675,22 @@ void CCar::detach_Actor()
     car_panel->Show(false);
     /// Break();
     // H_SetParent(NULL);
-    HandBreak();
+    if (OwnerActor())
+        HandBreak();
+
     processing_deactivate();
 
-    passengers->removePassenger(Actor());
+    passengers->removePassenger(smart_cast<CGameObject*>(Actor()));
+    actorPassenger = false;
+    se_owner = nullptr;
 #ifdef DEBUG
     DBgClearPlots();
 #endif
+
+    callback(GameObject::eDetachVehicle)(Actor()->lua_game_object(), true);
+
+    if (OwnerActor())
+        CHolderCustom::detach_Actor();
 }
 
 bool CCar::attach_Actor(CGameObject* actor, bool isPassengers)
@@ -676,22 +698,11 @@ bool CCar::attach_Actor(CGameObject* actor, bool isPassengers)
     if (CPHDestroyable::Destroyed())
         return false;
 
+    isPassengers = isPassengers || actorAsPassenger;
+
     if (!isPassengers)
         CHolderCustom::attach_Actor(actor);
 
-    /*IKinematics* K = smart_cast<IKinematics*>(Visual());
-    CInifile* ini = K->LL_UserData();
-    u16 id;
-    if (ini->line_exist("car_definition", "driver_place"))
-        id = K->LL_BoneID(ini->r_string("car_definition", "driver_place"));
-    else
-    {
-        Owner()->setVisible(0);
-        id = K->LL_GetBoneRoot();
-    }
-    Fmatrix sitTransform = K->LL_GetTransform(id);
-    m_sits_transforms.set(sitTransform);
-    */
     OnCameraChange(ectFirst);
 
     Fmatrix* placeMX = &m_sits_transforms;
@@ -709,6 +720,7 @@ bool CCar::attach_Actor(CGameObject* actor, bool isPassengers)
     {
         car_panel->Show(true);
         car_panel->SetCarGear(CurrentTransmission());
+        se_owner = actor->alife_object();
     }
 
     actor->XFORM().mul_43(XFORM(), *placeMX);   
@@ -717,6 +729,8 @@ bool CCar::attach_Actor(CGameObject* actor, bool isPassengers)
     PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();
+
+    callback(GameObject::eAttachVehicle)(actor->lua_game_object(), isPassengers);
 
     return true;
 }
@@ -1575,7 +1589,7 @@ bool CCar::Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos)
         }
     }
 
-    if (Owner())
+    if (ActorInside())
         return Exit(pos, dir);
 
     return false;
@@ -2149,7 +2163,7 @@ void CCar::SyncNetState()
 #include "stalker_movement_manager.h"
 #include "sight_manager.h"
 #include "stalker_planner.h"
-bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
+bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
 {
     if (CPHDestroyable::Destroyed())
         return false;
@@ -2167,28 +2181,14 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
     const Fmatrix* placeMatrix = driver ? &m_sits_transforms : passengers->addPassenger(npc);
 
     if (driver)
-        //attach_Actor(npc);
+    {
+        se_owner = npc->alife_object();
         CHolderCustom::attach_Actor(npc);
+    } 
     else if (!placeMatrix)
         return false;
 
     stalker->m_holderCustom = vehicle;
-
-    if (!load)
-    {
-        PPhysicsShell()->Enable();
-        PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
-        processing_activate();
-        ReleaseBreaks(); 
-
-        stalker->animation().reinit();
-        stalker->character_physics_support()->movement()->DisableCharacter();
-        stalker->movement().enable_movement(false);
-        stalker->sight().enable(false);
-        stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
-    }
-    
-    stalker->brain().active(false);
 
     // temp play animation
     u16 anim_type = DriverAnimationType();
@@ -2201,12 +2201,28 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver, bool load)
 
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
+    
+    PPhysicsShell()->Enable();
+    //PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
+    processing_activate();
+    ReleaseBreaks();
+    
+    stalker->animation().reinit();
+    stalker->character_physics_support()->movement()->DisableCharacter();
+    stalker->character_physics_support()->movement()->DestroyCharacter();
+    stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
+    stalker->movement().enable_movement(false);
+    stalker->sight().enable(false);
+
+    stalker->brain().active(false);
 
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, true);
     
     stalker->CStepManager::on_animation_start(MotionID(), 0);
 
-    Level().NPCid2CarIdToIsDriver.insert_or_assign(stalker->ID(), CarStorIsDriver{ ID(), driver});
+    NpcCarStor::add(stalker->ID(), ID(), driver);
+
+    callback(GameObject::eAttachVehicle)(npc->lua_game_object(), !driver);
 
     return true;
 }
@@ -2243,18 +2259,19 @@ void CCar::predNPCattach(CAI_Stalker* stalker)
 #include "alife_simulator.h"
 void CCar::detach_NPC_Vehicle(CGameObject* npc)
 {
+
+    bool isDriver = (Owner() && (Owner()->ID() == npc->ID()));
+
     if (npc->ID() == Actor()->ID())
     {
         if (!m_doors.empty())
             m_doors.begin()->second.GetExitPosition(m_exit_position);
         else
-            m_exit_position.set(Position());
+            m_exit_position = calcExitPosition(&m_sits_transforms.c);
         return detach_Actor();
     }
 
     CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);
-
-    bool isDriver = (Owner() && (Owner()->ID() == stalker->ID()));
 
     if ( (!isDriver) && (!passengers->getOccupiedPlaces()->contains(npc)))
         return;
@@ -2292,7 +2309,6 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
 
     passengers->removePassenger(npc);
 
-
     CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(stalker->alife_object());
 
     stalker->CStepManager::reload(stalker->cNameSect().c_str());
@@ -2315,9 +2331,11 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc)
     movement->m_body.current.pitch = movement->m_body.target.pitch = 0;
     
     stalker->m_holderCustom = nullptr;
-    Level().NPCid2CarIdToIsDriver.erase(npc->ID());
+    NpcCarStor::remove(npc->ID());
 
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
+
+    callback(GameObject::eDetachVehicle)(npc->lua_game_object(), !isDriver);
 }
 
 void CCar::throwOutAll()
@@ -2327,7 +2345,7 @@ void CCar::throwOutAll()
         if (!m_doors.empty())
             m_doors.begin()->second.GetExitPosition(m_exit_position);
         else
-            m_exit_position.set(Position());
+            m_exit_position = calcExitPosition(&m_sits_transforms.c);
         A->detach_Vehicle();
     }
     else if (CGameObject* npc = Owner())

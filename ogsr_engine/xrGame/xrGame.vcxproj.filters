@@ -6069,6 +6069,7 @@
     <ClInclude Include="CarPassengers.h">
       <Filter>Core\Client\Objects\vehicles\Car</Filter>
     </ClInclude>
+    <ClInclude Include="NpcCarStor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -8854,6 +8855,7 @@
     <ClCompile Include="CarPassengers.cpp">
       <Filter>Core\Client\Objects\vehicles\Car</Filter>
     </ClCompile>
+    <ClCompile Include="NpcCarStor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuildStep Include="Explosive.h">

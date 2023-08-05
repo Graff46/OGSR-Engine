@@ -65,6 +65,7 @@
 #include "../../group_hierarchy_holder.h"
 #include "Car.h"
 #include "../../../xr_3da/x_ray.h"
+#include "NpcCarStor.h"
 
 #ifdef DEBUG
 #include "../../alife_simulator.h"
@@ -314,7 +315,7 @@ void CAI_Stalker::Die(CObject* who)
         CGameObject* obj = smart_cast<CGameObject*>(this);
         car->passengers->removePassenger(obj);
         m_holderCustom = nullptr;
-        Level().NPCid2CarIdToIsDriver.erase(ID());
+        NpcCarStor::remove(ID());
     }
 
 #pragma todo("KD: Поскольку весь лут непися пока обрабатывается в скриптах, в этом месте отключено удаление лута")
@@ -357,6 +358,9 @@ void CAI_Stalker::Load(LPCSTR section)
     m_can_select_items = !!pSettings->r_bool(section, "can_select_items");
 }
 
+#include "alife_simulator.h"
+#include "alife_object_registry.h"
+#include "ai_object_location.h"
 BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 {
     CSE_Abstract* e = (CSE_Abstract*)(DC);
@@ -447,11 +451,11 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     }
     
     CCar* car{};
-    CarStorIsDriver* carStor;
-    if (Level().NPCid2CarIdToIsDriver.contains(ID()))
+    ALife::_OBJECT_ID carId;
+    bool isDriver;
+    if (NpcCarStor::get(ID(), carId, isDriver))
     {
-        carStor = &Level().NPCid2CarIdToIsDriver.at(ID());
-        CObject* obj = Level().Objects.net_Find(carStor->carID);
+        CObject* obj = Level().Objects.net_Find(carId);
         if (obj) 
         {
             car = smart_cast<CCar*>(obj);
@@ -462,7 +466,7 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     m_pPhysics_support->in_NetSpawn(e);
 
     if (car)
-        car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), carStor->isDriver);
+        car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), isDriver);
 
     return (TRUE);
 }
@@ -1004,11 +1008,11 @@ void CAI_Stalker::load(IReader& packet)
     CInventoryOwner::load(packet);
     brain().load(packet);
 
-    ALife::_OBJECT_ID id = packet.r_u16();
+    ALife::_OBJECT_ID id = (ALife::_OBJECT_ID) packet.r_u16();
     bool isDriver = (bool) packet.r_u8();
 
     if (id != u16(-1))
-        Level().NPCid2CarIdToIsDriver.emplace( ID(), CarStorIsDriver{id, isDriver});
+        NpcCarStor::add( ID(), id, isDriver);
 }
 
 void CAI_Stalker::load_critical_wound_bones()

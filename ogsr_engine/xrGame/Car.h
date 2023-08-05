@@ -444,7 +444,10 @@ private:
     ///////////////////////////////////////////////////
     CCarLights m_lights;
     ////////////////////////////////////////////////////
+    CSE_ALifeDynamicObject* se_owner;
     /////////////////////////////////////////////////
+    bool actorAsPassenger = false;
+    ///////////////////////////////////////////////////
     void InitParabola();
     float _stdcall Parabola(float rpm);
     // float GetSteerAngle();
@@ -539,7 +542,7 @@ public:
     void cam_Update(float dt, float fov);
     void detach_Actor();
     bool attach_Actor(CGameObject* actor, bool isPassengers = false) override;
-    bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false, bool load = false);
+    bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
     void predNPCattach(CAI_Stalker* stalker);
     void detach_NPC_Vehicle(CGameObject* npc);
     void throwOutAll();
@@ -613,6 +616,8 @@ public:
     void VisualUpdate(float fov = 90.0f);
     Fvector calcExitPosition(Fvector* pos);
     bool ActorInside() { return OwnerActor() || actorPassenger; };
+    CSE_ALifeDynamicObject* get_se_owner() { return se_owner; };
+    void setActorAsPassenger(bool val) { actorAsPassenger = val; };
 
 protected:
     virtual void SpawnInitPhysics(CSE_Abstract* D);
@@ -635,7 +640,7 @@ public:
     void SwitchLights();
 
     CarPassengers* passengers;
-
+    bool getActorAsPassenger() { return actorAsPassenger; };
 private:
     template <class T>
     IC void fill_wheel_vector(LPCSTR S, xr_vector<T>& type_wheels);

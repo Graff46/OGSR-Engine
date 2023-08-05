@@ -512,6 +512,7 @@ void CActor::net_Save(NET_Packet& P)
     inherited::net_Save(P);
     m_pPhysics_support->in_NetSave(P);
     P.w_u16(m_holderID);
+    //P.w_u8(isPassenger ? 1 : 0);
 #endif
 }
 

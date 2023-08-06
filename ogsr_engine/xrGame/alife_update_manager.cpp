@@ -23,6 +23,7 @@
 #include "profiler.h"
 #include "mt_config.h"
 #include "string_table.h"
+#include "NpcCarStor.h"
 
 using namespace ALife;
 
@@ -155,6 +156,8 @@ bool CALifeUpdateManager::change_level(NET_Packet& net_packet)
     net_packet.r(&graph().actor()->m_tNodeID, sizeof(graph().actor()->m_tNodeID));
     net_packet.r_vec3(graph().actor()->o_Position);
     net_packet.r_vec3(graph().actor()->o_Angle);
+
+    NpcCarStor::replaceLevelNpcOfCar(graph().actor()->m_tGraphID, graph().actor()->m_tNodeID, &graph().actor()->o_Position);
 
     Level().ClientSave();
 

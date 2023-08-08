@@ -7,6 +7,7 @@ class CarPassengers
 {
 private:
 	CCar* car;
+
 	struct Place
 	{
 		u8 id;
@@ -15,7 +16,7 @@ private:
 		u16 exitDoorId;
 	};
 
-	xr_unordered_map<u16, Place> list;
+	xr_unordered_map<u8, Place> list;
 	xr_unordered_map<CGameObject*, Place*> occupiedPlaces;
 
 public:

@@ -17,6 +17,17 @@ void detachNPC(CCar* car, CScriptGameObject* npc)
     return car->detach_NPC_Vehicle(&npc->object());
 }
 
+luabind::object getPassengers(CCar* car)
+{
+    luabind::object t = luabind::newtable(ai().script_engine().lua());
+
+    u8 i = 0;
+    for (const auto [npc, place] : *car->passengers->getOccupiedPlaces())
+        t[++i] = npc->lua_game_object();
+
+    return t;
+}
+
 #pragma optimize("s", on)
 void CCar::script_register(lua_State* L)
 {
@@ -50,5 +61,7 @@ void CCar::script_register(lua_State* L)
                   .def_readonly("handbrake", &CCar::brp)
                   .def("set_actor_as_passenger", &CCar::setActorAsPassenger)
                   .def("actor_inside", &CCar::ActorInside)
+                  .def("get_owner", [](CCar* car) {return car->Owner() ? car->Owner()->lua_game_object() : nullptr; })
+                  .def("get_passengers", &getPassengers)
                   .def(constructor<>())];
 }

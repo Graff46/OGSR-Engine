@@ -263,6 +263,7 @@ void CCar::net_Destroy()
 #ifdef DEBUG
     DBgClearPlots();
 #endif
+    throwOutAll();
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
     if (m_bone_steer != BI_NONE)
     {
@@ -2216,9 +2217,9 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     processing_activate();
     ReleaseBreaks();
     
-    stalker->animation().reinit();
+    //stalker->animation().reinit();
     stalker->character_physics_support()->movement()->DisableCharacter();
-    stalker->character_physics_support()->movement()->DestroyCharacter();
+    //stalker->character_physics_support()->movement()->DestroyCharacter();
     stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
     stalker->movement().enable_movement(false);
     stalker->sight().enable(false);
@@ -2358,10 +2359,12 @@ void CCar::throwOutAll()
         A->detach_Vehicle();
     }
     else if (CGameObject* npc = Owner())
-        detach_NPC_Vehicle(npc);
+        if (!npc->getDestroy())
+            detach_NPC_Vehicle(npc);
 
     for (const auto& [npc, plc] : *passengers->getOccupiedPlaces())
-        detach_NPC_Vehicle(smart_cast<CGameObject*>(npc));
+        if (!npc->getDestroy())
+            detach_NPC_Vehicle(npc);
 }
 
 u8 CCar::calcDoorForPlace(const Fvector* posPlace)

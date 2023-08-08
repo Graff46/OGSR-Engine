@@ -64,21 +64,50 @@ void CActor::IR_OnKeyboardPress(int cmd)
 
     switch (cmd)
     {
-    case kWPN_FIRE: {
-        if (inventory().ActiveItem() && inventory().ActiveItem()->StopSprintOnFire())
-        {
-            mstate_wishful &= ~mcSprint;
-        }
+        case kWPN_FIRE: {
+            if (inventory().ActiveItem() && inventory().ActiveItem()->StopSprintOnFire())
+            {
+                mstate_wishful &= ~mcSprint;
+            }
 
-    }
-    break;
-    default: {
-    }
-    break;
+        }
+        break;
+        default: {
+        }
+        break;
+        case kUSE_BANDAGE:
+        case kUSE_MEDKIT: {
+            if (!(GetTrade()->IsInTradeState()))
+            {
+                PIItem itm = inventory().item((cmd == kUSE_BANDAGE) ? CLSID_IITEM_BANDAGE : CLSID_IITEM_MEDKIT);
+                if (itm)
+                {
+                    inventory().Eat(itm);
+                    SDrawStaticStruct* _s = HUD().GetUI()->UIGame()->AddCustomStatic("item_used", true);
+                    _s->m_endTime = Device.fTimeGlobal + 3.0f; // 3sec
+                    string1024 str;
+                    strconcat(sizeof(str), str, *CStringTable().translate("st_item_used"), ": ", itm->Name());
+                    _s->wnd()->SetText(str);
+                }
+            }
+        }
+        break;
     }
 
     if (!g_Alive())
         return;
+
+    switch (cmd)
+    {
+        case kNIGHT_VISION: {
+            auto act_it = inventory().ActiveItem();
+            auto pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
+            if (pTorch && !smart_cast<CWeaponMagazined*>(act_it) && !smart_cast<CWeaponKnife*>(act_it) && !smart_cast<CMissile*>(act_it))
+                pTorch->SwitchNightVision();
+        }
+        break;
+    }
+
 
     if (m_holder && kUSE != cmd)
     {
@@ -92,76 +121,51 @@ void CActor::IR_OnKeyboardPress(int cmd)
 
     switch (cmd)
     {
-    case kJUMP: {
-        mstate_wishful |= mcJump;
-    }
-    break;
-    case kCROUCH_TOGGLE: {
-        g_bAutoClearCrouch = !g_bAutoClearCrouch;
-        if (!g_bAutoClearCrouch)
-            mstate_wishful |= mcCrouch;
-    }
-    break;
-    case kSPRINT_TOGGLE: {
-        if (mstate_wishful & mcSprint)
-            mstate_wishful &= ~mcSprint;
-        else
-            mstate_wishful |= mcSprint;
-    }
-    break;
-    case kCAM_1: cam_Set(eacFirstEye); break;
-    case kCAM_2: cam_Set(eacLookAt); break;
-    case kCAM_3: cam_Set(eacFreeLook); break;
-    case kNIGHT_VISION: {
-        auto act_it = inventory().ActiveItem();
-        auto pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
-        if (pTorch && !smart_cast<CWeaponMagazined*>(act_it) && !smart_cast<CWeaponKnife*>(act_it) && !smart_cast<CMissile*>(act_it))
-            pTorch->SwitchNightVision();
-    }
-    break;
-    case kTORCH: {
-        auto act_it = inventory().ActiveItem();
-        auto pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
-        if (pTorch && !smart_cast<CWeaponMagazined*>(act_it) && !smart_cast<CWeaponKnife*>(act_it) && !smart_cast<CMissile*>(act_it))
-            pTorch->Switch();
-    }
-    break;
-    case kWPN_8: {
-        if (auto det = smart_cast<CCustomDetector*>(inventory().ItemFromSlot(DETECTOR_SLOT)))
-            det->ToggleDetector(g_player_hud->attached_item(0) != nullptr);
-    }
-    break;
-    case kUSE: ActorUse(); break;
-    case kDROP:
-        b_DropActivated = TRUE;
-        f_DropPower = 0;
-        break;
-    case kNEXT_SLOT: {
-        OnNextWeaponSlot();
-    }
-    break;
-    case kPREV_SLOT: {
-        OnPrevWeaponSlot();
-    }
-    break;
-
-    case kUSE_BANDAGE:
-    case kUSE_MEDKIT: {
-        if (!(GetTrade()->IsInTradeState()))
-        {
-            PIItem itm = inventory().item((cmd == kUSE_BANDAGE) ? CLSID_IITEM_BANDAGE : CLSID_IITEM_MEDKIT);
-            if (itm)
-            {
-                inventory().Eat(itm);
-                SDrawStaticStruct* _s = HUD().GetUI()->UIGame()->AddCustomStatic("item_used", true);
-                _s->m_endTime = Device.fTimeGlobal + 3.0f; // 3sec
-                string1024 str;
-                strconcat(sizeof(str), str, *CStringTable().translate("st_item_used"), ": ", itm->Name());
-                _s->wnd()->SetText(str);
-            }
+        case kJUMP: {
+            mstate_wishful |= mcJump;
         }
-    }
-    break;
+        break;
+        case kCROUCH_TOGGLE: {
+            g_bAutoClearCrouch = !g_bAutoClearCrouch;
+            if (!g_bAutoClearCrouch)
+                mstate_wishful |= mcCrouch;
+        }
+        break;
+        case kSPRINT_TOGGLE: {
+            if (mstate_wishful & mcSprint)
+                mstate_wishful &= ~mcSprint;
+            else
+                mstate_wishful |= mcSprint;
+        }
+        break;
+        case kCAM_1: cam_Set(eacFirstEye); break;
+        case kCAM_2: cam_Set(eacLookAt); break;
+        case kCAM_3: cam_Set(eacFreeLook); break;
+        case kTORCH: {
+            auto act_it = inventory().ActiveItem();
+            auto pTorch = smart_cast<CTorch*>(inventory().ItemFromSlot(TORCH_SLOT));
+            if (pTorch && !smart_cast<CWeaponMagazined*>(act_it) && !smart_cast<CWeaponKnife*>(act_it) && !smart_cast<CMissile*>(act_it))
+                pTorch->Switch();
+        }
+        break;
+        case kWPN_8: {
+            if (auto det = smart_cast<CCustomDetector*>(inventory().ItemFromSlot(DETECTOR_SLOT)))
+                det->ToggleDetector(g_player_hud->attached_item(0) != nullptr);
+        }
+        break;
+        case kUSE: ActorUse(); break;
+        case kDROP:
+            b_DropActivated = TRUE;
+            f_DropPower = 0;
+            break;
+        case kNEXT_SLOT: {
+            OnNextWeaponSlot();
+        }
+        break;
+        case kPREV_SLOT: {
+            OnPrevWeaponSlot();
+        }
+        break;
     }
 }
 void CActor::IR_OnMouseWheel(int direction)

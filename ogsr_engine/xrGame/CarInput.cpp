@@ -156,18 +156,6 @@ void CCar::OnKeyPress(int cmd, bool manualInput)
     case kCAM_2: OnCameraChange(ectChase); break;
     case kCAM_3: OnCameraChange(ectFree); break;
     case kTORCH: m_lights.SwitchHeadLights(); break;
-    case kNIGHT_VISION: {
-        auto* Act = OwnerActor();
-        if (Act)
-        {
-            auto* pTorch = smart_cast<CTorch*>(Act->inventory().ItemFromSlot(TORCH_SLOT));
-            if (pTorch)
-            {
-                pTorch->SwitchNightVision();
-            }
-        }
-    }
-    break;
     case kUSE: break;
     };
 

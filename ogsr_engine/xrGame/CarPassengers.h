@@ -27,4 +27,5 @@ public:
 	void removePassenger(CGameObject* npc);
 	xr_unordered_map<CGameObject*, Place*>* getOccupiedPlaces();
 	const u8 vacantSits();
+    const u8 countPlaces() { return list.size(); };
 };

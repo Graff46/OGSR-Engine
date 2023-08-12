@@ -2212,7 +2212,8 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
     
-    PPhysicsShell()->Enable();
+    if (m_pPhysicsShell)
+        PPhysicsShell()->Enable();
     //PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();

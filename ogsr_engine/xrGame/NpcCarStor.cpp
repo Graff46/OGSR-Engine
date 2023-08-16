@@ -33,20 +33,15 @@ bool NpcCarStor::get(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID& carId, bool& is
 	return exist;
 }
 
-bool NpcCarStor::getFromCarId(ALife::_OBJECT_ID carId, ALife::_OBJECT_ID& npcId, bool& isDriver)
+const xr_vector<std::pair<ALife::_OBJECT_ID, bool>> NpcCarStor::getFromCarId(ALife::_OBJECT_ID carId)
 {
+    xr_vector<std::pair<ALife::_OBJECT_ID, bool>> result;
+    
 	for (const auto& [id, carStor] : NPCid2CarIdToIsDriver)
-	{
 		if (carStor.carID == carId)
-		{
-			npcId = id;
-			isDriver = carStor.isDriver;
+			result.push_back({id, carStor.isDriver});
 
-			return true;
-		}
-	}
-
-	return false;
+	return result;
 }
 
 void NpcCarStor::clear()

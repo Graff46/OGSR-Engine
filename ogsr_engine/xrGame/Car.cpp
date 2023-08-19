@@ -176,14 +176,11 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     PKinematics(Visual())->CalculateBones_Invalidate();
     PKinematics(Visual())->CalculateBones();
 
-    bool isDriver;
-    ALife::_OBJECT_ID npcId;
-    if (NpcCarStor::getFromCarId(ID(), npcId, isDriver))
+    CObject* npc;
+    CSE_ALifeDynamicObject* se_npc;
+    for (const auto& [npcId, isDriver] : NpcCarStor::getFromCarId(ID()))
     {
-        CObject* npc = Level().Objects.net_Find(npcId);
-        CSE_ALifeDynamicObject* se_npc;
-
-        if (npc)
+        if (npc = Level().Objects.net_Find(npcId))
             attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), isDriver);
         else if(se_npc = ai().get_alife()->objects().object(npcId, true))
         {
@@ -2212,7 +2209,8 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
     
-    PPhysicsShell()->Enable();
+    if (m_pPhysicsShell)
+        PPhysicsShell()->Enable();
     //PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();

@@ -18,7 +18,7 @@ public:
     static void add(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID carId, bool isDriver);
     static void remove(ALife::_OBJECT_ID npcId);
     static bool get(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID &carId, bool &isDriver);
-    static bool getFromCarId(ALife::_OBJECT_ID carId, ALife::_OBJECT_ID &npcId, bool &isDriver);
+    static const xr_vector<std::pair<ALife::_OBJECT_ID, bool>> getFromCarId(ALife::_OBJECT_ID carId);
     static void clear();
     static void setFlagClear(bool flag);
     static void replaceLevelNpcOfCar(GameGraph::_GRAPH_ID destGvid, u32 destLvid, Fvector* destPos);

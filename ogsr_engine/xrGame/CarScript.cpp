@@ -63,5 +63,7 @@ void CCar::script_register(lua_State* L)
                   .def("actor_inside", &CCar::ActorInside)
                   .def("get_owner", [](CCar* car) {return car->Owner() ? car->Owner()->lua_game_object() : nullptr; })
                   .def("get_passengers", &getPassengers)
+                  .def("get_passengers_count", [](CCar* car) { return car->passengers->countPlaces(); })
+                  .def("get_passengers_vacant_sits", [](CCar* car) { return car->passengers->vacantSits(); })
                   .def(constructor<>())];
 }

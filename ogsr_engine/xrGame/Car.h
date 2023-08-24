@@ -544,9 +544,9 @@ public:
     bool attach_Actor(CGameObject* actor, bool isPassengers = false) override;
     bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
     void predNPCattach(CAI_Stalker* stalker);
-    void detach_NPC_Vehicle(CGameObject* npc);
+    void detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId = u16(-1));
     void throwOutAll();
-    u8 calcDoorForPlace(const Fvector* posPlace);
+    u16 calcDoorForPlace(const Fvector* posPlace);
     bool is_Door(u16 id, xr_map<u16, SDoor>::iterator& i);
     bool is_Door(u16 id);
     bool DoorOpen(u16 id);

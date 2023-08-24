@@ -22,7 +22,7 @@ luabind::object getPassengers(CCar* car)
     luabind::object t = luabind::newtable(ai().script_engine().lua());
 
     u8 i = 0;
-    for (const auto [npc, place] : *car->passengers->getOccupiedPlaces())
+    for (const auto& [npc, place] : *car->passengers->getOccupiedPlaces())
         t[++i] = npc->lua_game_object();
 
     return t;

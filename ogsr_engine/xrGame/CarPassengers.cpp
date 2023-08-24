@@ -31,7 +31,7 @@ void CarPassengers::create(IKinematics* pKinematics)
 			u16 idBone = strcmp(boneName, "root") ? pKinematics->LL_BoneID(boneName) : pKinematics->LL_GetBoneRoot();
 			Fmatrix mx = pKinematics->LL_GetTransform(idBone);
 
-			mx.c.sub(offset);
+			mx.c.add(offset);
 
 			list.emplace(++id, Place{ id, mx, false, 0 });
 		}	

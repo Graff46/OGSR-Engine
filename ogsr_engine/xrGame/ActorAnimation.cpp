@@ -269,9 +269,10 @@ void SVehicleAnimCollection::Create(IKinematicsAnimated* V, u16 num)
 
 void CActor::steer_Vehicle(float angle)
 {
-    if (!m_holder)
+    if (!m_holder || Device.dwPrecacheFrame || Device.Paused())
         return;
     CCar* car = smart_cast<CCar*>(m_holder);
+    if (!car) return;
     //if (car->GetScriptControl())
     //   return;
     u16 anim_type = car->DriverAnimationType();
@@ -282,8 +283,11 @@ void CActor::steer_Vehicle(float angle)
     else
         motion = anims.steer_left;
 
-    IKinematicsAnimated* K = smart_cast<IKinematicsAnimated*>(Visual());
-    K->PlayCycle(motion);
+    if (!motion || !motion.valid())
+        return;
+
+    if(IKinematicsAnimated* K = smart_cast<IKinematicsAnimated*>(Visual()))
+        K->PlayCycle(motion);
 }
 
 void legs_play_callback(CBlend* blend)

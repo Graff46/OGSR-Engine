@@ -1,5 +1,5 @@
 #pragma once
-#include "ai\stalker\ai_stalker.h";
+#include "ai\stalker\ai_stalker.h"
 
 class CCar;
 
@@ -26,6 +26,7 @@ public:
 	const Fmatrix* addPassenger(CGameObject* npc);
 	void removePassenger(CGameObject* npc);
 	xr_unordered_map<CGameObject*, Place*>* getOccupiedPlaces();
+	xr_unordered_map<CGameObject*, Place*> getOccupiedPlaces2() { return occupiedPlaces; };
 	const u8 vacantSits();
     const u8 countPlaces() { return list.size(); };
 };

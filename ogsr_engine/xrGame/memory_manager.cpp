@@ -169,8 +169,13 @@ void CMemoryManager::update(const xr_deque<T>& objects, bool add_enemies)
             if (!entity_alive)
             { // dsh:
                 const CHolderCustom* holder = smart_cast<const CHolderCustom*>((*I).m_object);
-                if (holder && holder->Owner())
-                    entity_alive = smart_cast<const CEntityAlive*>(holder->Owner());
+                CGameObject* driver;
+                if ((holder) && (driver = holder->Owner()))
+                {
+                    if (Device.dwTimeGlobal - m_stalker->timeLastExitCar < 1000)
+                        continue;
+                    entity_alive = smart_cast<const CEntityAlive*>(driver);
+                }      
             }
             if (entity_alive && enemy().add(entity_alive))
                 continue;

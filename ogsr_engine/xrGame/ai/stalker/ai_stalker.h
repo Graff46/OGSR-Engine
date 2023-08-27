@@ -571,6 +571,9 @@ public:
     IC void throw_time_interval(const u32& value);
 
 public:
+    u32 timeLastExitCar;
+
+public:
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CAI_Stalker)

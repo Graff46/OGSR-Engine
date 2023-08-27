@@ -101,6 +101,8 @@ CCar::CCar()
 
     passengers = xr_new<CarPassengers>(this);
 
+    lastPosition = Position();
+
 #ifdef DEBUG
     InitDebug();
 #endif
@@ -179,7 +181,18 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     K->CalculateBones_Invalidate();
     K->CalculateBones();
 
-    fill_doors_map(K->LL_UserData()->r_string("car_definition", "doors"), m_doors);
+    CInifile* pUserData = K->LL_UserData();
+
+    fill_doors_map(pUserData->r_string("car_definition", "doors"), m_doors);
+
+    u16 id;
+    if (pUserData->line_exist("car_definition", "driver_place"))
+        id = K->LL_BoneID(pUserData->r_string("car_definition", "driver_place"));
+    else
+        id = K->LL_GetBoneRoot();
+
+    Fmatrix* sitTransform = &K->LL_GetTransform(id);
+    m_sits_transforms.set(*sitTransform);
 
     passengers->create(K);
 
@@ -208,7 +221,6 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
 
     CDamagableItem::RestoreEffect();
 
-    CInifile* pUserData = K->LL_UserData();
     if (pUserData->section_exist("destroyed"))
         CPHDestroyable::Load(pUserData, "destroyed");
     if (pUserData->section_exist("mounted_weapon_definition"))
@@ -219,15 +231,6 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
         m_memory = xr_new<car_memory>(this);
         m_memory->reload(pUserData->r_string("visual_memory_definition", "section"));
     }
-
-    u16 id;
-    if (pUserData->line_exist("car_definition", "driver_place"))
-        id = K->LL_BoneID(pUserData->r_string("car_definition", "driver_place"));
-    else
-        id = K->LL_GetBoneRoot();
-
-    Fmatrix* sitTransform = &K->LL_GetTransform(id);
-    m_sits_transforms.set(*sitTransform);
 
     bool result = (CScriptEntity::net_Spawn(DC) && R);
 
@@ -516,6 +519,9 @@ void CCar::UpdateCL()
 {
     inherited::UpdateCL();
     CExplosive::UpdateCL();
+
+    updateLevelVertex();
+
     if (m_car_weapon)
     {
         m_car_weapon->UpdateCL();
@@ -2125,6 +2131,7 @@ Fvector CCar::ExitVelocity(Fvector exitPos)
     CPhysicsShell* P = PPhysicsShell();
     if (!P || !P->isActive())
         return Fvector().set(0, 0, 0);
+
     CPhysicsElement* E = P->get_ElementByStoreOrder(0);
     Fvector v = exitPos;
     dBodyGetPointVel(E->get_body(), v.x, v.y, v.z, cast_fp(v));
@@ -2334,7 +2341,9 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
     root.mul_43(door->closed_door_form_in_object, XFORM());
    
     stalker->character_physics_support()->movement()->SetPosition(posExit);
-    stalker->character_physics_support()->movement()->SetVelocity(ExitVelocity(posExit));
+    Fvector veloc_;
+    PPhysicsShell()->get_LinearVel(veloc_);
+    stalker->character_physics_support()->movement()->SetVelocity(veloc_);
 
     stalker->CStepManager::reload(stalker->cNameSect().c_str());
 
@@ -2361,6 +2370,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
     
     stalker->m_holderCustom = nullptr;
     NpcCarStor::remove(npc->ID());
+    stalker->timeLastExitCar = Device.dwTimeGlobal;
 
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
 
@@ -2414,4 +2424,20 @@ Fvector CCar::calcExitPosition(Fvector* pos)
     m_doors.at(doorId).GetExitPosition(exitPos);
 
     return exitPos;
+}
+
+u32 CCar::updateLevelVertex()
+{
+    if (Position().distance_to_xz(lastPosition) >= 0.7)
+    {
+        const u32 old_vertex = ai_location().level_vertex_id();
+        const u32 new_vertex = ai().level_graph().vertex(old_vertex, Position());
+
+        ai_location().level_vertex(new_vertex);
+        alife_object()->m_tNodeID = new_vertex;
+
+        lastPosition = Position();
+    }
+
+    return ai_location().level_vertex_id();
 }

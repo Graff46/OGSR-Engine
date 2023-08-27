@@ -65,5 +65,6 @@ void CCar::script_register(lua_State* L)
                   .def("get_passengers", &getPassengers)
                   .def("get_passengers_count", [](CCar* car) { return car->passengers->countPlaces(); })
                   .def("get_passengers_vacant_sits", [](CCar* car) { return car->passengers->vacantSits(); })
+                  .def("level_vertex", &CCar::updateLevelVertex)
                   .def(constructor<>())];
 }

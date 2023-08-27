@@ -96,6 +96,8 @@ private:
     ////////////////////////////////////////////////////////////////////////
     CCarDamageParticles m_damage_particles;
     ///////////////////////////////////////////////////////////////////////
+
+    Fvector lastPosition;
 protected:
     enum ECarCamType
     {
@@ -618,6 +620,7 @@ public:
     bool ActorInside() { return OwnerActor() || actorPassenger; };
     CSE_ALifeDynamicObject* get_se_owner() { return se_owner; };
     void setActorAsPassenger(bool val) { actorAsPassenger = val; };
+    u32 updateLevelVertex();
 
 protected:
     virtual void SpawnInitPhysics(CSE_Abstract* D);

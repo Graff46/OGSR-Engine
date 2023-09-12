@@ -51,6 +51,7 @@ class CCar : public CEntity,
 {
 private:
     collide::rq_results RQR;
+    CSE_ALifeCar* se_obj;
 
 #ifdef DEBUG
     CFunctionGraph m_dbg_power_rpm;

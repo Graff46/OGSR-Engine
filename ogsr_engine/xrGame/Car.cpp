@@ -174,7 +174,8 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     InitDebug();
 #endif
     CSE_Abstract* e = (CSE_Abstract*)(DC);
-    CSE_ALifeCar* co = smart_cast<CSE_ALifeCar*>(e);
+    se_obj = smart_cast<CSE_ALifeCar*>(e);
+
     BOOL R = inherited::net_Spawn(DC);
 
     IKinematics* K = PKinematics(Visual());
@@ -212,7 +213,7 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     PKinematics(Visual())->CalculateBones_Invalidate();
     PKinematics(Visual())->CalculateBones();
     m_fSaveMaxRPM = m_max_rpm;
-    SetfHealth(co->health);
+    SetfHealth(se_obj->health);
 
     if (!g_Alive())
         b_exploded = true;
@@ -705,6 +706,12 @@ void CCar::detach_Actor()
         HandBreak();
 
     processing_deactivate();
+
+    if ((actorPassenger) && (active_camera->tag == ectFirst))
+    {
+        Actor()->setVisible(FALSE);
+        current_camera_position = m_camera_position;
+    }
 
     passengers->removePassenger(smart_cast<CGameObject*>(Actor()));
     actorPassenger = false;
@@ -2434,7 +2441,7 @@ u32 CCar::updateLevelVertex()
         const u32 new_vertex = ai().level_graph().vertex(old_vertex, Position());
 
         ai_location().level_vertex(new_vertex);
-        alife_object()->m_tNodeID = new_vertex;
+        se_obj->m_tNodeID = new_vertex;
 
         lastPosition = Position();
     }

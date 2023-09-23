@@ -18,6 +18,7 @@
 #include "DelayedActionFuse.h"
 #include "ui/UICarPanel.h"
 #include "CarPassengers.h"
+#include "CarWpnseat.h"
 
 // refs
 class ENGINE_API CBoneInstance;
@@ -394,6 +395,9 @@ private:
 
 public:
     IC CCameraBase* get_active_camera() { return active_camera; };
+    void OnCameraChange(int type);
+    void setCamParam(LPCSTR sec);
+    Fmatrix m_sits_transforms; // driver_place
 
 private:
     ////////////////////////////////////////////////////
@@ -409,7 +413,7 @@ private:
     xr_map<u16, SDoor> m_doors;
     xr_vector<SDoor*> m_doors_update;
     xr_vector<Fvector> m_gear_ratious;
-    Fmatrix m_sits_transforms; // driver_place
+    
     float m_current_gear_ratio;
 
     /////////////////////////////////////////////////////////////
@@ -524,8 +528,6 @@ private:
     void CarExplode();
     ////////////////////////////////////////////		////////
 
-    void OnCameraChange(int type);
-
     bool HUDview() { return IsFocused(); }
 
     static void cb_Steer(CBoneInstance* B);
@@ -545,7 +547,7 @@ public:
     void cam_Update(float dt, float fov);
     void detach_Actor();
     bool attach_Actor(CGameObject* actor, bool isPassengers = false) override;
-    bool attach_NPC_Vehicle(CGameObject* npc, bool driver = false);
+    bool attach_NPC_Vehicle(CGameObject* npc, u8 seat = u8(-1));
     void predNPCattach(CAI_Stalker* stalker);
     void detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId = u16(-1));
     void throwOutAll();
@@ -644,6 +646,7 @@ public:
     void SwitchLights();
 
     CarPassengers* passengers;
+    CarWpnSeat* wpnSeat;
     bool getActorAsPassenger() { return actorAsPassenger; };
 private:
     template <class T>

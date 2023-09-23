@@ -6070,6 +6070,9 @@
       <Filter>Core\Client\Objects\vehicles\Car</Filter>
     </ClInclude>
     <ClInclude Include="NpcCarStor.h" />
+    <ClInclude Include="CarWpnSeat.h">
+      <Filter>Core\Client\Objects\vehicles\Car\CarWeapon</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="damage_manager.cpp">
@@ -8856,6 +8859,9 @@
       <Filter>Core\Client\Objects\vehicles\Car</Filter>
     </ClCompile>
     <ClCompile Include="NpcCarStor.cpp" />
+    <ClCompile Include="CarWpnSeat.cpp">
+      <Filter>Core\Client\Objects\vehicles\Car\CarWeapon</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuildStep Include="Explosive.h">

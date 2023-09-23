@@ -452,8 +452,8 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     
     CCar* car{};
     ALife::_OBJECT_ID carId;
-    bool isDriver;
-    if (NpcCarStor::get(ID(), carId, isDriver))
+    u8 seat;
+    if (NpcCarStor::get(ID(), carId, seat))
     {
         CObject* obj = Level().Objects.net_Find(carId);
         if (obj) 
@@ -466,7 +466,7 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     m_pPhysics_support->in_NetSpawn(e);
 
     if (car)
-        car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), isDriver);
+        car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), seat);
 
     return (TRUE);
 }
@@ -990,10 +990,10 @@ void CAI_Stalker::save(NET_Packet& packet)
     if (m_holderCustom)
     {
         ALife::_OBJECT_ID id = smart_cast<CGameObject*>(m_holderCustom)->ID();
+        CCar* car = smart_cast<CCar*>(m_holderCustom);
 
         packet.w_u16(id);
-        CGameObject* owner = m_holderCustom->Owner();
-        packet.w_u8(((owner) && (owner->ID() == ID())) ? 1 : 0);
+        packet.w_u8( car->passengers->getSeatId(smart_cast<CGameObject*>(this)) );
     }
     else 
     {

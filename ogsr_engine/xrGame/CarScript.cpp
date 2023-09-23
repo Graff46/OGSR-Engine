@@ -9,7 +9,7 @@ using namespace luabind;
 
 bool attachNPC(CCar* car, CScriptGameObject* npc, bool driver = false)
 {
-    return car->attach_NPC_Vehicle(&npc->object(), driver);
+    return car->attach_NPC_Vehicle(&npc->object(), driver ? 0 : u8(-1));
 }
 
 void detachNPC(CCar* car, CScriptGameObject* npc)
@@ -26,6 +26,14 @@ luabind::object getPassengers(CCar* car)
         t[++i] = npc->lua_game_object();
 
     return t;
+}
+
+void setWpnSeat(CCar* car, CScriptGameObject* npc)
+{
+    if (car->passengers->getOccupiedPlaces()->contains(&npc->object()))
+        car->wpnSeat->onSeat(&npc->object());
+    else
+        car->attach_NPC_Vehicle(&npc->object(), u8(-1) - 1);
 }
 
 #pragma optimize("s", on)
@@ -66,5 +74,6 @@ void CCar::script_register(lua_State* L)
                   .def("get_passengers_count", [](CCar* car) { return car->passengers->countPlaces(); })
                   .def("get_passengers_vacant_sits", [](CCar* car) { return car->passengers->vacantSits(); })
                   .def("level_vertex", &CCar::updateLevelVertex)
+                  .def("set_on_wpn_seat", &setWpnSeat)
                   .def(constructor<>())];
 }

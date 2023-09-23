@@ -100,6 +100,7 @@ CCar::CCar()
     car_panel = NULL;
 
     passengers = xr_new<CarPassengers>(this);
+    wpnSeat = nullptr;
 
     lastPosition = Position();
 
@@ -196,13 +197,14 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     m_sits_transforms.set(*sitTransform);
 
     passengers->create(K);
+    wpnSeat = xr_new<CarWpnSeat>(this, K);
 
     CObject* npc;
     CSE_ALifeDynamicObject* se_npc;
-    for (const auto& [npcId, isDriver] : NpcCarStor::getFromCarId(ID()))
+    for (const auto& [npcId, seat] : NpcCarStor::getFromCarId(ID()))
     {
         if (npc = Level().Objects.net_Find(npcId))
-            attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), isDriver);
+            attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), seat);
         else if ((se_npc = ai().get_alife()->objects().object(npcId, true)) && (ai().game_graph().valid_vertex_id(se_npc->m_tGraphID)))
             se_npc->alife().teleport_object(npcId, ai_location().game_vertex_id(), ai_location().level_vertex_id(), Position());
     }
@@ -726,7 +728,7 @@ void CCar::detach_Actor()
     {
         CHolderCustom::detach_Actor();
         se_owner = nullptr;
-    }   
+    }
 }
 
 bool CCar::attach_Actor(CGameObject* actor, bool isPassengers)
@@ -2187,10 +2189,12 @@ void CCar::SyncNetState()
 #include "stalker_movement_manager.h"
 #include "sight_manager.h"
 #include "stalker_planner.h"
-bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
+bool CCar::attach_NPC_Vehicle(CGameObject* npc, u8 seat)
 {
     if (CPHDestroyable::Destroyed())
         return false;
+
+    bool driver = seat == 0;
 
     CHolderCustom* vehicle = smart_cast<CHolderCustom*>(this);
 
@@ -2202,7 +2206,7 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(npc->Visual());
     R_ASSERT(npcAV);
 
-    const Fmatrix* placeMatrix = driver ? &m_sits_transforms : passengers->addPassenger(npc);
+    const Fmatrix* placeMatrix = driver ? &m_sits_transforms : passengers->addPassenger(npc, seat);
 
     if (driver)
     {
@@ -2247,7 +2251,10 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, bool driver)
     
     stalker->CStepManager::on_animation_start(MotionID(), 0);
 
-    NpcCarStor::add(stalker->ID(), ID(), driver);
+    NpcCarStor::add(stalker->ID(), ID(), seat);
+
+    if (seat == (u8(-1) - 1))
+        wpnSeat->onSeat(npc);
 
     callback(GameObject::eAttachVehicle)(npc->lua_game_object(), !driver);
 

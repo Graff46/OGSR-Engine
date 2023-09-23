@@ -14,6 +14,8 @@ void CarPassengers::create(IKinematics* pKinematics)
 
 	if (ini->section_exist("passengers"))
 	{
+		Ki = pKinematics;
+
 		u8 id = 0;
 
 		LPCSTR str = ini->r_string("passengers", "places");
@@ -34,18 +36,18 @@ void CarPassengers::create(IKinematics* pKinematics)
 			mx.c.add(offset);
 
 			list.emplace(++id, Place{ id, mx, false, 0 });
-		}	
+		}
 	}
 }
 
-const Fmatrix* CarPassengers::addPassenger(CGameObject* npc)
+const Fmatrix* CarPassengers::addPassenger(CGameObject* npc, u8 seat)
 {
 	if (occupiedPlaces.contains(npc))
 		return nullptr;
 
 	for (auto& [id, place] : list)
 	{
-		if (!place.occupied)
+		if ( (!place.occupied) && ((seat == u8(-1)) || (seat == place.id)))
 		{
 			place.exitDoorId = car->calcDoorForPlace(&place.xform.c);
 			place.occupied = true;
@@ -75,4 +77,14 @@ xr_unordered_map<CGameObject*, CarPassengers::Place*>* CarPassengers::getOccupie
 const u8 CarPassengers::vacantSits()
 {
 	return list.size() - occupiedPlaces.size();
+}
+
+const u8 CarPassengers::getSeatId(CGameObject* npc)
+{
+	if (occupiedPlaces.contains(npc))
+		return occupiedPlaces.at(npc)->id;
+	else if (car->Owner()->ID() == npc->ID())
+		return 0;
+
+	return u8(-1);
 }

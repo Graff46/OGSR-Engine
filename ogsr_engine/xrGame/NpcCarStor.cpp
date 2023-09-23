@@ -9,9 +9,9 @@
 
 xr_unordered_map<ALife::_OBJECT_ID, NpcCarStor::CarStorIsDriver> NpcCarStor::NPCid2CarIdToIsDriver;
 bool NpcCarStor::needClear = true;
-void NpcCarStor::add(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID carId, bool isDriver)
+void NpcCarStor::add(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID carId, u8 seat)
 {
-	NPCid2CarIdToIsDriver.insert_or_assign(npcId, CarStorIsDriver(carId, isDriver));
+	NPCid2CarIdToIsDriver.insert_or_assign(npcId, CarStorIsDriver(carId, seat));
 };
 
 void NpcCarStor::remove(ALife::_OBJECT_ID npcId)
@@ -20,26 +20,26 @@ void NpcCarStor::remove(ALife::_OBJECT_ID npcId)
 		NPCid2CarIdToIsDriver.erase(npcId);
 };
 
-bool NpcCarStor::get(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID& carId, bool& isDriver)
+bool NpcCarStor::get(ALife::_OBJECT_ID npcId, ALife::_OBJECT_ID& carId, u8& seat)
 {
 	bool exist = false;
 	if (exist = NPCid2CarIdToIsDriver.contains(npcId))
 	{
 		CarStorIsDriver p = NPCid2CarIdToIsDriver.at(npcId);
 		carId = p.carID;
-		isDriver = p.isDriver;
+		seat = p.seat;
 	}
 
 	return exist;
 }
 
-const xr_vector<std::pair<ALife::_OBJECT_ID, bool>> NpcCarStor::getFromCarId(ALife::_OBJECT_ID carId)
+const xr_vector<std::pair<ALife::_OBJECT_ID, u8>> NpcCarStor::getFromCarId(ALife::_OBJECT_ID carId)
 {
-    xr_vector<std::pair<ALife::_OBJECT_ID, bool>> result;
+    xr_vector<std::pair<ALife::_OBJECT_ID, u8>> result;
     
 	for (const auto& [id, carStor] : NPCid2CarIdToIsDriver)
 		if (carStor.carID == carId)
-			result.push_back({id, carStor.isDriver});
+			result.push_back({id, carStor.seat });
 
 	return result;
 }

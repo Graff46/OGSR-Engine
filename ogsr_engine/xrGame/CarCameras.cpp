@@ -76,3 +76,8 @@ void CCar::OnCameraChange(int type)
         }
     }
 }
+
+void CCar::setCamParam(LPCSTR sec)
+{
+    camera[ectFirst]->Load(sec);
+}

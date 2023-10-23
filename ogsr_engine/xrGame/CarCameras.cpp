@@ -15,6 +15,7 @@
 #include "camerafirsteye.h"
 #include "level.h"
 #include "../xr_3da/cameramanager.h"
+#include "../Include/xrRender/Kinematics.h"
 
 bool CCar::HUDView() const { return active_camera->tag == ectFirst; }
 
@@ -25,7 +26,10 @@ void CCar::cam_Update(float dt, float fov)
     Da.set(0, 0, 0);
     // bool							owner = !!Owner();
 
-    XFORM().transform_tiny(P, current_camera_position);
+    if (wpnSeat->actorOwner)
+        XFORM().transform_tiny(P, wpnSeat->getCameraOffset());
+    else
+        XFORM().transform_tiny(P, current_camera_position);
 
     switch (active_camera->tag)
     {
@@ -47,7 +51,7 @@ void CCar::cam_Update(float dt, float fov)
 
 void CCar::OnCameraChange(int type)
 {
-    if (ActorInside())
+    if (ActorInside() && (!wpnSeat->actorOwner))
     {
         if (type == ectFirst)
         {

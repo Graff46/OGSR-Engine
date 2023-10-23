@@ -52,7 +52,7 @@ class CCar : public CEntity,
 {
 private:
     collide::rq_results RQR;
-    CSE_ALifeCar* se_obj;
+    CSE_ALifeCar* se_obj = nullptr;
 
 #ifdef DEBUG
     CFunctionGraph m_dbg_power_rpm;

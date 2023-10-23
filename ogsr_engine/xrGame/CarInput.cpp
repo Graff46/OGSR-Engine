@@ -181,6 +181,9 @@ void CCar::OnKeyPress(int cmd, bool manualInput)
         case kENGINE: SwitchEngine(); break;
         }
     }
+
+    if ((wpnSeat->actorOwner) && (cmd == kWPN_FIRE))
+        Action(CCarWeapon::eWpnAutoFire, 1);
 }
 
 void CCar::OnKeyboardRelease(int cmd)
@@ -216,6 +219,10 @@ void CCar::OnKeyRelease(int cmd, bool manualInput)
         case kCROUCH: ctrlOn = false; break;
         }
     }
+
+    if ((wpnSeat->actorOwner) && (cmd == kWPN_FIRE))
+        Action(CCarWeapon::eWpnAutoFire, 0);
+
 }
 
 void CCar::OnKeyboardHold(int cmd)

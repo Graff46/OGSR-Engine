@@ -85,6 +85,8 @@ const u8 CarPassengers::getSeatId(CGameObject* npc)
 		return occupiedPlaces.at(npc)->id;
 	else if (car->Owner()->ID() == npc->ID())
 		return 0;
+	else if (car->wpnSeat->getOwnerID() == npc->ID())
+		return u8(-1) - 1;
 
 	return u8(-1);
 }

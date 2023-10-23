@@ -10,15 +10,25 @@ class CarWpnSeat
 public:
 	CarWpnSeat(CCar* objCar, IKinematics* K);
 	void onSeat(CGameObject* npc);
+	void leaveSeat(u8 seatId = u8(-1));
+	ALife::_OBJECT_ID getOwnerID();
+	inline bool ownerExist() { return !!owner; };
+    Fvector3 getCameraOffset();
 
 private:
-	bool exist = false;
 	CCar* car;
 	u16 wpnBone;
+    u16 cameraBone;
 	Fmatrix mtrxSeat;
 	Fvector3 posSeat;
 	CarPassengers::Place place;
 	u16 shownBone;
 	u16 hiddenBone;
 	IKinematics* carKi;
+	u8 afterSeatId;
+	CGameObject* owner = nullptr;
+
+public:
+	bool exist = false;
+	bool actorOwner = false;
 };

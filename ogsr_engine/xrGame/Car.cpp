@@ -102,7 +102,7 @@ CCar::CCar()
     passengers = xr_new<CarPassengers>(this);
     wpnSeat = nullptr;
 
-    lastPosition = Position();
+    lastPosition = Fvector3().set(0, 0, 0);
 
 #ifdef DEBUG
     InitDebug();
@@ -119,6 +119,8 @@ CCar::~CCar(void)
     xr_delete(inventory);
     xr_delete(m_car_weapon);
     xr_delete(m_memory);
+    xr_delete(passengers);
+    xr_delete(wpnSeat);
     //	xr_delete			(l_tpEntityAction);
 }
 
@@ -197,7 +199,6 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     m_sits_transforms.set(*sitTransform);
 
     passengers->create(K);
-    wpnSeat = xr_new<CarWpnSeat>(this, K);
 
     CObject* npc;
     CSE_ALifeDynamicObject* se_npc;
@@ -236,6 +237,8 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     }
 
     bool result = (CScriptEntity::net_Spawn(DC) && R);
+
+    wpnSeat = xr_new<CarWpnSeat>(this, K);
 
     if (ID() == Actor()->HolderID()) 
     {
@@ -376,17 +379,17 @@ void CCar::RestoreNetState(CSE_PHSkeleton* /*po*/)
     auto obj = PPhysicsShellHolder();
     if (!obj)
         return;
-    auto se_obj = obj->alife_object();
-    if (!se_obj)
+    auto seObj = obj->alife_object();
+    if (!seObj)
         return;
 
-    auto po = smart_cast<CSE_PHSkeleton*>(se_obj);
+    auto po = smart_cast<CSE_PHSkeleton*>(seObj);
     ASSERT_FMT(po, "[%s]: %s is not CSE_PHSkeleton", __FUNCTION__, obj->Name_script());
     if (!po->_flags.test(CSE_PHSkeleton::flSavedData))
         return;
     CPHSkeleton::RestoreNetState(po);
 
-    CSE_ALifeCar* co = smart_cast<CSE_ALifeCar*>(se_obj);
+    CSE_ALifeCar* co = smart_cast<CSE_ALifeCar*>(seObj);
     ASSERT_FMT(co, "[%s]: %s is not CSE_ALifeCar", __FUNCTION__, obj->Name_script());
     if (co->door_states.size() == m_doors.size())
     {
@@ -693,6 +696,9 @@ void CCar::detach_Actor()
 {
     if (!ActorInside())
         return;
+
+    if (wpnSeat->actorOwner)
+        wpnSeat->leaveSeat();
 
     Actor()->setVisible(1);
 
@@ -2152,11 +2158,11 @@ void CCar::SyncNetState()
     auto obj = PPhysicsShellHolder();
     if (!obj)
         return;
-    auto se_obj = obj->alife_object();
-    if (!se_obj)
+    auto seObj = obj->alife_object();
+    if (!seObj)
         return;
 
-    auto co = smart_cast<CSE_ALifeCar*>(se_obj);
+    auto co = smart_cast<CSE_ALifeCar*>(seObj);
     ASSERT_FMT(co, "[%s]: %s is not CSE_ALifeCar", __FUNCTION__, obj->Name_script());
 
     co->o_Position = Position();
@@ -2230,8 +2236,8 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, u8 seat)
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
     
-    if (m_pPhysicsShell)
-        PPhysicsShell()->Enable();
+    //if (m_pPhysicsShell)
+    PPhysicsShell()->Enable();
     //PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();
@@ -2293,7 +2299,6 @@ void CCar::predNPCattach(CAI_Stalker* stalker)
 #include "alife_simulator.h"
 void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
 {
-
     bool isDriver = (Owner() && (Owner()->ID() == npc->ID()));
 
     if (npc->ID() == Actor()->ID())
@@ -2310,6 +2315,9 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
 
     if ( (!isDriver) && (!passengers->getOccupiedPlaces()->contains(npc)))
         return;
+
+    if (wpnSeat->getOwnerID() == npc->ID())
+        wpnSeat->leaveSeat();
 
     CPHShellSplitterHolder* sh = PPhysicsShell()->SplitterHolder();
 
@@ -2444,11 +2452,13 @@ u32 CCar::updateLevelVertex()
 {
     if (Position().distance_to_xz(lastPosition) >= 0.7)
     {
-        const u32 old_vertex = ai_location().level_vertex_id();
-        const u32 new_vertex = ai().level_graph().vertex(old_vertex, Position());
+        //const u32 old_vertex = ai_location().level_vertex_id();
+        //const u32 new_vertex = ai().level_graph().vertex(old_vertex, Position());
+        const u32 new_vertex = ai().level_graph().vertex_id(Position());
 
         ai_location().level_vertex(new_vertex);
-        se_obj->m_tNodeID = new_vertex;
+        alife_object()->m_tNodeID = new_vertex;
+        //se_obj->m_tNodeID = new_vertex;
 
         lastPosition = Position();
     }

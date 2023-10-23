@@ -4,6 +4,7 @@
 #include "CarWeapon.h"
 #include "script_game_object.h"
 #include "xrServer_Objects_ALife_Monsters.h"
+#include <Actor.h>
 
 using namespace luabind;
 
@@ -31,9 +32,16 @@ luabind::object getPassengers(CCar* car)
 void setWpnSeat(CCar* car, CScriptGameObject* npc)
 {
     if (car->passengers->getOccupiedPlaces()->contains(&npc->object()))
-        car->wpnSeat->onSeat(&npc->object());
+        return car->wpnSeat->onSeat(&npc->object());
+    else if (npc->ID() == Actor()->ID())
+    {
+        car->setActorAsPassenger(true);
+        Actor()->attach_Vehicle(smart_cast<CHolderCustom*>(car));
+    } 
     else
         car->attach_NPC_Vehicle(&npc->object(), u8(-1) - 1);
+
+    car->wpnSeat->onSeat(&npc->object());
 }
 
 #pragma optimize("s", on)
@@ -75,5 +83,6 @@ void CCar::script_register(lua_State* L)
                   .def("get_passengers_vacant_sits", [](CCar* car) { return car->passengers->vacantSits(); })
                   .def("level_vertex", &CCar::updateLevelVertex)
                   .def("set_on_wpn_seat", &setWpnSeat)
+                  .def("leave_wpn_seat", [](CCar* car) { car->wpnSeat->leaveSeat(); })
                   .def(constructor<>())];
 }

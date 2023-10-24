@@ -515,7 +515,9 @@ void CCar::UpdateEx(float fov)
     {
         cam_Update(Device.fTimeDelta, fov);
         Actor()->Cameras().UpdateFromCamera(Camera());
-        Actor()->Cameras().ApplyDevice();
+
+        if (!Level().Cameras().GetCamEffector(cefDemo))
+            Actor()->Cameras().ApplyDevice();
     }
 }
 

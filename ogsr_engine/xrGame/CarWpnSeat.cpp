@@ -41,7 +41,7 @@ void CarWpnSeat::onSeat(CGameObject* npc)
 	if (!exist) 
 	{
 		Console->Show();
-		Msg("! This car [%s] not have wpn!", car->Name());
+        Msg("! This car [%s] not have wpn!", car->cName().c_str() );
 		return;
 	}
 

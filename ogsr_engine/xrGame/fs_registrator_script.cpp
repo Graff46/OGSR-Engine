@@ -245,6 +245,13 @@ void rescan_path(CLocatorAPI* fs, PCSTR initial, bool recurse)
     fs->rescan_physical_path(fpath->m_Path, recurse);
 }
 
+void rescan_path2(CLocatorAPI* fs, PCSTR initial, PCSTR path, bool recurse, bool force)
+{
+    string_path tmp;
+    fs->update_path(tmp, initial, path);
+    fs->rescan_physical_path(tmp, recurse, force);
+}
+
 #pragma optimize("s", on)
 void script_register_stdfs(lua_State* L)
 {
@@ -348,7 +355,8 @@ void fs_registrator::script_register(lua_State* L)
                   .def("file_list_open", &file_list_open_script_2)
                   .def("file_list_open_ex", &file_list_open_ex)
                   .def("set_path", &set_new_path)
-                  .def("rescan_path", &rescan_path),
+                  .def("rescan_path", &rescan_path)
+                  .def("rescan_path2", &rescan_path2),
 
               def("getFS", [] { return &FS; })];
 }

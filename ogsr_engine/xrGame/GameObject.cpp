@@ -583,7 +583,7 @@ void CGameObject::validate_ai_locations(bool decrement_reference)
     if (!ai().get_level_graph())
         return;
 
-    if (!UsedAI_Locations())
+    if ((!UsedAI_Locations()) && (!smart_cast<CCar*>(this)))
     {
         //		if (ai().get_game_graph() && ai().get_cross_table())
         //			set_game_vertex		(ai().cross_table().vertex(level_vertex_id()).game_vertex_id());

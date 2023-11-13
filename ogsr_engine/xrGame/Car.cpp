@@ -282,7 +282,8 @@ void CCar::net_Destroy()
 #ifdef DEBUG
     DBgClearPlots();
 #endif
-    throwOutAll();
+    if (!NpcCarStor::setFlagClear)
+        throwOutAll();
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
     if (m_bone_steer != BI_NONE)
     {
@@ -570,7 +571,7 @@ void CCar::VisualUpdate(float fov)
             //car_panel->Show(true);
             car_panel->SetCarHealth(GetfHealth() /* /100.f*/);
             car_panel->SetSpeed(lin_vel.magnitude() * 3.6);
-            car_panel->SetRPM(m_current_rpm / m_max_rpm / 2.f);
+            car_panel->SetRPM(m_current_rpm / m_max_rpm);
         }
     }
 
@@ -2238,8 +2239,8 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, u8 seat)
     SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
     npcAV->PlayCycle(anims.idles[0], FALSE);
     
-    //if (m_pPhysicsShell)
-    PPhysicsShell()->Enable();
+    if (m_pPhysicsShell)
+        PPhysicsShell()->Enable();
     //PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();
@@ -2452,18 +2453,22 @@ Fvector CCar::calcExitPosition(Fvector* pos)
 
 u32 CCar::updateLevelVertex()
 {
-    if (Position().distance_to_xz(lastPosition) >= 0.7)
+    /*if ((Position().distance_to_xz(lastPosition) >= 0.7) && (!getDestroy()))
     {
-        //const u32 old_vertex = ai_location().level_vertex_id();
-        //const u32 new_vertex = ai().level_graph().vertex(old_vertex, Position());
-        const u32 new_vertex = ai().level_graph().vertex_id(Position());
+        Fvector center;
+        Center(center);
+        center.x = Position().x;
+        center.z = Position().z;
+        u32 l_dwNewLevelVertexID = ai().level_graph().vertex(ai_location().level_vertex_id(), center);
 
-        ai_location().level_vertex(new_vertex);
-        alife_object()->m_tNodeID = new_vertex;
-        //se_obj->m_tNodeID = new_vertex;
+        VERIFY(ai().level_graph().valid_vertex_id(l_dwNewLevelVertexID));
+
+        if (ai_location().level_vertex_id() == l_dwNewLevelVertexID)
+            return;
 
         lastPosition = Position();
-    }
+
+    }*/
 
     return ai_location().level_vertex_id();
 }

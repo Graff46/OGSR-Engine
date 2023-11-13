@@ -61,6 +61,9 @@ void CCar::SWheel::Init()
     R_ASSERT2(j, "No wheel joint was set for a wheel");
     joint = j;
     joint->SetBackRef(&joint);
+
+    joint->SetJointSDfactors(collision_params.spring_factor, collision_params.damping_factor);
+
     R_ASSERT2(dJointGetType(joint->GetDJoint()) == dJointTypeHinge2, "No wheel join was set for a wheel, only wheel-joint valid!!!");
     ApplyDriveAxisVelTorque(0.f, 0.f);
     e->add_ObjectContactCallback(WheellCollisionCallback);

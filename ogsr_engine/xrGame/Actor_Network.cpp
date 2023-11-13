@@ -278,6 +278,8 @@ void CActor::net_Destroy()
     processing_deactivate();
     m_holder = NULL;
     m_holderID = u16(-1);
+    CSE_ALifeCreatureActor* E = smart_cast<CSE_ALifeCreatureActor*>(alife_object());
+    E->m_holderID = u16(-1);
 
     SetDefaultVisualOutfit(NULL);
 

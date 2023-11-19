@@ -14,7 +14,7 @@ void CarPassengers::create(IKinematics* pKinematics)
 
 	if (ini->section_exist("passengers"))
 	{
-		u8 id = 0;
+		u8 id = 1;
 
 		LPCSTR str = ini->r_string("passengers", "places");
 		string32 boneName;
@@ -33,8 +33,9 @@ void CarPassengers::create(IKinematics* pKinematics)
 
 			mx.c.add(offset);
 
-			list.emplace(++id, Place{ id, mx, false, 0 });
-		}	
+			list.emplace(id, Place{ id, mx, false, 0 });
+            id++;
+		}
 	}
 }
 

@@ -11,11 +11,14 @@
 #include "../Include/xrRender/Kinematics.h"
 #include "ExtendedGeom.h"
 
+float mutest = 1.0f;
+float mutest2 = 1.0f;
 CCar::SWheel::SWheelCollisionParams::SWheelCollisionParams()
 {
     spring_factor = 1;
     damping_factor = 1;
     mu_factor = 1;
+    SWheelCollisionParams::pwheel = nullptr;
 }
 IC void CCar::SWheel::applywheelCollisionParams(const dxGeomUserData* ud, bool& do_colide, dContact& c, SGameMtl* material_1, SGameMtl* material_2)
 {
@@ -23,7 +26,17 @@ IC void CCar::SWheel::applywheelCollisionParams(const dxGeomUserData* ud, bool& 
     {
         SWheelCollisionParams& cp = *((SWheelCollisionParams*)(ud->callback_data));
         dSurfaceParameters& sp = c.surface;
-        sp.mu *= cp.mu_factor;
+        sp.mode |= dContactFDir1 | dContactMu2;
+
+        c.fdir1[0] = cp.pwheel->joint->PSecond_element()->mXFORM.k.x;
+        c.fdir1[1] = cp.pwheel->joint->PSecond_element()->mXFORM.k.y;
+        c.fdir1[2] = cp.pwheel->joint->PSecond_element()->mXFORM.k.z;
+
+        sp.mu2 = sp.mu;
+
+        sp.mu2 *= cp.mu2_factor;
+        sp.mu  *= cp.mu_factor;
+        
         MulSprDmp(sp.soft_cfm, sp.soft_cfm, cp.spring_factor, cp.damping_factor);
     }
 }
@@ -70,23 +83,28 @@ void CCar::SWheel::Init()
     e->set_CallbackData((void*)&collision_params);
     e->SetAirResistance(0, 0);
     inited = true;
+    collision_params.pwheel = this;
 }
 void CCar::SWheel::Load(LPCSTR section)
 {
     IKinematics* K = PKinematics(car->Visual());
     CInifile* ini = K->LL_UserData();
     VERIFY(ini);
+
+    name = section;
     if (ini->section_exist(section))
     {
         collision_params.damping_factor = READ_IF_EXISTS(ini, r_float, section, "damping_factor", collision_params.damping_factor);
         collision_params.spring_factor = READ_IF_EXISTS(ini, r_float, section, "spring_factor", collision_params.spring_factor);
         collision_params.mu_factor = READ_IF_EXISTS(ini, r_float, section, "friction_factor", collision_params.mu_factor);
+        collision_params.mu2_factor = READ_IF_EXISTS(ini, r_float, section, "friction_factor_linear", collision_params.mu_factor);
     }
     else if (ini->section_exist("wheels_params"))
     {
         collision_params.damping_factor = ini->r_float("wheels_params", "damping_factor");
         collision_params.spring_factor = ini->r_float("wheels_params", "spring_factor");
         collision_params.mu_factor = ini->r_float("wheels_params", "friction_factor");
+        collision_params.mu2_factor = READ_IF_EXISTS(ini, r_float, "wheels_params", "friction_factor_linear", collision_params.mu_factor);
     }
 }
 void CCar::SWheel::ApplyDriveAxisTorque(float torque)

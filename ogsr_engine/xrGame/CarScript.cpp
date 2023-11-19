@@ -84,5 +84,17 @@ void CCar::script_register(lua_State* L)
                   .def("level_vertex", &CCar::updateLevelVertex)
                   .def("set_on_wpn_seat", &setWpnSeat)
                   .def("leave_wpn_seat", [](CCar* car) { car->wpnSeat->leaveSeat(); })
+                  //.def("get_wheel", [](CCar* car, LPCSTR name) { return &car->m_wheels_map.begin()->second; }) // не работает
                   .def(constructor<>())];
+}
+
+void CCar::SWheel::script_register(lua_State* L) // не работает
+{
+    module(L)[class_<CCar::SWheel, bases<CDamagableHealthItem>>("SWheel")
+                  .def_readonly("joint", &CCar::SWheel::joint)
+                  .def_readonly("name", &CCar::SWheel::name)
+                  .def("set_mu", [](CCar::SWheel* wheel, float k) { wheel->collision_params.mu_factor = k; })
+                  .def("set_mu2", [](CCar::SWheel* wheel, float k) { wheel->collision_params.mu2_factor = k; })
+                  .def("set_spring_damping_factor", [](CCar::SWheel* wheel, float spring, float damping) { wheel->joint->SetJointSDfactors(spring, damping); })];
+                  //.def("is_driving", [](CCar::SWheel* wheel, float spring, float damping) { std::find(wheel->car->m_driving_wheels.begin(), wheel->car->m_driving_wheels.end(), wheel) != wheel->car->m_driving_wheels.end();})];
 }

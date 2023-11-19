@@ -158,11 +158,14 @@ public:
         float radius{};
         CPhysicsJoint* joint;
         CCar* car;
+        shared_str name;
         struct SWheelCollisionParams
         {
             float spring_factor;
             float damping_factor;
             float mu_factor;
+            float mu2_factor;
+            SWheel* pwheel;
             SWheelCollisionParams();
         } collision_params;
 
@@ -192,6 +195,7 @@ public:
             joint = NULL;
             inited = false;
         }
+        DECLARE_SCRIPT_REGISTER_FUNCTION;
     };
     struct SWheelDrive
     {

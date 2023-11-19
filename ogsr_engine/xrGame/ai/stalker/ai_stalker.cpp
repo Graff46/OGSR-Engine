@@ -1009,10 +1009,10 @@ void CAI_Stalker::load(IReader& packet)
     brain().load(packet);
 
     ALife::_OBJECT_ID id = (ALife::_OBJECT_ID) packet.r_u16();
-    bool isDriver = (bool) packet.r_u8();
+    u8 place = packet.r_u8();
 
     if (id != u16(-1))
-        NpcCarStor::add( ID(), id, isDriver);
+        NpcCarStor::add(ID(), id, place);
 }
 
 void CAI_Stalker::load_critical_wound_bones()

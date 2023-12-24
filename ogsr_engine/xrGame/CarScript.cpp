@@ -29,6 +29,17 @@ luabind::object getPassengers(CCar* car)
     return t;
 }
 
+luabind::object getWheels(CCar* car)
+{
+    luabind::object t = luabind::newtable(ai().script_engine().lua());
+
+    u16 i = 0;
+    for (const auto& [id, wheel] : *car->getWheelsMap())
+        t[++i] = wheel.joint;
+
+    return t;
+}
+
 void setWpnSeat(CCar* car, CScriptGameObject* npc)
 {
     if (car->passengers->getOccupiedPlaces()->contains(&npc->object()))
@@ -84,7 +95,9 @@ void CCar::script_register(lua_State* L)
                   .def("level_vertex", &CCar::updateLevelVertex)
                   .def("set_on_wpn_seat", &setWpnSeat)
                   .def("leave_wpn_seat", [](CCar* car) { car->wpnSeat->leaveSeat(); })
-                  //.def("get_wheel", [](CCar* car, LPCSTR name) { return &car->m_wheels_map.begin()->second; }) // не работает
+                  .def("set_camera", &CCar::OnCameraChange)
+                  //.def("set_camera_dir", [](CCar* car, Fvector f) { car->get_active_camera()->vDirection.set(f); })
+                  //.def("get_wheels", &getWheels)
                   .def(constructor<>())];
 }
 

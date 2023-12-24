@@ -2219,6 +2219,9 @@ bool CCar::attach_NPC_Vehicle(CGameObject* npc, u8 seat)
 
     if (driver)
     {
+        if (Owner())
+            detach_NPC_Vehicle(Owner());
+
         se_owner = npc->alife_object();
         CHolderCustom::attach_Actor(npc);
     } 
@@ -2311,7 +2314,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
         else
             m_exit_position = calcExitPosition(&m_sits_transforms.c);
 
-        return detach_Actor();
+        return Actor()->detach_Vehicle();
     }
 
     CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);

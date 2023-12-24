@@ -473,13 +473,11 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 
 void CAI_Stalker::net_Destroy()
 {
-    if (CHolderCustom* holder = m_holderCustom)
+    if (CCar* car = m_holderCustom ? smart_cast<CCar*>(m_holderCustom) : nullptr)
     {
-        CCar* car = smart_cast<CCar*>(holder);
-
-        if (car->Owner() && car->Owner()->ID() == ID())
+        if (car && car->Owner() && car->Owner()->ID() == ID())
             car->CHolderCustom::detach_Actor();
-        else if (car->passengers->getOccupiedPlaces()->contains(cast_game_object()))
+        else if (car && car->passengers->getOccupiedPlaces()->contains(cast_game_object()))
             car->passengers->getOccupiedPlaces()->erase(cast_game_object());
     }
 

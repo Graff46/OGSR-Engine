@@ -402,6 +402,7 @@ public:
     void OnCameraChange(int type);
     void setCamParam(LPCSTR sec);
     Fmatrix m_sits_transforms; // driver_place
+    const xr_map<u16, SWheel>* getWheelsMap() { return &m_wheels_map; };
 
 private:
     ////////////////////////////////////////////////////

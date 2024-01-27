@@ -309,6 +309,20 @@ public:
 
     void LoadCars();
 
+    struct RQandignores
+    {
+        xr_vector<CObject*> ignore_objects;
+        collide::rq_result RQ;
+        RQandignores(xr_vector<CObject*> objects, collide::rq_result rq)
+        {
+            ignore_objects = objects;
+            RQ = rq;
+        }
+    };
+    collide::rq_result GetPickResultVecIgnores(
+        Fvector pos, Fvector dir, float range, xr_vector<CObject*> ignore_objects = {});
+    collide::rq_result GetPickResult(Fvector pos, Fvector dir, float range, CObject* ignore = NULL);
+
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CLevel)

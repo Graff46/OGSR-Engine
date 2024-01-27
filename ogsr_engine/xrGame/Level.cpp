@@ -818,3 +818,140 @@ bool GlobalFeelTouch::is_object_denied(CObject const* O)
     }
     return true;
 }
+
+#include "car.h"
+#include "../xr_3da/GameMtlLib.h"
+#include "../xr_3da/IGame_Persistent.h"
+#include "../xr_3da/xr_area.h"
+#include "../xr_3da/xr_collide_form.h"
+#include "Grenade.h"
+#include "CustomRocket.h"
+ICF static BOOL GetPickDist_Callback(collide::rq_result& result, LPVOID params)
+{
+    collide::rq_result* RQ = (collide::rq_result*)params;
+    if (result.O)
+    {
+        if (CCustomRocket* pRocket = smart_cast<CCustomRocket*>(result.O))
+        {
+            if (!pRocket->Useful())
+                return TRUE;
+        }
+
+        if (CGrenade* pGrenade = smart_cast<CGrenade*>(result.O))
+        {
+            if (!pGrenade->Useful())
+                return TRUE;
+        }
+
+        if (CMissile* pMissile = smart_cast<CMissile*>(result.O))
+        {
+            if (!pMissile->Useful())
+                return TRUE;
+        }
+
+        if (Actor())
+        {
+            if (result.O == Actor())
+                return TRUE;
+            if (result.O->H_Parent() == Actor())
+                return TRUE;
+            if (Actor()->Holder())
+            {
+                CCar* car = smart_cast<CCar*>(Actor()->Holder());
+                if (car && result.O == car)
+                    return TRUE;
+
+                if (car && car->passengers->getOccupiedPlaces2().contains(smart_cast<CGameObject*>(result.O)))
+                    return TRUE;
+            }
+        }
+    }
+    else
+    {
+        CDB::TRI* T = Level().ObjectSpace.GetStaticTris() + result.element;
+        SGameMtl* pMtl = GMLib.GetMaterialByIdx(T->material);
+        if (pMtl && (pMtl->Flags.is(SGameMtl::flPassable) || pMtl->Flags.is(SGameMtl::flActorObstacle)))
+            return TRUE;
+    }
+    *RQ = result;
+    return FALSE;
+}
+
+collide::rq_result CLevel::GetPickResult(Fvector pos, Fvector dir, float range, CObject* ignore)
+{
+    collide::rq_result RQ;
+    RQ.set(NULL, range, -1);
+    collide::rq_results RQR;
+    collide::ray_defs RD(pos, dir, RQ.range, CDB::OPT_FULL_TEST, collide::rqtBoth);
+
+    Level().ObjectSpace.RayQuery(RQR, RD, GetPickDist_Callback, &RQ, nullptr, ignore);
+    return RQ;
+}
+
+ICF BOOL GetPickDistVecIgnores_Callback(collide::rq_result& result, LPVOID params)
+{
+    CLevel::RQandignores* RQI = (CLevel::RQandignores*)params;
+    if (result.O)
+    {
+        if (CCustomRocket* pRocket = smart_cast<CCustomRocket*>(result.O))
+        {
+            if (!pRocket->Useful())
+                return TRUE;
+        }
+
+        if (CGrenade* pGrenade = smart_cast<CGrenade*>(result.O))
+        {
+            if (!pGrenade->Useful())
+                return TRUE;
+        }
+
+        if (CMissile* pMissile = smart_cast<CMissile*>(result.O))
+        {
+            if (!pMissile->Useful())
+                return TRUE;
+        }
+        bool actor_in_vec = false;
+        for (xr_vector<CObject*>::iterator it = RQI->ignore_objects.begin(); RQI->ignore_objects.end() != it; ++it)
+        {
+            if ((*it) == result.O)
+                return TRUE;
+            if ((*it) == Actor())
+                actor_in_vec = true;
+        }
+
+        if (Actor() && actor_in_vec)
+        {
+            if (result.O == Actor())
+                return TRUE;
+            if (result.O->H_Parent() == Actor())
+                return TRUE;
+            if (Actor()->Holder())
+            {
+                CCar* car = smart_cast<CCar*>(Actor()->Holder());
+                if (car && result.O == car)
+                    return TRUE;
+            }
+        }
+    }
+    else
+    {
+        CDB::TRI* T = Level().ObjectSpace.GetStaticTris() + result.element;
+        SGameMtl* pMtl = GMLib.GetMaterialByIdx(T->material);
+        if (pMtl && (pMtl->Flags.is(SGameMtl::flPassable) || pMtl->Flags.is(SGameMtl::flActorObstacle)))
+            return TRUE;
+    }
+    RQI->RQ = result;
+    return FALSE;
+}
+
+collide::rq_result CLevel::GetPickResultVecIgnores(
+    Fvector pos, Fvector dir, float range, xr_vector<CObject*> ignore_objects)
+{
+    collide::rq_result RQ;
+    RQ.set(NULL, range, -1);
+    collide::rq_results RQR;
+    collide::ray_defs RD(pos, dir, RQ.range, CDB::OPT_FULL_TEST, collide::rqtBoth);
+    RQandignores RQI = RQandignores(ignore_objects, RQ);
+    Level().ObjectSpace.RayQuery(RQR, RD, GetPickDistVecIgnores_Callback, &RQI, nullptr, nullptr);
+    return RQI.RQ;
+}

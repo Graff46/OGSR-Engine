@@ -43,14 +43,12 @@ public:
     float smooth_volume;
     float occluder_volume; // USER
     float fade_volume;
-    Fvector occluder[3];
+    Fvector occluder[3]{};
 
     State m_current_state;
     u32 m_stream_cursor;
     u32 m_cur_handle_cursor;
-    CSound_params p_source;
-    CSoundRender_Environment e_current;
-    CSoundRender_Environment e_target;
+    CSound_params p_source{};
 
     int iPaused;
     BOOL bMoved;

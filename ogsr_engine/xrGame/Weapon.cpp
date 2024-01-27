@@ -31,9 +31,6 @@
 
 #define ROTATION_TIME 0.25f
 
-extern ENGINE_API Fvector4 w_states;
-extern ENGINE_API Fvector3 w_timers;
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -339,11 +336,12 @@ void CWeapon::Load(LPCSTR section)
     m_eSilencerStatus = (ALife::EWeaponAddonStatus)pSettings->r_s32(section, "silencer_status");
     m_eGrenadeLauncherStatus = (ALife::EWeaponAddonStatus)pSettings->r_s32(section, "grenade_launcher_status");
 
+    if (m_eSilencerStatus == ALife::eAddonPermanent)
+        m_bLightShotEnabled = false;
+
     m_bZoomEnabled = !!pSettings->r_bool(section, "zoom_enabled");
     m_bUseScopeZoom = !!READ_IF_EXISTS(pSettings, r_bool, section, "use_scope_zoom", false);
     m_bUseScopeGrenadeZoom = !!READ_IF_EXISTS(pSettings, r_bool, section, "use_scope_grenade_zoom", false);
-    m_bUseScopeDOF = !!READ_IF_EXISTS(pSettings, r_bool, section, "use_scope_dof", true);
-    m_bForceScopeDOF = !!READ_IF_EXISTS(pSettings, r_bool, section, "force_scope_dof", false);
     m_bScopeShowIndicators = !!READ_IF_EXISTS(pSettings, r_bool, section, "scope_show_indicators", true);
     m_bIgnoreScopeTexture = !!READ_IF_EXISTS(pSettings, r_bool, section, "ignore_scope_texture", false);
 
@@ -600,6 +598,12 @@ void CWeapon::Load(LPCSTR section)
         flashlight_glow->set_color(clr);
         flashlight_glow->set_radius(READ_IF_EXISTS(pSettings, r_float, m_light_section, "glow_radius", 0.3f));
     }
+
+    dof_transition_time = READ_IF_EXISTS(pSettings, r_float, section, "dof_transition_time", 0.6f);
+    dof_params_zoom = (READ_IF_EXISTS(pSettings, r_fvector4, section, "dof_zoom_params", (Fvector4{0, 0, 0, 1.6}))); //(Fvector4{0.1, 0.4, 0, 1.6})
+    dof_params_reload = (READ_IF_EXISTS(pSettings, r_fvector4, section, "dof_reload_params", (Fvector4{0, 0, 1, 0})));
+
+    dont_interrupt_shot_anm = READ_IF_EXISTS(pSettings, r_bool, section, "dont_interrupt_shot_anm", true);
 }
 
 void CWeapon::LoadFireParams(LPCSTR section, LPCSTR prefix)
@@ -626,8 +630,10 @@ BOOL CWeapon::net_Spawn(CSE_Abstract* DC)
 
     // iAmmoCurrent					= E->a_current;
     iAmmoElapsed = E->a_elapsed;
+
     m_flagsAddOnState = E->m_addon_flags.get();
     m_ammoType = E->ammo_type;
+
     SetState(E->wpn_state);
     SetNextState(E->wpn_state);
 
@@ -669,6 +675,9 @@ BOOL CWeapon::net_Spawn(CSE_Abstract* DC)
     InitAddons();
 
     VERIFY((u32)iAmmoElapsed == m_magazine.size());
+
+    if (m_bLightShotEnabled)
+        Light_Create();
 
     return bResult;
 }
@@ -828,48 +837,12 @@ void CWeapon::OnH_B_Chield()
     m_set_next_ammoType_on_reload = u32(-1);
 }
 
-static float state_time = 0; // таймер нахождения оружия в текущем состоянии
-static float state_time_heat = 0; // таймер нагрева оружия
-static float previous_heating = 0; // "нагретость" оружия в предыдущем состоянии
-
-#include "WeaponBinoculars.h"
-
-void CWeapon::UpdateWeaponParams()
+void CWeapon::OnBeforeDrop()
 {
-#pragma todo("KRodin: адаптировать тепловизор и тп. под новый рендер, если это возможно.")
+    if (auto io = smart_cast<CActor*>(H_Parent()); io && this == io->inventory().ActiveItem())
+        shader_exports.set_dof_params(0.f, 0.f, 0.f, 0.f);
 
-    if (!IsHidden())
-    {
-        w_states.x = m_fZoomRotationFactor; // x = zoom mode, y - текущее состояние, z - старое состояние
-        if (psActorFlags.test(AF_DOF_SCOPE) && !(IsZoomed() && !IsRotatingToZoom() && (IsScopeAttached() || m_bForceScopeDOF) && !IsGrenadeMode() && m_bUseScopeDOF))
-            w_states.x = 0.f;
-        if (w_states.y != GetState()) // первый апдейт или стейт изменился
-        {
-            w_states.z = w_states.y; // записываем старое состояние
-            state_time_heat = state_time = Device.fTimeGlobal; // инитим счетчики времени
-            previous_heating = w_timers.z; // сохраняем "нагретость" оружия
-            w_timers.y = w_timers.x; // записываем время нахождения в предыдущем состоянии
-            w_states.y = (float)GetState(); // обновляем состояние
-        }
-        // флаг бинокля в руках (в этом режиме не нужно размытие)
-        if (smart_cast<CWeaponBinoculars*>(this))
-            w_states.w = 0;
-        else
-            w_states.w = 1;
-        if (w_states.y == static_cast<float>(eFire) || w_states.y == static_cast<float>(eFire2)) //стреляем, значит оружие греется
-        {
-            w_timers.z = Device.fTimeGlobal - state_time_heat + previous_heating;
-        }
-        else // не стреляем - оружие охлаждается
-        {
-            if (w_timers.z > EPS) // оружие все еще нагрето
-            {
-                float tm = state_time_heat + previous_heating - Device.fTimeGlobal;
-                w_timers.z = (tm < EPS) ? 0.f : tm;
-            }
-        }
-        w_timers.x = Device.fTimeGlobal - state_time; // обновляем таймер текущего состояния
-    }
+    inherited::OnBeforeDrop();
 }
 
 u8 CWeapon::idle_state()
@@ -894,11 +867,10 @@ void CWeapon::UpdateCL()
 
     UpdateHUDAddonsVisibility();
 
+    UpdateVisualBullets();
+
     //подсветка от выстрела
     UpdateLight();
-
-    if (ParentIsActor())
-        UpdateWeaponParams(); // параметры для рендера оружия в режиме тепловидения
 
     //нарисовать партиклы
     UpdateFlameParticles();
@@ -906,6 +878,7 @@ void CWeapon::UpdateCL()
 
     VERIFY(smart_cast<IKinematics*>(Visual()));
 
+    auto pActor = smart_cast<CActor*>(H_Parent());
     if (GetState() == eIdle)
     {
         auto state = idle_state();
@@ -917,12 +890,55 @@ void CWeapon::UpdateCL()
                 SwitchState(eIdle);
             }
         }
+
+        if (pActor)
+        {
+            if (psActorFlags.test(AF_DOF_ZOOM))
+            {
+                if (m_bZoomMode && dof_zoom_effect < 1.f && !UseScopeTexture() && pActor->active_cam() == ACTOR_DEFS::eacFirstEye)
+                    UpdateDof(dof_zoom_effect, dof_params_zoom, false);
+                else if (dof_zoom_effect > 0.f && !m_bZoomMode)
+                    UpdateDof(dof_zoom_effect, dof_params_zoom, true);
+            }
+
+            if (psActorFlags.test(AF_DOF_RELOAD) && dof_reload_effect > 0.f) 
+                UpdateDof(dof_reload_effect, dof_params_reload, true);
+        }
+    }
+    else if (GetState() == eReload)
+    {
+        if (pActor && psActorFlags.test(AF_DOF_RELOAD) && dof_reload_effect < 1.f && pActor->active_cam() == ACTOR_DEFS::eacFirstEye)
+            UpdateDof(dof_reload_effect, dof_params_reload, false);
+
+        m_idle_state = eIdle;
     }
     else
+    {
+        if (pActor)
+        {
+            if (psActorFlags.test(AF_DOF_RELOAD) && dof_reload_effect > 0.f)
+                UpdateDof(dof_reload_effect, dof_params_reload, true);
+
+            if (psActorFlags.test(AF_DOF_ZOOM) && dof_zoom_effect > 0.f && (!m_bZoomMode || pActor->active_cam() != ACTOR_DEFS::eacFirstEye))
+                UpdateDof(dof_zoom_effect, dof_params_zoom, true);
+        }
+
         m_idle_state = eIdle;
+    }
 
     UpdateLaser();
     UpdateFlashlight();
+}
+
+void CWeapon::UpdateDof(float& type, Fvector4 params_type, bool desire)
+{
+    if (desire)
+        type -= Device.fTimeDelta / dof_transition_time;
+    else
+        type += Device.fTimeDelta / dof_transition_time;
+
+    shader_exports.set_dof_params(params_type.x * type, params_type.y * type, params_type.z * type, params_type.w * type);
+    clamp(type, 0.f, 1.f);
 }
 
 void CWeapon::UpdateLaser()
@@ -1071,6 +1087,13 @@ void CWeapon::renderable_Render()
     inherited::renderable_Render();
 }
 
+void CWeapon::render_hud_mode()
+{
+    RenderLight();
+
+    inherited::render_hud_mode();
+}
+
 bool CWeapon::need_renderable() { return !Device.m_SecondViewport.IsSVPFrame() && !(IsZoomed() && ZoomTexture() && !IsRotatingToZoom()); }
 
 void CWeapon::signal_HideComplete()
@@ -1149,20 +1172,26 @@ bool CWeapon::Action(s32 cmd, u32 flags)
         return true;
 
     case kWPN_ZOOM: {
-        if (IsZoomEnabled())
+        const u32 state = GetState();
+        if (IsZoomEnabled() && (state == eFire || state == eFire2 || state == eMagEmpty || state == eIdle || !IsPending()))
         {
-            if (flags & CMD_START && !IsPending())
+            if (flags & CMD_START)
             {
                 if (psActorFlags.is(AF_WPN_AIM_TOGGLE) && IsZoomed())
                 {
                     OnZoomOut();
+                    SwitchState(eIdle);
                 }
                 else
+                {
                     OnZoomIn();
+                    SwitchState(eIdle);
+                }
             }
             else if (IsZoomed() && !psActorFlags.is(AF_WPN_AIM_TOGGLE))
             {
                 OnZoomOut();
+                SwitchState(eIdle);
             }
             return true;
         }
@@ -1262,11 +1291,8 @@ void CWeapon::SpawnAmmo(u32 boxCurr, LPCSTR ammoSect, u32 ParentID)
 
     CSE_Abstract* D = F_entity_Create(ammoSect);
 
-    // KRodin: GOVNOKOD DETECTED!
-    if (D->m_tClassID == CLSID_OBJECT_AMMO || D->m_tClassID == CLSID_OBJECT_A_M209 || D->m_tClassID == CLSID_OBJECT_A_VOG25 || D->m_tClassID == CLSID_OBJECT_A_OG7B)
+    if (auto l_pA = smart_cast<CSE_ALifeItemAmmo*>(D))
     {
-        CSE_ALifeItemAmmo* l_pA = smart_cast<CSE_ALifeItemAmmo*>(D);
-        R_ASSERT(l_pA);
         l_pA->m_boxSize = (u16)pSettings->r_s32(ammoSect, "box_size");
         D->s_name = ammoSect;
         D->set_name_replace("");
@@ -1621,12 +1647,8 @@ void CWeapon::OnZoomIn()
     else if (!m_bZoomInertionAllow)
         AllowHudInertion(FALSE);
 
-    if (GetHUDmode())
-        GamePersistent().SetPickableEffectorDOF(true);
-
-    CActor* pActor = smart_cast<CActor*>(H_Parent());
-    if (pActor)
-        pActor->callback(GameObject::eOnActorWeaponZoomIn)(lua_game_object());
+    if (smart_cast<CActor*>(H_Parent()))
+        g_actor->callback(GameObject::eOnActorWeaponZoomIn)(lua_game_object());
 
     g_player_hud->updateMovementLayerState();
 }
@@ -1640,18 +1662,13 @@ void CWeapon::OnZoomOut()
         SprintType = false;
         m_bZoomMode = false;
 
-        CActor* pActor = smart_cast<CActor*>(H_Parent());
-        if (pActor)
+        if (smart_cast<CActor*>(H_Parent()))
         {
-            w_states.set(0.f, 0.f, 0.f, 1.f);
-            pActor->callback(GameObject::eOnActorWeaponZoomOut)(lua_game_object());
+            g_actor->callback(GameObject::eOnActorWeaponZoomOut)(lua_game_object());
         }
     }
 
     AllowHudInertion(TRUE);
-
-    if (GetHUDmode())
-        GamePersistent().SetPickableEffectorDOF(false);
 
     ResetSubStateTime();
 
@@ -1758,8 +1775,10 @@ void CWeapon::create_physic_shell()
     // физики происходят краши в ode которые исправить невозможно.
     if (IS_OGSR_GA)
     {
-        m_pPhysicsShell = P_build_SimpleShell(this, 0.3f, false);
-        m_pPhysicsShell->SetMaterial(smart_cast<IKinematics*>(Visual())->LL_GetData(smart_cast<IKinematics*>(Visual())->LL_GetBoneRoot()).game_mtl_idx);
+        auto vis = smart_cast<IKinematics*>(Visual());
+        auto& rootBoneData = vis->LL_GetData(vis->LL_GetBoneRoot());
+        m_pPhysicsShell = P_build_SimpleShell(this, rootBoneData.mass, false);
+        m_pPhysicsShell->SetMaterial(rootBoneData.game_mtl_idx);
     }
     else
         CPhysicsShellHolder::create_physic_shell();
@@ -2137,6 +2156,9 @@ void CWeapon::OnBulletHit()
         ChangeCondition(-conditionDecreasePerShotOnHit);
 }
 
+// По ef_weapon_type тут проверяем, пулемёт ли это. Это костыль чтоб при смене типа патронов не играла анимация reload_empty, которая выглядит в данном случае неправильно.
+bool CWeapon::IsPartlyReloading() const { return (ef_weapon_type() == 10 || m_set_next_ammoType_on_reload == u32(-1)) && GetAmmoElapsed() > 0 && !IsMisfire(); }
+
 void CWeapon::SaveAttachableParams()
 {
     const char* sect_name = cNameSect().c_str();
@@ -2165,6 +2187,48 @@ void CWeapon::SaveAttachableParams()
     }
 
     Msg("--[%s] data saved to [%s]", __FUNCTION__, pHudCfg.fname());
+}
+
+void CWeapon::UpdateVisualBullets()
+{
+    if (!bullet_update)
+        return;
+
+    if (bHasBulletsToHide)
+    {
+        const int AE = GetAmmoElapsed();
+
+        last_hide_bullet = AE >= bullet_cnt ? bullet_cnt : (AE == 0 ? -1 : bullet_cnt - AE - 1);
+    }
+
+    HUD_VisualBulletUpdate();
+}
+
+void CWeapon::HUD_VisualBulletUpdate(bool force, int force_idx)
+{
+    if (!GetHUDmode())
+        return;
+
+    if (!bHasBulletsToHide)
+        return;
+
+    bool hide = true;
+
+    // Msg("Print %d bullets", last_hide_bullet);
+
+    if (last_hide_bullet == bullet_cnt || force)
+        hide = false;
+
+    for (auto b = 0; b < bullet_cnt; b++)
+    {
+        const auto bone_id = HudItemData()->m_model->LL_BoneID(bullets_bones[b]);
+
+        if (bone_id != BI_NONE)
+            HudItemData()->set_bone_visible(bullets_bones[b], !hide);
+
+        if (b == last_hide_bullet)
+            hide = false;
+    }
 }
 
 void CWeapon::ParseCurrentItem(CGameFont* F) { F->OutNext("WEAPON IN STRAPPED MODE: [%d]", m_strapped_mode); }

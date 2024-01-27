@@ -86,13 +86,10 @@ void CWeaponShotgun::Fire2Start()
 
             CWeapon::FireStart();
 
-            if (!iAmmoElapsed)
-                SwitchState(eMagEmpty);
-            else
-                SwitchState((iAmmoElapsed < iMagazineSize) ? eFire : eFire2);
+            SwitchState((iAmmoElapsed < iMagazineSize) ? eFire : eFire2);
         }
     }
-    else if (!iAmmoElapsed)
+    else
         SwitchState(eMagEmpty);
 }
 
@@ -118,7 +115,7 @@ void CWeaponShotgun::OnShotBoth()
     AddShotEffector();
 
     // анимация дуплета
-    PlayHUDMotion({"anim_shoot_both", "anm_shots_both"}, used_cop_fire_point(), GetState());
+    PlayHUDMotion({"anim_shoot_both", "anm_shots_both"}, false, GetState());
 
     // Shell Drop
     Fvector vel;
@@ -273,11 +270,18 @@ bool CWeaponShotgun::Action(s32 cmd, u32 flags)
     if (inherited::Action(cmd, flags))
         return true;
 
-    if (m_bTriStateReload && GetState() == eReload && !IsMisfire() && (cmd == kWPN_FIRE || cmd == kWPN_NEXT) && flags & CMD_START &&
-        (m_sub_state == eSubstateReloadInProcess || m_sub_state == eSubstateReloadBegin)) //остановить перезагрузку
+    if (m_bTriStateReload && GetState() == eReload && !IsMisfire() && (flags & CMD_START) && (m_sub_state == eSubstateReloadInProcess || m_sub_state == eSubstateReloadBegin))
     {
-        m_stop_triStateReload = true;
-        return true;
+        switch (cmd)
+        {
+        case kWPN_FIRE:
+        case kWPN_NEXT:
+        //case kWPN_RELOAD:
+        case kWPN_ZOOM:
+            // остановить перезарядку
+            m_stop_triStateReload = true;
+            return true;
+        }
     }
 
 #ifndef DUPLET_STATE_SWITCH
@@ -399,7 +403,10 @@ void CWeaponShotgun::OnStateSwitch(u32 S, u32 oldState)
                 }
             }
             PlaySound(m_sndOpen, get_LastFP());
-            PlayHUDMotion({"anim_open_weapon", "anm_open"}, true, GetState());
+            if (ParentIsActor())
+                PlayHUDMotion({"anim_open_weapon", "anm_open"}, true, GetState());
+            else //Временно заткнул баг с неперезарядкой винчестера у нпс, надо фиксить анимацию, но это будет сделано позже, потом этот код убрать!
+                PlayHUDMotion({"anim_add_cartridge", "anm_add_cartridge"}, true, GetState());
             SetPending(TRUE);
         }
         break;

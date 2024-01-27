@@ -50,7 +50,7 @@ public:
     u32 verts[3]; // 3*4 = 12b
     union
     {
-        size_t dummy; // 4b
+        size_t dummy;
         struct
         {
             size_t material : 14;
@@ -71,15 +71,6 @@ public:
     };
 
 #ifdef _M_X64
-    TRI(TRI_DEPRECATED& oldTri)
-    {
-        verts[0] = oldTri.verts[0];
-        verts[1] = oldTri.verts[1];
-        verts[2] = oldTri.verts[2];
-        dummy = oldTri.dummy;
-        dumb = 0;
-    }
-
     TRI()
     {
         verts[0] = 0;
@@ -196,26 +187,16 @@ enum
 // Collider itself
 class XRCDB_API COLLIDER
 {
-    // Ray data and methods
-    u32 ray_mode;
-    u32 box_mode;
-    u32 frustum_mode;
-
     // Result management
     xr_vector<RESULT> rd;
 
 public:
-    COLLIDER();
+    COLLIDER() = default;
     ~COLLIDER();
 
-    ICF void ray_options(u32 f) { ray_mode = f; }
-    void ray_query(const MODEL* m_def, const Fvector& r_start, const Fvector& r_dir, float r_range = 10000.f);
-
-    ICF void box_options(u32 f) { box_mode = f; }
-    void box_query(const MODEL* m_def, const Fvector& b_center, const Fvector& b_dim);
-
-    ICF void frustum_options(u32 f) { frustum_mode = f; }
-    void frustum_query(const MODEL* m_def, const CFrustum& F);
+    void ray_query(u32 ray_mode, const MODEL* m_def, const Fvector& r_start, const Fvector& r_dir, float r_range = 10000.f);
+    void box_query(u32 box_mode, const MODEL* m_def, const Fvector& b_center, const Fvector& b_dim);
+    void frustum_query(u32 frustum_mode, const MODEL* m_def, const CFrustum& F);
 
     ICF RESULT* r_begin() { return std::data(rd); }
     ICF RESULT* r_end() { return std::data(rd) + std::size(rd); }

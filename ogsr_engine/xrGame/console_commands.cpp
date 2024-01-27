@@ -80,9 +80,8 @@ float adj_delta_rot = 0.05f;
 BOOL g_bCheckTime = FALSE;
 int net_cl_inputupdaterate = 50;
 Flags32 g_mt_config = {mtLevelPath | mtDetailPath | mtObjectHandler | mtSoundPlayer | mtAiVision | mtBullets | mtLUA_GC | mtLevelSounds | mtALife};
-#ifdef DEBUG
+
 Flags32 dbg_net_Draw_Flags = {0};
-#endif
 
 #ifdef DEBUG
 BOOL g_bDebugNode = FALSE;
@@ -98,8 +97,6 @@ int g_AI_inactive_time = 0;
 
 extern int g_dof_zoom_far;
 extern int g_dof_zoom_near;
-
-ENGINE_API extern int g_3dscopes_fps_factor;
 
 void get_files_list(xr_vector<shared_str>& files, LPCSTR dir, LPCSTR file_ext)
 {
@@ -154,10 +151,35 @@ public:
 
         SProcessMemInfo memCounters;
         GetProcessMemInfo(memCounters);
-        Msg("[%I64dMB] physical memory installed, [%I64dMB] available, [%ld] percent of memory in use", memCounters.TotalPhysicalMemory / (1024 * 1024),
-            memCounters.FreePhysicalMemory / (1024 * 1024), memCounters.MemoryLoad);
+        Msg("[%I64dMB] physical memory installed, [%I64dMB] available, [%ld] percent of memory in use", 
+            memCounters.TotalPhysicalMemory / (1024 * 1024),
+            memCounters.FreePhysicalMemory / (1024 * 1024), 
+            memCounters.MemoryLoad);
 
-        Msg("PageFile usage: [%I64dMB], Peak PageFile usage: [%I64dMB]", memCounters.PagefileUsage / (1024 * 1024), memCounters.PeakPagefileUsage / (1024 * 1024));
+        Msg("PageFile total: [%I64dMB], free~ [%I64dMB]", 
+            memCounters.TotalPageFile / (1024 * 1024), memCounters.FreePageFile / (1024 * 1024));
+
+        //PeakWorkingSetSize
+        //
+        //The peak working set size, in bytes.
+        //
+        //WorkingSetSize
+        //
+        //The current working set size, in bytes.
+
+        Msg("Engine memory usage (Working Set): [%I64dMB], peak: [%I64dMB]",
+            memCounters.WorkingSetSize / (1024 * 1024), memCounters.PeakWorkingSetSize / (1024 * 1024));
+
+        //PagefileUsage
+        //
+        //The Commit Charge value in bytes for this process. Commit Charge is the total amount of memory that the memory manager has committed for a running process.
+        //
+        //PeakPagefileUsage
+        //
+        //The peak value in bytes of the Commit Charge during the lifetime of this process.
+
+        Msg("Engine memory usage (Commit Charge): [%I64dMB], peak: [%I64dMB]",
+            memCounters.PagefileUsage / (1024 * 1024), memCounters.PeakPagefileUsage / (1024 * 1024));
 
         Log("--------------------------------------------------------------------------------");
 
@@ -900,8 +922,93 @@ public:
         if (auto tpGame = smart_cast<game_sv_Single*>(Level().Server->game))
             tpGame->alife().spawn_item(args, Actor()->Position(), Actor()->ai_location().level_vertex_id(), Actor()->ai_location().game_vertex_id(), ALife::_OBJECT_ID(-1));
     }
+
+    virtual void fill_tips(vecTips& tips, u32 mode)
+    {
+        if (!ai().get_alife())
+        {
+            Msg("! ALife simulator is needed to perform specified command!");
+            return;
+        }
+
+        for (const auto& it : pSettings->sections())
+        {
+            auto& section = it.first;
+
+            if (pSettings->line_exist(section, "class"))
+            {
+                tips.push_back(section);
+            }
+        }
+
+        std::sort(tips.begin(), tips.end());
+
+        // tips.push_back((*itb).second.name());
+    }
 };
 //#endif // MASTER_GOLD
+
+class CCC_SpawnToInventory : public IConsole_Command
+{
+public:
+    CCC_SpawnToInventory(LPCSTR N) : IConsole_Command(N) {}
+
+    void Execute(LPCSTR args)
+    {
+        if (!g_pGameLevel)
+            return;
+
+        if (!pSettings->section_exist(args))
+        {
+            Msg("! Can't find section: %s", args);
+            return;
+        }
+
+        if (auto tpGame = smart_cast<game_sv_Single*>(Level().Server->game))
+        {
+            NET_Packet packet;
+            packet.w_begin(M_SPAWN);
+            packet.w_stringZ(args);
+
+            CSE_Abstract* item =
+                tpGame->alife().spawn_item(args, Actor()->Position(), Actor()->ai_location().level_vertex_id(), Actor()->ai_location().game_vertex_id(), 0, false);
+            item->Spawn_Write(packet, FALSE);
+            tpGame->alife().server().FreeID(item->ID, 0);
+            F_entity_Destroy(item);
+
+            ClientID clientID;
+            clientID.set(0xffff);
+
+            u16 dummy;
+            packet.r_begin(dummy);
+            VERIFY(dummy == M_SPAWN);
+            tpGame->alife().server().Process_spawn(packet, clientID);
+        }
+    }
+
+    virtual void fill_tips(vecTips& tips, u32 mode)
+    {
+        if (!ai().get_alife())
+        {
+            Msg("! ALife simulator is needed to perform specified command!");
+            return;
+        }
+
+        for (const auto& it : pSettings->sections())
+        {
+            auto& section = it.first;
+
+            if (pSettings->line_exist(section, "class"))
+            {
+                tips.push_back(section);
+            }
+        }
+
+        std::sort(tips.begin(), tips.end());
+
+        // tips.push_back((*itb).second.name());
+    }
+};
 
 #include "GamePersistent.h"
 
@@ -1234,16 +1341,6 @@ public:
     virtual void Execute(LPCSTR) { Level().Objects.dump_all_objects(); }
 };
 
-class CCC_Net_SV_GuaranteedPacketMode : public CCC_Integer
-{
-protected:
-    int* value_blin;
-
-public:
-    CCC_Net_SV_GuaranteedPacketMode(LPCSTR N, int* V, int _min = 0, int _max = 2) : CCC_Integer(N, V, _min, _max), value_blin(V){};
-
-    virtual void Execute(LPCSTR args) { CCC_Integer::Execute(args); }
-};
 
 // Change weather immediately
 class CCC_SetWeather : public IConsole_Command
@@ -1279,14 +1376,11 @@ void CCC_RegisterCommands()
 {
     CMD1(CCC_MemStats, "stat_memory");
     // game
-    psActorFlags.set(AF_ALWAYSRUN, true);
     CMD3(CCC_Mask, "g_always_run", &psActorFlags, AF_ALWAYSRUN);
     CMD1(CCC_GameDifficulty, "g_game_difficulty");
 
-    CMD3(CCC_Mask, "g_dof_scope", &psActorFlags, AF_DOF_SCOPE);
     CMD3(CCC_Mask, "g_dof_zoom", &psActorFlags, AF_DOF_ZOOM);
-    CMD4(CCC_Integer, "g_dof_zoom_far", &g_dof_zoom_far, 10, 100);
-    CMD4(CCC_Integer, "g_dof_zoom_near", &g_dof_zoom_near, 10, 100);
+    CMD3(CCC_Mask, "g_dof_reload", &psActorFlags, AF_DOF_RELOAD);
 
     CMD3(CCC_Mask, "wpn_aim_toggle", &psActorFlags, AF_WPN_AIM_TOGGLE);
 
@@ -1307,7 +1401,6 @@ void CCC_RegisterCommands()
     CMD1(CCC_ALifeSwitchFactor, "al_switch_factor"); // set switch factor
 #endif // MASTER_GOLD
 
-    CMD3(CCC_Mask, "hud_weapon", &psHUD_Flags, HUD_WEAPON);
     CMD3(CCC_Mask, "hud_info", &psHUD_Flags, HUD_INFO);
     CMD3(CCC_Mask, "hud_draw", &psHUD_Flags, HUD_DRAW);
     CMD3(CCC_Mask, "hud_crosshair_build", &psHUD_Flags, HUD_CROSSHAIR_BUILD); // билдокурсор
@@ -1421,6 +1514,7 @@ void CCC_RegisterCommands()
     //#ifndef MASTER_GOLD
     CMD1(CCC_JumpToLevel, "jump_to_level");
     CMD1(CCC_Spawn, "g_spawn");
+    CMD1(CCC_SpawnToInventory, "g_spawn_to_inventory");
     CMD3(CCC_Mask, "g_god", &psActorFlags, AF_GODMODE);
     CMD3(CCC_Mask, "g_unlimitedammo", &psActorFlags, AF_UNLIMITEDAMMO);
     CMD3(CCC_Mask, "g_ammunition_on_belt", &psActorFlags, AF_AMMO_ON_BELT);
@@ -1431,8 +1525,9 @@ void CCC_RegisterCommands()
 
     CMD3(CCC_Mask, "g_mouse_wheel_switch_slot", &psActorFlags, AF_MOUSE_WHEEL_SWITCH_SLOTS);
 
-    psActorFlags.set(AF_3D_PDA, TRUE);
     CMD3(CCC_Mask, "g_3d_pda", &psActorFlags, AF_3D_PDA);
+
+    CMD3(CCC_Mask, "g_first_person_death", &psActorFlags, AF_FIRST_PERSON_DEATH);
 
     CMD1(CCC_TimeFactor, "time_factor")
     CMD1(CCC_SetWeather, "set_weather");
@@ -1452,15 +1547,12 @@ void CCC_RegisterCommands()
 #ifdef DEBUG
     CMD3(CCC_Mask, "dbg_draw_actor_alive", &dbg_net_Draw_Flags, (1 << 0));
     CMD3(CCC_Mask, "dbg_draw_actor_dead", &dbg_net_Draw_Flags, (1 << 1));
-    CMD3(CCC_Mask, "dbg_draw_teamzone", &dbg_net_Draw_Flags, (1 << 3));
     CMD3(CCC_Mask, "dbg_draw_invitem", &dbg_net_Draw_Flags, (1 << 4));
     CMD3(CCC_Mask, "dbg_draw_actor_phys", &dbg_net_Draw_Flags, (1 << 5));
     CMD3(CCC_Mask, "dbg_draw_customdetector", &dbg_net_Draw_Flags, (1 << 6));
     CMD3(CCC_Mask, "dbg_destroy", &dbg_net_Draw_Flags, (1 << 7));
     CMD3(CCC_Mask, "dbg_draw_autopickupbox", &dbg_net_Draw_Flags, (1 << 8));
-    CMD3(CCC_Mask, "dbg_draw_rp", &dbg_net_Draw_Flags, (1 << 9));
     CMD3(CCC_Mask, "dbg_draw_climbable", &dbg_net_Draw_Flags, (1 << 10));
-    CMD3(CCC_Mask, "dbg_draw_skeleton", &dbg_net_Draw_Flags, (1 << 11));
 
     CMD3(CCC_Mask, "dbg_draw_ph_contacts", &ph_dbg_draw_mask, phDbgDrawContacts);
     CMD3(CCC_Mask, "dbg_draw_ph_enabled_aabbs", &ph_dbg_draw_mask, phDbgDrawEnabledAABBS);
@@ -1499,6 +1591,8 @@ void CCC_RegisterCommands()
     CMD3(CCC_Mask, "dbg_draw_ph_hit_anims", &ph_dbg_draw_mask1, phDbgHitAnims);
     CMD3(CCC_Mask, "dbg_draw_ph_ik_limits", &ph_dbg_draw_mask1, phDbgDrawIKLimits);
 #endif
+
+    CMD3(CCC_Mask, "dbg_draw_skeleton", &dbg_net_Draw_Flags, (1 << 11));
 
 #ifdef DEBUG
     CMD4(CCC_Integer, "string_table_error_msg", &CStringTable::m_bWriteErrorsToLog, 0, 1);

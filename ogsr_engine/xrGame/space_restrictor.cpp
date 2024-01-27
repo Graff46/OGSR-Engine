@@ -103,8 +103,14 @@ void CSpaceRestrictor::net_Destroy()
     Level().space_restriction_manager().unregister_restrictor(this);
 }
 
+// Временно отключена оптимизация в попытке выяснить причину странных крашей в этом куске.
+#pragma optimize("", off)
+
 bool CSpaceRestrictor::inside(const Fsphere& sphere)
 {
+    if (getDestroy())
+        return false;
+
     if (!actual())
     {
         try
@@ -113,7 +119,7 @@ bool CSpaceRestrictor::inside(const Fsphere& sphere)
         }
         catch (...)
         {
-            Msg("!![%s] FATAL ERROR IN RESTRICTOR %s!", __FUNCTION__, cName().c_str());
+            Msg("!![%s] FATAL ERROR IN RESTRICTOR ID:[%u]!", __FUNCTION__, ID());
             return false;
         }
     }
@@ -200,6 +206,8 @@ void CSpaceRestrictor::prepare()
 
     actual(true);
 }
+
+#pragma optimize("", on)
 
 bool CSpaceRestrictor::prepared_inside(const Fsphere& sphere) const
 {

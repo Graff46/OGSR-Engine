@@ -16,7 +16,6 @@
 #include "Actor.h"
 #include "AI/Stalker/ai_stalker.h"
 #include "character_info.h"
-#include "game_cl_base_weapon_usage_statistic.h"
 #include "../xrcdb/xr_collide_defs.h"
 #include "weapon.h"
 #include "ai/monsters/BaseMonster/base_monster.h"
@@ -61,8 +60,11 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
                     entity->XFORM().transform_tiny(S.P);
                     float dist = rd.range;
                     // проверим попали ли мы в описывающую сферу
-                    if (Fsphere::rpNone != S.intersect_full(bullet->pos, bullet->dir, dist))
+                    Fsphere::ERP_Result result = S.intersect(bullet->pos, bullet->dir, dist);
+                    if (result != Fsphere::rpNone)
                     {
+                        if (result == Fsphere::rpOriginInside)
+                            dist = 0.0f;
                         // да попали, найдем кто стрелял
                         bool play_whine = true;
                         CObject* initiator = Level().Objects.net_Find(bullet->parent_id);
@@ -279,11 +281,11 @@ void CBulletManager::DynamicObjectHit(CBulletManager::_event& E)
 
     if (smart_cast<CActor*>(E.R.O))
     {
-        game_PlayerState* ps = Game().GetPlayerByGameID(E.R.O->ID());
+        /*game_PlayerState* ps = Game().GetPlayerByGameID(E.R.O->ID());
         if (ps && ps->testFlag(GAME_PLAYER_FLAG_INVINCIBLE))
         {
             NeedShootmark = false;
-        };
+        };*/
     }
     else if (CBaseMonster* monster = smart_cast<CBaseMonster*>(E.R.O))
     {
@@ -326,8 +328,6 @@ void CBulletManager::DynamicObjectHit(CBulletManager::_event& E)
     //отправить хит пораженному объекту
     if (E.bullet.flags.allow_sendhit && !E.Repeated)
     {
-        //-------------------------------------------------
-        bool AddStatistic = false;
         /*
                 NET_Packet		P;
         //		CGameObject::u_EventGen	(P,(AddStatistic)? GE_HIT_STATISTIC : GE_HIT,E.R.O->ID());
@@ -350,7 +350,7 @@ void CBulletManager::DynamicObjectHit(CBulletManager::_event& E)
 
         SHit Hit = SHit(power, original_dir, NULL, u16(E.R.element), position_in_bone_space, impulse, E.bullet.hit_type, E.bullet.ap, E.bullet.flags.aim_bullet);
 
-        Hit.GenHeader(u16((AddStatistic) ? GE_HIT_STATISTIC : GE_HIT) & 0xffff, E.R.O->ID());
+        Hit.GenHeader(u16(GE_HIT) & 0xffff, E.R.O->ID());
         Hit.whoID = E.bullet.parent_id;
         Hit.weaponID = E.bullet.weapon_id;
         Hit.BulletID = E.bullet.m_dwID;
@@ -366,8 +366,6 @@ void CBulletManager::DynamicObjectHit(CBulletManager::_event& E)
 #ifdef DEBUG
 FvectorVec g_hit[3];
 #endif
-
-extern void random_dir(Fvector& tgt_dir, const Fvector& src_dir, float dispersion);
 
 std::pair<float, float> CBulletManager::ObjectHit(SBullet* bullet, const Fvector& end_point, collide::rq_result& R, u16 target_material, Fvector& hit_normal)
 {
@@ -432,7 +430,7 @@ std::pair<float, float> CBulletManager::ObjectHit(SBullet* bullet, const Fvector
     Fvector new_dir;
     new_dir.reflect(bullet->dir, hit_normal);
     Fvector tgt_dir;
-    random_dir(tgt_dir, new_dir, deg2rad(10.f));
+    tgt_dir.random_dir(new_dir, deg2rad(10.f));
 
     float ricoshet_factor = bullet->dir.dotproduct(tgt_dir);
 

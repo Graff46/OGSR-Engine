@@ -14,8 +14,6 @@
 #include "../xrRenderDX10/3DFluid/dx103DFluidManager.h"
 #include "../xrRender/ShaderResourceTraits.h"
 
-#include <d3dx/D3DX10Core.h>
-
 CRender RImplementation;
 
 //////////////////////////////////////////////////////////////////////////
@@ -36,6 +34,14 @@ public:
     virtual void set_color(float r, float g, float b) {}
 };
 
+bool CRender::is_sun()
+{
+    if (o.sunstatic)
+        return FALSE;
+    Fcolor sun_color = ((light*)Lights.sun_adapted._get())->color;
+    return (ps_r2_ls_flags.test(R2FLAG_SUN) && (u_diffuse2s(sun_color.r, sun_color.g, sun_color.b) > EPS));
+}
+
 float r_dtex_range = 50.f;
 //////////////////////////////////////////////////////////////////////////
 ShaderElement* CRender::rimp_select_sh_dynamic(dxRender_Visual* pVisual, float cdist_sq)
@@ -43,10 +49,13 @@ ShaderElement* CRender::rimp_select_sh_dynamic(dxRender_Visual* pVisual, float c
     int id = SE_R2_SHADOW;
     if (CRender::PHASE_NORMAL == RImplementation.phase)
     {
-        id = ((_sqrt(cdist_sq) - pVisual->vis.sphere.R) < r_dtex_range) ? SE_R2_NORMAL_HQ : SE_R2_NORMAL_LQ;
+        //if (RImplementation.val_bHUD)
+        //    Msg("--[%s] Detected hud model: [%s]", __FUNCTION__, pVisual->dbg_name.c_str());
+        id = (RImplementation.val_bHUD || ((_sqrt(cdist_sq) - pVisual->vis.sphere.R) < r_dtex_range)) ? SE_R2_NORMAL_HQ : SE_R2_NORMAL_LQ;
     }
     return pVisual->shader->E[id]._get();
 }
+
 //////////////////////////////////////////////////////////////////////////
 ShaderElement* CRender::rimp_select_sh_static(dxRender_Visual* pVisual, float cdist_sq)
 {
@@ -286,24 +295,6 @@ void CRender::create()
     o.disasm = (strstr(Core.Params, "-disasm")) ? TRUE : FALSE;
     o.forceskinw = (strstr(Core.Params, "-skinw")) ? TRUE : FALSE;
 
-    o.ssao_blur_on = ps_r2_ls_flags_ext.test(R2FLAGEXT_SSAO_BLUR) && (ps_r_ssao != 0);
-    o.ssao_opt_data = ps_r2_ls_flags_ext.test(R2FLAGEXT_SSAO_OPT_DATA) && (ps_r_ssao != 0);
-    o.ssao_half_data = ps_r2_ls_flags_ext.test(R2FLAGEXT_SSAO_HALF_DATA) && o.ssao_opt_data && (ps_r_ssao != 0);
-    o.ssao_hdao = ps_r2_ls_flags_ext.test(R2FLAGEXT_SSAO_HDAO) && (ps_r_ssao != 0);
-    o.ssao_hbao = !o.ssao_hdao && ps_r2_ls_flags_ext.test(R2FLAGEXT_SSAO_HBAO) && (ps_r_ssao != 0);
-
-    //	TODO: fix hbao shader to allow to perform per-subsample effect!
-    o.hbao_vectorized = false;
-    if (o.ssao_hbao)
-    {
-        if (HW.Caps.id_vendor == 0x1002)
-            o.hbao_vectorized = true;
-        o.ssao_opt_data = true;
-    }
-
-    if (o.ssao_hdao)
-        o.ssao_opt_data = false;
-
     o.dx10_sm4_1 = ps_r2_ls_flags.test((u32)R3FLAG_USE_DX10_1);
     o.dx10_sm4_1 = o.dx10_sm4_1 && (HW.FeatureLevel >= D3D_FEATURE_LEVEL_10_1);
 
@@ -388,9 +379,6 @@ void CRender::create()
     dxRenderDeviceRender::Instance().Resources->RegisterConstantSetup("pos_decompression_params2", &binder_pos_decompress_params2);
     dxRenderDeviceRender::Instance().Resources->RegisterConstantSetup("triLOD", &binder_LOD);
 
-    c_lmaterial = "L_material";
-    c_sbase = "s_base";
-
     m_bMakeAsyncSS = false;
 
     Target = xr_new<CRenderTarget>(); // Main target
@@ -462,8 +450,8 @@ void CRender::reset_begin()
     }
 
     reset_frame = Device.dwFrame;
-    // AVO: let's reload details while changed details options on vid_restart
-    if (b_loaded && ((dm_current_size != dm_size) || (ps_r__Detail_density != ps_current_detail_density)))
+
+    if (b_loaded /*&& ((dm_current_size != dm_size) || (ps_r__Detail_density != ps_current_detail_density))*/)
     {
         Details->Unload();
         xr_delete(Details);
@@ -492,8 +480,7 @@ void CRender::reset_end()
 
     Target = xr_new<CRenderTarget>();
 
-    // AVO: let's reload details while changed details options on vid_restart
-    if (b_loaded && ((dm_current_size != dm_size) || (ps_r__Detail_density != ps_current_detail_density)))
+    if (b_loaded /*&& ((dm_current_size != dm_size) || (ps_r__Detail_density != ps_current_detail_density))*/)
     {
         Details = xr_new<CDetailManager>();
         Details->Load();
@@ -508,24 +495,35 @@ void CRender::reset_end()
     // that some data is not ready in the first frame (for example device camera position)
     m_bFirstFrameAfterReset = true;
 }
-/*
-void CRender::OnFrame()
-{
-    Models->DeleteQueue			();
-    if (ps_r2_ls_flags.test(R2FLAG_EXP_MT_CALC))	{
-        Device.seqParallel.insert	(Device.seqParallel.begin(),fastdelegate::MakeDelegate(&HOM,&CHOM::MT_RENDER));
-    }
-}*/
+
 void CRender::OnFrame()
 {
     Models->DeleteQueue();
-    if (ps_r2_ls_flags.test(R2FLAG_EXP_MT_CALC))
-    {
-        // MT-details (@front)
-        Device.seqParallel.insert(Device.seqParallel.begin(), fastdelegate::MakeDelegate(Details, &CDetailManager::MT_CALC));
 
-        // MT-HOM (@front)
-        Device.seqParallel.insert(Device.seqParallel.begin(), fastdelegate::MakeDelegate(&HOM, &CHOM::MT_RENDER));
+    bool b_main_menu_is_active = (g_pGamePersistent->m_pMainMenu && g_pGamePersistent->m_pMainMenu->IsActive());
+
+    if (!b_main_menu_is_active && g_pGameLevel)
+    {
+        if (ps_r2_ls_flags.test(R2FLAG_EXP_MT_CALC))
+        {
+            if (Details)
+                Details->StartAsync();
+
+            if (!ps_r2_ls_flags_ext.test(R2FLAGEXT_DISABLE_HOM))
+            {
+                // MT-HOM (@front)
+                Device.add_to_seq_parallel(fastdelegate::MakeDelegate(&HOM, &CHOM::MT_RENDER));
+            }
+        }
+
+        if (ps_r2_ls_flags.test(R2FLAG_EXP_MT_RAIN))
+        {
+            g_pGamePersistent->Environment().StartCalculateAsync();
+        }
+
+        g_pGamePersistent->GrassBendersUpdateExplosions();
+
+        calculate_sun_async();
     }
 }
 
@@ -609,6 +607,8 @@ IRenderVisual* CRender::model_CreateParticles(LPCSTR name)
 }
 void CRender::models_Prefetch() { Models->Prefetch(); }
 void CRender::models_Clear(BOOL b_complete) { Models->ClearPool(b_complete); }
+void CRender::models_savePrefetch() { Models->save_vis_prefetch(); }
+void CRender::models_begin_prefetch1(bool val) { Models->begin_prefetch1(val); }
 
 ref_shader CRender::getShader(int id)
 {
@@ -724,8 +724,10 @@ void CRender::add_SkeletonWallmark(const Fmatrix* xf, IKinematics* obj, IWallMar
     if (pShader)
         add_SkeletonWallmark(xf, (CKinematics*)obj, *pShader, start, dir, size);
 }
+
 void CRender::add_Occluder(Fbox2& bb_screenspace) { HOM.occlude(bb_screenspace); }
 void CRender::set_Object(IRenderable* O) { val_pObject = O; }
+
 void CRender::rmNear()
 {
     IRender_Target* T = getTarget();
@@ -1043,8 +1045,10 @@ public:
                 return E_FAIL;
         }
 
+        R->skip_bom(pFileName);
+
         *ppData = R->pointer();
-        *pBytes = R->length();
+        *pBytes = R->elapsed();
         return D3D_OK;
     }
 
@@ -1066,6 +1070,7 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
     char c_sun_quality[10]{};
     char c_ssao[10]{};
     char samples[10]{};
+    char c_rain_quality[10]{};
 
     sprintf_s(c_smapsize, "%d", o.smapsize);
     defines.emplace_back("SMAP_size", c_smapsize);
@@ -1109,22 +1114,6 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
     if (o.forceskinw)
         defines.emplace_back("SKIN_COLOR", "1");
 
-    if (o.ssao_blur_on)
-        defines.emplace_back("USE_SSAO_BLUR", "1");
-
-    if (o.ssao_hdao)
-        defines.emplace_back("HDAO", "1");
-    else
-    {
-        if (o.ssao_hbao)
-        {
-            defines.emplace_back("USE_HBAO", "1");
-            defines.emplace_back("SSAO_OPT_DATA", o.ssao_half_data ? "2" : "1");
-            if (o.hbao_vectorized)
-                defines.emplace_back("VECTORIZED_CODE", "1");
-        }
-    }
-
     if (o.dx10_msaa)
         defines.emplace_back("ISAMPLE", "0");
 
@@ -1142,12 +1131,9 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
     else if (4 == m_skinning)
         defines.emplace_back("SKIN_4", "1");
 
-    //	Igor: need restart options
-    if (RImplementation.o.advancedpp && ps_r2_ls_flags.test(R2FLAG_SOFT_WATER))
-        defines.emplace_back("USE_SOFT_WATER", "1");
+    defines.emplace_back("USE_SOFT_WATER", "1");
 
-    if (RImplementation.o.advancedpp && ps_r2_ls_flags.test(R2FLAG_SOFT_PARTICLES))
-        defines.emplace_back("USE_SOFT_PARTICLES", "1");
+    defines.emplace_back("USE_SOFT_PARTICLES", "1");
 
     if (RImplementation.o.advancedpp && ps_r2_ls_flags.test(R2FLAG_DOF))
         defines.emplace_back("USE_DOF", "1");
@@ -1157,6 +1143,9 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
         sprintf_s(c_sun_shafts, "%d", ps_r_sun_shafts);
         defines.emplace_back("SUN_SHAFTS_QUALITY", c_sun_shafts);
     }
+
+    if (RImplementation.o.advancedpp && ps_r_ao_mode == AO_MODE_GTAO)
+        defines.emplace_back("USE_GTAO", "1");
 
     if (RImplementation.o.advancedpp && ps_r_ssao)
     {
@@ -1188,8 +1177,29 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
     if (ps_r2_ls_flags_ext.test(R2FLAGEXT_SSLR))
         defines.emplace_back("SSLR_ENABLED", "1");
 
+    if (ps_r2_ls_flags_ext.test(SSFX_HEIGHT_FOG))
+        defines.emplace_back("SSFX_FOG", "1");
+
+    if (ps_r2_ls_flags_ext.test(SSFX_SKY_DEBANDING))
+        defines.emplace_back("SSFX_DEBAND", "1");
+
+    if (ps_r2_ls_flags_ext.test(SSFX_INDIRECT_LIGHT))
+        defines.emplace_back("SSFX_INDIRECT_LIGHT", "1");
+
+    if (ps_r2_ls_flags_ext.test(REFLECTIONS_ONLY_ON_TERRAIN))
+        defines.emplace_back("REFLECTIONS_ONLY_ON_TERRAIN", "1");
+
+    if (ps_r2_ls_flags_ext.test(REFLECTIONS_ONLY_ON_PUDDLES))
+        defines.emplace_back("REFLECTIONS_ONLY_ON_PUDDLES", "1");
+
     if (ps_r2_ls_flags_ext.test(R2FLAGEXT_TERRAIN_PARALLAX))
         defines.emplace_back("TERRAIN_PARALLAX_ENABNLED", "1");
+
+    if (ps_ssfx_rain_1.w > 0.f)
+    {
+        sprintf_s(c_rain_quality, "%.0f", ps_ssfx_rain_1.w);
+        defines.emplace_back("SSFX_RAIN_QUALITY", c_rain_quality);
+    }
 
     if (o.dx10_msaa)
     {
@@ -1240,7 +1250,7 @@ HRESULT CRender::shader_compile(LPCSTR name, DWORD const* pSrcData, UINT SrcData
     {
         Msg("! %s", file_name);
         if (pErrorBuf)
-            Msg("! error: %s", pErrorBuf->GetBufferPointer());
+            Log("! error: " + xr_string{reinterpret_cast<const char*>(pErrorBuf->GetBufferPointer())});
         else
             Msg("Can't compile shader hr=0x%08x", _result);
     }

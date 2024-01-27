@@ -20,7 +20,6 @@
 #include "cover_point.h"
 #include "cover_manager.h"
 #include "cover_evaluators.h"
-#include "team_base_zone.h"
 #include "alife_simulator.h"
 #include "alife_graph_registry.h"
 #include "alife_object_registry.h"
@@ -207,8 +206,6 @@ void CLevelGraph::draw_restrictions()
     CSpaceRestrictionManager::SPACE_RESTRICTIONS::const_iterator I = Level().space_restriction_manager().restrictions().begin();
     CSpaceRestrictionManager::SPACE_RESTRICTIONS::const_iterator E = Level().space_restriction_manager().restrictions().end();
 
-    CRandom R;
-
     for (; I != E; ++I)
     {
         if (!(*I).second->m_ref_count)
@@ -216,9 +213,9 @@ void CLevelGraph::draw_restrictions()
         if (!(*I).second->initialized())
             continue;
 
-        u8 b = u8(R.randI(255));
-        u8 g = u8(R.randI(255));
-        u8 r = u8(R.randI(255));
+        const u8 b = u8(::Random.randI(255));
+        const u8 g = u8(::Random.randI(255));
+        const u8 r = u8(::Random.randI(255));
 
         xr_vector<u32>::const_iterator i = (*I).second->border().begin();
         xr_vector<u32>::const_iterator e = (*I).second->border().end();
@@ -322,12 +319,6 @@ void CLevelGraph::draw_objects()
     for (; I < E; ++I)
     {
         CObject* _O = Level().Objects.o_get_by_iterator(I);
-        CTeamBaseZone* team_base_zone = smart_cast<CTeamBaseZone*>(_O);
-        if (team_base_zone)
-        {
-            team_base_zone->OnRender();
-            continue;
-        }
 
         CCustomMonster* tpCustomMonster = smart_cast<CCustomMonster*>(_O);
         if (tpCustomMonster)

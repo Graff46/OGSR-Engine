@@ -63,24 +63,6 @@ void CRenderTarget::phase_combine()
         t_LUM_dest->surface_set(rt_LUM_pool[gpu_id * 2 + 1]->pSurface);
     }
 
-    if (RImplementation.o.ssao_hdao && RImplementation.o.ssao_ultra)
-    {
-        if (ps_r_ssao > 0)
-        {
-            phase_hdao();
-        }
-    }
-    else
-    {
-        if (RImplementation.o.ssao_opt_data)
-        {
-            phase_downsamp();
-            // phase_ssao();
-        }
-        else if (RImplementation.o.ssao_blur_on)
-            phase_ssao();
-    }
-
     FLOAT ColorRGBA[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     // low/hi RTs
     if (!RImplementation.o.dx10_msaa)
@@ -136,9 +118,7 @@ void CRenderTarget::phase_combine()
         static Fmatrix m_saved_viewproj;
 
         // (new-camera) -> (world) -> (old_viewproj)
-        Fmatrix m_invview;
-        m_invview.invert(Device.mView);
-        m_previous.mul(m_saved_viewproj, m_invview);
+        m_previous.mul(m_saved_viewproj, Device.mInvView);
         m_current.set(Device.mProject);
         m_saved_viewproj.set(Device.mFullTransform);
         float scale = ps_r2_mblur / 2.f;
@@ -150,8 +130,6 @@ void CRenderTarget::phase_combine()
     {
         PIX_EVENT(combine_1);
         // Compute params
-        Fmatrix m_v2w;
-        m_v2w.invert(Device.mView);
         CEnvDescriptorMixer& envdesc = *g_pGamePersistent->Environment().CurrentEnv;
         const float minamb = 0.001f;
         Fvector4 ambclr = {std::max(envdesc.ambient.x * 2, minamb), std::max(envdesc.ambient.y * 2, minamb), std::max(envdesc.ambient.z * 2, minamb), 0};
@@ -168,14 +146,6 @@ void CRenderTarget::phase_combine()
         envclr.y *= 2 * ps_r2_sun_lumscale_hemi;
         envclr.z *= 2 * ps_r2_sun_lumscale_hemi;
         Fvector4 sunclr, sundir;
-
-        float fSSAONoise = 2.0f;
-        fSSAONoise *= tan(deg2rad(67.5f / 2.0f));
-        fSSAONoise /= tan(deg2rad(Device.fFOV / 2.0f));
-
-        float fSSAOKernelSize = 150.0f;
-        fSSAOKernelSize *= tan(deg2rad(67.5f / 2.0f));
-        fSSAOKernelSize /= tan(deg2rad(Device.fFOV / 2.0f));
 
         // sun-params
         {
@@ -248,7 +218,7 @@ void CRenderTarget::phase_combine()
         m_inv_v.invert(Device.mView);
         RCache.set_c("m_inv_v", m_inv_v);
 
-        RCache.set_c("m_v2w", m_v2w);
+        RCache.set_c("m_v2w", Device.mInvView);
         RCache.set_c("L_ambient", ambclr);
 
         RCache.set_c("Ldynamic_color", sunclr);
@@ -256,9 +226,6 @@ void CRenderTarget::phase_combine()
 
         RCache.set_c("env_color", envclr);
         RCache.set_c("fog_color", fogclr);
-
-        RCache.set_c("ssao_noise_tile_factor", fSSAONoise);
-        RCache.set_c("ssao_kernel_size", fSSAOKernelSize);
 
         if (!RImplementation.o.dx10_msaa)
             RCache.Render(D3DPT_TRIANGLELIST, Offset, 0, 4, 0, 2);
@@ -386,9 +353,17 @@ void CRenderTarget::phase_combine()
     if (ps_r_pp_aa_mode)
         PhaseAA();
 
-    // Rain droplets on screen
-    if (ps_r2_ls_flags_ext.test(R2FLAGEXT_RAIN_DROPS))
-        PhaseRainDrops();
+    if (!Device.m_SecondViewport.IsSVPFrame()) //не рендерить эти эффекты в 3д прицеле
+    {
+        // Compute blur textures
+        phase_blur();
+
+        phase_dof();
+
+        // Rain droplets on screen
+        if (ps_r2_ls_flags_ext.test(R2FLAGEXT_RAIN_DROPS))
+            PhaseRainDrops();
+    }
 
     // Combine everything + perform AA
     if (RImplementation.o.dx10_msaa)
@@ -486,11 +461,6 @@ void CRenderTarget::phase_combine()
         RCache.set_c("m_current", m_current);
         RCache.set_c("m_previous", m_previous);
         RCache.set_c("m_blur", m_blur_scale.x, m_blur_scale.y, 0, 0);
-        Fvector3 dof;
-        g_pGamePersistent->GetCurrentDof(dof);
-        RCache.set_c("dof_params", dof.x, dof.y, dof.z, ps_r2_dof_sky);
-        //.		RCache.set_c				("dof_params",	ps_r2_dof.x, ps_r2_dof.y, ps_r2_dof.z, ps_r2_dof_sky);
-        RCache.set_c("dof_kernel", vDofKernel.x, vDofKernel.y, ps_r2_dof_kernel_size, 0);
 
         RCache.set_Geometry(g_aa_AA);
         RCache.Render(D3DPT_TRIANGLELIST, Offset, 0, 4, 0, 2);

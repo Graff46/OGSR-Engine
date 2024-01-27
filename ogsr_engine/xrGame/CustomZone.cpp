@@ -295,6 +295,7 @@ void CCustomZone::Load(LPCSTR section)
         m_fArtefactSpawnHeight = pSettings->r_float(section, "artefact_spawn_height");
 
         LPCSTR l_caParameters = pSettings->r_string(section, "artefacts");
+
         u16 m_wItemCount = (u16)_GetItemCount(l_caParameters);
         R_ASSERT2(!(m_wItemCount & 1), "Invalid number of parameters in string 'artefacts' in the 'system.ltx'!");
         m_wItemCount >>= 1;
@@ -1437,7 +1438,8 @@ void CCustomZone::enter_Zone(SZoneObjectInfo& io) { callback(GameObject::eZoneEn
 void CCustomZone::exit_Zone(SZoneObjectInfo& io)
 {
     StopObjectIdleParticles(io.object);
-    callback(GameObject::eZoneExit)(lua_game_object(), io.object->lua_game_object());
+    if (!getDestroy())
+        callback(GameObject::eZoneExit)(lua_game_object(), io.object->lua_game_object());
 }
 
 void CCustomZone::PlayAccumParticles()

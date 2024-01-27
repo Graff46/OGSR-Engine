@@ -72,7 +72,7 @@ SERVER_ENTITY_DECLARE_END
 add_to_type_list(CSE_ALifeGraphPoint)
 #define script_type_list save_type_list(CSE_ALifeGraphPoint)
 
-    SERVER_ENTITY_DECLARE_BEGIN2(CSE_ALifeObject, CSE_Abstract, CRandom) enum {
+    SERVER_ENTITY_DECLARE_BEGIN(CSE_ALifeObject, CSE_Abstract) enum {
         flUseSwitches = u32(1) << 0,
         flSwitchOnline = u32(1) << 1,
         flSwitchOffline = u32(1) << 2,
@@ -478,15 +478,6 @@ virtual ~CSE_ALifeStationaryMgun();
 SERVER_ENTITY_DECLARE_END
 // add_to_type_list(CSE_ALifeStationaryMgun)
 //#define script_type_list save_type_list(CSE_ALifeStationaryMgun)
-
-SERVER_ENTITY_DECLARE_BEGIN(CSE_ALifeTeamBaseZone, CSE_ALifeSpaceRestrictor)
-CSE_ALifeTeamBaseZone(LPCSTR caSection);
-virtual ~CSE_ALifeTeamBaseZone();
-
-u8 m_team;
-SERVER_ENTITY_DECLARE_END
-add_to_type_list(CSE_ALifeTeamBaseZone)
-#define script_type_list save_type_list(CSE_ALifeTeamBaseZone)
 
     extern void add_online_impl(CSE_ALifeDynamicObject* object, const bool& update_registries);
 extern void add_offline_impl(CSE_ALifeDynamicObject* object, const xr_vector<ALife::_OBJECT_ID>& saved_children, const bool& update_registries);

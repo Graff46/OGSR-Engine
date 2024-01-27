@@ -103,7 +103,6 @@ CSE_ALifeObject::CSE_ALifeObject(LPCSTR caSection) : CSE_Abstract(caSection)
     m_alife_simulator = 0;
 #endif
     m_flags.set(flOfflineNoMove, FALSE);
-    seed(u32(CPU::QPC() & 0xffffffff));
 }
 
 #ifdef XRGAME_EXPORTS
@@ -1185,29 +1184,6 @@ void CSE_ALifeStationaryMgun::UPDATE_Write(NET_Packet& tNetPacket)
 void CSE_ALifeStationaryMgun::STATE_Read(NET_Packet& tNetPacket, u16 size) { inherited::STATE_Read(tNetPacket, size); }
 
 void CSE_ALifeStationaryMgun::STATE_Write(NET_Packet& tNetPacket) { inherited::STATE_Write(tNetPacket); }
-
-////////////////////////////////////////////////////////////////////////////
-// CSE_ALifeTeamBaseZone
-////////////////////////////////////////////////////////////////////////////
-CSE_ALifeTeamBaseZone::CSE_ALifeTeamBaseZone(LPCSTR caSection) : CSE_ALifeSpaceRestrictor(caSection) { m_team = 0; }
-
-CSE_ALifeTeamBaseZone::~CSE_ALifeTeamBaseZone() {}
-
-void CSE_ALifeTeamBaseZone::STATE_Read(NET_Packet& tNetPacket, u16 size)
-{
-    inherited::STATE_Read(tNetPacket, size);
-    tNetPacket.r_u8(m_team);
-}
-
-void CSE_ALifeTeamBaseZone::STATE_Write(NET_Packet& tNetPacket)
-{
-    inherited::STATE_Write(tNetPacket);
-    tNetPacket.w_u8(m_team);
-}
-
-void CSE_ALifeTeamBaseZone::UPDATE_Read(NET_Packet& tNetPacket) { inherited::UPDATE_Read(tNetPacket); }
-
-void CSE_ALifeTeamBaseZone::UPDATE_Write(NET_Packet& tNetPacket) { inherited::UPDATE_Write(tNetPacket); }
 
 ////////////////////////////////////////////////////////////////////////////
 // CSE_ALifeSmartZone

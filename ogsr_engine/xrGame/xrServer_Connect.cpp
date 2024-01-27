@@ -5,11 +5,6 @@
 #include "game_cl_single.h"
 #include "MainMenu.h"
 
-#pragma warning(push)
-#pragma warning(disable : 4995)
-#include <malloc.h>
-#pragma warning(pop)
-
 xrServer::EConnect xrServer::Connect(shared_str& session_name)
 {
 #ifdef DEBUG
@@ -62,13 +57,6 @@ IClient* xrServer::new_client(SClientConnectData* cl_data)
     string64 new_name;
     strcpy_s(new_name, cl_data->name);
     CL->name._set(new_name);
-
-    if (!HasProtected() && game->NewPlayerName_Exists(CL, new_name))
-    {
-        game->NewPlayerName_Generate(CL, new_name);
-        game->NewPlayerName_Replace(CL, new_name);
-    }
-    CL->name._set(new_name);
     CL->pass._set(cl_data->pass);
 
     NET_Packet P;
@@ -92,13 +80,6 @@ void xrServer::AttachNewClient(IClient* CL)
     SV_Client = CL;
     CL->flags.bLocal = 1;
     SendTo_LL(SV_Client->ID, &msgConfig, sizeof(msgConfig), net_flags(TRUE, TRUE, TRUE, TRUE));
-
-    // gen message
-    if (!NeedToCheckClient_GameSpy_CDKey())
-    {
-        //-------------------------------------------------------------
-        Check_GameSpy_CDKey_Success(CL);
-    }
 
     CL->m_guid[0] = 0;
 }

@@ -1,7 +1,7 @@
 /**
- * @ Version: SCREEN SPACE SHADERS - UPDATE 12.6
+ * @ Version: SCREEN SPACE SHADERS - UPDATE 18
  * @ Description: SSR implementation
- * @ Modified time: 2022-11-26 02:05
+ * @ Modified time: 2023-09-29 06:42
  * @ Author: https://www.moddb.com/members/ascii1457
  * @ Mod: https://www.moddb.com/mods/stalker-anomaly/addons/screen-space-shaders
  */
@@ -9,7 +9,7 @@
 #include "screenspace_common.h"
 #include "settings_screenspace_SSR.h"
 
-uniform float4 rain_params;
+uniform float4 ssfx_is_underground;
 
 static const int2 q_ssr_steps[6] =
 {
@@ -79,7 +79,7 @@ float4 SSFX_ssr_fast_ray(float3 ray_start_vs, float3 ray_dir_vs, float2 tc, uint
 			if (ray_check.x <= q_ssr_steps[G_SSR_QUALITY].y)
 				return float4(ssr_ray.r_pos, 0, 0);
 
-#if G_SSR_QUALITY > 2 // 1 Binary Search step in higher quality options ( Quality 4 & 5 )
+#if G_SSR_QUALITY > 2 // 1 Binary Search step in higher quality settigns ( Quality 4 & 5 )
 			
 			// Current ray pos & step to restore later...
 			float4 prev_step = 0;
@@ -132,11 +132,11 @@ void SSFX_ScreenSpaceReflections(float2 tc, float4 P, float3 N, float gloss, ino
 	
 	// Material conditions ( MAT_FLORA and Terrain for now... )
 	bool m_terrain = abs(P.w - 0.95f) <= 0.02f;
-	bool m_flora = abs(P.w - MAT_FLORA) <= 0.02f;
+	bool m_flora = abs(P.w - MAT_FLORA) <= 0.04f;
 
 	// Let's start with pure gloss.
 	float refl_power = gloss;
-	
+
 	// Calc reflection bounce
 	float3 inVec = normalize(P.xyz); // Incident
 	float3 reVec = reflect(inVec , N); // Reflected
@@ -163,9 +163,9 @@ void SSFX_ScreenSpaceReflections(float2 tc, float4 P, float3 N, float gloss, ino
 
 	// Sky is the reflection base...
 #ifdef G_SSR_CHEAP_SKYBOX
-	reflection = SSFX_calc_env(v2reflect) * G_SSR_SKY_INTENSITY;
+	reflection = SSFX_calc_env(v2reflect) * G_SSR_SKY_INTENSITY * !ssfx_is_underground.x;
 #else
-	reflection = SSFX_calc_sky(v2reflect) * G_SSR_SKY_INTENSITY;
+	reflection = SSFX_calc_sky(v2reflect) * G_SSR_SKY_INTENSITY * !ssfx_is_underground.x;
 #endif
 
 	// Valid UV coor? SSFX_trace_ssr_ray return 0.0f if uv is out of bounds or sky.

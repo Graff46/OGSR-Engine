@@ -22,20 +22,17 @@
 #include "../xr_3da/NET_Server_Trash/net_utils.h"
 #include "script_callback_ex.h"
 #include "MathUtils.h"
-#include "game_cl_base_weapon_usage_statistic.h"
 #include "game_level_cross_table.h"
 #include "animation_movement_controller.h"
 #include "game_object_space.h"
 #include "alife_simulator.h"
 #include "alife_object_registry.h"
 #include "Car.h"
-
 #include "ai_object_location.h"
-
-#ifdef DEBUG
+#include "PHCommander.h"
+#include "PHScriptCall.h"
 #include "debug_renderer.h"
-#include "PHDebug.h"
-#endif
+//#include "PHDebug.h"
 
 CGameObject::CGameObject()
 {
@@ -105,7 +102,10 @@ void CGameObject::reinit()
         pair.second->m_callback.clear();
 }
 
-void CGameObject::reload(LPCSTR section) { m_script_clsid = object_factory().script_clsid(CLS_ID); }
+void CGameObject::reload(LPCSTR section)
+{
+    m_script_clsid = object_factory().script_clsid(CLS_ID);
+}
 
 void CGameObject::net_Destroy()
 {
@@ -137,7 +137,10 @@ void CGameObject::net_Destroy()
         Level().SetControlEntity(0);
     }
 
-    //.	Parent									= 0;
+    
+    // remove calls
+    CPHSriptReqGObjComparer cmpr(this);
+    Level().ph_commander_scripts().remove_calls(&cmpr);
 
     CScriptBinder::net_Destroy();
 
@@ -149,8 +152,7 @@ void CGameObject::OnEvent(NET_Packet& P, u16 type)
 {
     switch (type)
     {
-    case GE_HIT:
-    case GE_HIT_STATISTIC: {
+    case GE_HIT:{
         /*
                     u16				id,weapon_id;
                     Fvector			dir;
@@ -181,7 +183,6 @@ void CGameObject::OnEvent(NET_Packet& P, u16 type)
         SHit HDS;
         HDS.PACKET_TYPE = type;
         HDS.Read_Packet_Cont(P);
-        //			Msg("Hit received: %d[%d,%d]", HDS.whoID, HDS.weaponID, HDS.BulletID);
         CObject* Hitter = Level().Objects.net_Find(HDS.whoID);
         CObject* Weapon = Level().Objects.net_Find(HDS.weaponID);
         HDS.who = Hitter;
@@ -312,6 +313,8 @@ BOOL CGameObject::net_Spawn(CSE_Abstract* DC)
     if (pSettings->line_exist(cNameSect(), "use_ai_locations"))
         SetUseAI_Locations(!!pSettings->r_bool(cNameSect(), "use_ai_locations"));
 
+    load_upgrades(DC);
+
     reload(*cNameSect());
     CScriptBinder::reload(*cNameSect());
 
@@ -328,7 +331,7 @@ BOOL CGameObject::net_Spawn(CSE_Abstract* DC)
     {
         //		Msg				("client data is present for object [%d][%s], load is processed",ID(),*cName());
         IReader ireader = IReader(&*E->client_data.begin(), E->client_data.size());
-        net_Load(ireader);
+        net_Load(ireader); // вызов load(IReader& input_packet)
     }
     else
     {
@@ -382,6 +385,7 @@ BOOL CGameObject::net_Spawn(CSE_Abstract* DC)
             if (UsedAI_Locations() && ai().level_graph().inside(ai_location().level_vertex_id(), Position()) && can_validate_position_on_spawn())
                 Position().y = EPS_L + ai().level_graph().vertex_plane_y(*ai_location().level_vertex(), Position().x, Position().z);
         }
+
         inherited::net_Spawn(DC);
     }
 
@@ -634,7 +638,6 @@ void CGameObject::spatial_move()
     inherited::spatial_move();
 }
 
-#ifdef DEBUG
 void CGameObject::dbg_DrawSkeleton()
 {
     CCF_Skeleton* Skeleton = smart_cast<CCF_Skeleton*>(collidable.model);
@@ -676,7 +679,6 @@ void CGameObject::dbg_DrawSkeleton()
         };
     };
 }
-#endif
 
 void CGameObject::renderable_Render()
 {
@@ -796,7 +798,7 @@ CScriptGameObject* CGameObject::lua_game_object() const
 {
     if (!m_spawned)
     {
-        Msg("!! [%s] you are trying to use a destroyed object [%s]", __FUNCTION__, cName().c_str());
+        Msg("!! [%s] you are trying to use a destroyed object name=[%s] getDestroy=%d", __FUNCTION__, cName().c_str(), getDestroy());
         LogStackTrace("!!stack trace:\n", false);
     }
 
@@ -923,30 +925,6 @@ void CGameObject::update_animation_movement_controller()
 }
 
 void CGameObject::UpdateCL() { inherited::UpdateCL(); }
-
-void CGameObject::UpdateXFORM(const Fmatrix& upd)
-{
-    XFORM() = upd;
-    IKinematics* pK = PKinematics(Visual());
-    if (pK)
-    {
-        Visual()->getVisData().sphere.P = upd.c;
-        pK->CalculateBones_Invalidate(); // позволит объекту быстрее объявиться в новой точке
-    }
-
-    // OnChangePosition processing
-    spatial_move();
-    /*
-
-    const CLevelGraph &graph = ai().level_graph();
-    if (graph.valid_vertex_position(upd.c))
-    {
-        u32 lvid = graph.vertex_id (upd.c);
-        u16 gvid = ai().cross_table().vertex(lvid).game_vertex_id();
-        ai_location().level_vertex(lvid);
-    }
-    */
-}
 
 void CGameObject::OnChangeVisual()
 {

@@ -47,12 +47,8 @@ public:
     IBlender* b_accum_volumetric_msaa[8];
     IBlender* b_accum_point_msaa[8];
     IBlender* b_accum_reflected_msaa[8];
-    IBlender* b_ssao;
-    IBlender* b_ssao_msaa[8];
-
-    // compute shader for hdao
-    IBlender* b_hdao_cs;
-    IBlender* b_hdao_msaa_cs;
+    IBlender* b_blur;
+    IBlender* b_dof;
 
 #ifdef DEBUG
     struct dbg_line_t
@@ -66,7 +62,6 @@ public:
 #endif
 
     // MRT-path
-    ref_rt rt_Depth; // Z-buffer like - initial depth
     ref_rt rt_MSAADepth; // z-buffer for MSAA deferred shading
     ref_rt rt_Generic_0_r; // MRT generic 0
     ref_rt rt_Generic_1_r; // MRT generic 1
@@ -84,6 +79,9 @@ public:
 
     //  Second viewport
     ref_rt rt_secondVP, rt_BeforeUi; // 32bit		(r,g,b,a) --//#SM+#-- +SecondVP+
+
+    ref_rt rt_dof;
+    ref_rt rt_blur_2, rt_blur_h_2, rt_blur_4, rt_blur_h_4, rt_blur_8, rt_blur_h_8;
 
     //	Igor: for volumetric lights
     ref_rt rt_Generic_2; // 32bit		(r,g,b,a)				// post-process, intermidiate results, etc.
@@ -116,21 +114,11 @@ public:
 
     ID3DTexture2D* t_noise_surf[TEX_jitter_count];
     ref_texture t_noise[TEX_jitter_count];
-    ID3DTexture2D* t_noise_surf_mipped;
-    ref_texture t_noise_mipped;
 
 private:
     // OCCq
 
     ref_shader s_occq;
-
-    // SSAO
-    ref_rt rt_ssao_temp;
-    ref_rt rt_half_depth;
-    ref_shader s_ssao;
-    ref_shader s_ssao_msaa[8];
-    ref_shader s_hdao_cs;
-    ref_shader s_hdao_cs_msaa;
 
     // Accum
     ref_shader s_accum_mask;
@@ -202,6 +190,9 @@ private:
     ref_shader s_combine_msaa[8];
     ref_shader s_combine_volumetric;
 
+    ref_shader s_blur;
+    ref_shader s_dof;
+
     ref_shader s_rain_drops;
 
 public:
@@ -267,8 +258,6 @@ public:
     void phase_scene_begin();
     void phase_scene_end();
     void phase_occq();
-    void phase_ssao();
-    void phase_hdao();
     void phase_downsamp();
     void phase_wallmarks();
     void phase_smap_direct(light* L, u32 sub_phase);
@@ -279,6 +268,8 @@ public:
     void phase_accumulator();
     void phase_vol_accumulator();
     void shadow_direct(light* L, u32 dls_phase);
+    void phase_blur();
+    void phase_dof();
 
     //	Generates min/max sm
     void create_minmax_SM();

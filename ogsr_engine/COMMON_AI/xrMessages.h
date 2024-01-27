@@ -28,34 +28,23 @@ enum
     M_EVENT_PACK, // Pack of M_EVENT
 
     //-----------------------------------------------------
-    M_GAMESPY_CDKEY_VALIDATION_CHALLENGE,
-    M_GAMESPY_CDKEY_VALIDATION_CHALLENGE_RESPOND,
     M_CLIENT_CONNECT_RESULT,
     M_CLIENT_REQUEST_CONNECTION_DATA,
 
-    M_CHAT_MESSAGE,
-    M_CLIENT_WARN,
     M_CHANGE_LEVEL_GAME,
-    //-----------------------------------------------------
-    M_CL_PING_CHALLENGE,
-    M_CL_PING_CHALLENGE_RESPOND,
     //-----------------------------------------------------
     M_AUTH_CHALLENGE,
     M_CL_AUTH,
-    M_BULLET_CHECK_RESPOND,
     //-----------------------------------------------------
     M_STATISTIC_UPDATE,
     M_STATISTIC_UPDATE_RESPOND,
     //-----------------------------------------------------
-    M_PLAYER_FIRE,
-    //-----------------------------------------------------
+    
     M_CHANGE_SELF_NAME,
-    M_REMOTE_CONTROL_CMD,
 };
 
 enum
 {
-    GE_RESPAWN,
     GE_OWNERSHIP_TAKE, // DUAL: Client request for ownership of an item
     GE_OWNERSHIP_REJECT, // DUAL: Client request ownership rejection
     GE_TRANSFER_AMMO, // DUAL: Take ammo out of weapon for our weapon
@@ -63,7 +52,6 @@ enum
     GE_DIE, //
     GE_ASSIGN_KILLER, //
     GE_DESTROY, // authorative client request for entity-destroy
-    GE_DESTROY_REJECT, // GE_DESTROY + GE_OWNERSHIP_REJECT
     GE_TELEPORT_OBJECT,
 
     GE_ADD_RESTRICTION,
@@ -78,38 +66,25 @@ enum
     GE_WPN_AMMO_ADD,
     GE_WPN_STATE_CHANGE,
 
-    GE_ADDON_ATTACH,
-    GE_ADDON_DETACH,
-
     GE_GRENADE_EXPLODE,
-    GE_INV_ACTION, // a action beign taken on inventory
 
     GE_ZONE_STATE_CHANGE,
 
-    GE_MOVE_ACTOR, // move actor to desired position instantly
-    GE_ACTOR_JUMPING, // actor press jump key
-    GE_ACTOR_MAX_POWER,
-
     GE_CHANGE_POS,
 
-    GE_GAME_EVENT,
-
     GE_CHANGE_VISUAL,
-    //GE_MONEY,
 
     GEG_PLAYER_ACTIVATE_SLOT,
     GEG_PLAYER_ITEM2SLOT,
     GEG_PLAYER_ITEM2BELT,
     GEG_PLAYER_ITEM2RUCK,
     GEG_PLAYER_ITEM_EAT,
-    GEG_PLAYER_ITEM_SELL,
+    //GEG_PLAYER_ITEM_SELL,
     GEG_PLAYER_ACTIVATEARTEFACT,
 
     GEG_PLAYER_ATTACH_HOLDER,
     GEG_PLAYER_DETACH_HOLDER,
-
-    //-------------------------------------
-    GE_HIT_STATISTIC,
+    
     //-------------------------------------
     GE_KILL_SOMEONE,
 
@@ -124,58 +99,14 @@ enum
 
 enum EGameMessages
 { // game_cl <----> game_sv messages
-    GAME_EVENT_PLAYER_READY,
-    GAME_EVENT_PLAYER_KILL, // player wants to die
-    GAME_EVENT_PLAYER_BUY_FINISHED, // player end to buy items
-    GAME_EVENT_PLAYER_BUY_SPAWN,
-
-    GAME_EVENT_PLAYER_GAME_MENU,
-    GAME_EVENT_PLAYER_GAME_MENU_RESPOND,
 
     GAME_EVENT_PLAYER_CONNECTED,
 
-    GAME_EVENT_PLAYER_HITTED,
-
-    GAME_EVENT_PLAYER_JOIN_TEAM,
-    GAME_EVENT_ROUND_STARTED,
-    GAME_EVENT_ROUND_END,
-
-    GAME_EVENT_ARTEFACT_SPAWNED,
-    GAME_EVENT_ARTEFACT_DESTROYED,
-    GAME_EVENT_ARTEFACT_TAKEN,
-    GAME_EVENT_ARTEFACT_DROPPED,
-    GAME_EVENT_ARTEFACT_ONBASE,
-
-    GAME_EVENT_PLAYER_ENTER_TEAM_BASE,
-    GAME_EVENT_PLAYER_LEAVE_TEAM_BASE,
-
-    GAME_EVENT_BUY_MENU_CLOSED,
-    GAME_EVENT_TEAM_MENU_CLOSED,
-    GAME_EVENT_SKIN_MENU_CLOSED,
-
     GAME_EVENT_CREATE_CLIENT,
     GAME_EVENT_ON_HIT,
-    GAME_EVENT_ON_TOUCH,
-
-    GAME_EVENT_VOTE_START,
-    GAME_EVENT_VOTE_YES,
-    GAME_EVENT_VOTE_NO,
-    GAME_EVENT_VOTE_STOP,
-    GAME_EVENT_VOTE_END,
-    //	GAME_EVENT_VOTE_PLAYER_VOTED,
 
     GAME_EVENT_PLAYER_AUTH,
-    GAME_EVENT_PLAYER_NAME,
-
-    GAME_EVENT_SPEECH_MESSAGE,
-
-    //-----------------------------------------
-    GAME_EVENT_PLAYERS_MONEY_CHANGED,
-    GAME_EVENT_SERVER_STRING_MESSAGE,
-    GAME_EVENT_SERVER_DIALOG_MESSAGE,
-
-    //-----------------------------------------
-    GAME_EVENT_SCRIPT_BEGINS_FROM, // don't add messages after this
+    
     GAME_EVENT_FORCEDWORD = u32(-1)
 };
 

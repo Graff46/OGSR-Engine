@@ -267,33 +267,34 @@ void CUIMainIngameWnd::Init()
     m_artefactPanel->InitFromXML(uiXml, "artefact_panel", 0);
     this->AttachChild(m_artefactPanel);
 
-    AttachChild(&UIStaticDiskIO);
-    UIStaticDiskIO.SetWndRect(1000, 750, 16, 16);
-    UIStaticDiskIO.GetUIStaticItem().SetRect(0, 0, 16, 16);
-    UIStaticDiskIO.InitTexture("ui\\ui_disk_io");
-    UIStaticDiskIO.SetOriginalRect(0, 0, 32, 32);
-    UIStaticDiskIO.SetStretchTexture(TRUE);
+    //AttachChild(&UIStaticDiskIO);
+    //UIStaticDiskIO.SetWndRect(1000, 750, 16, 16);
+    //UIStaticDiskIO.GetUIStaticItem().SetRect(0, 0, 16, 16);
+    //UIStaticDiskIO.InitTexture("ui\\ui_disk_io");
+    //UIStaticDiskIO.SetOriginalRect(0, 0, 32, 32);
+    //UIStaticDiskIO.SetStretchTexture(TRUE);
 
     HUD_SOUND::LoadSound("maingame_ui", "snd_new_contact", m_contactSnd, SOUND_TYPE_IDLE);
 }
 
 float UIStaticDiskIO_start_time = 0.0f;
+
 void CUIMainIngameWnd::Draw()
 {
     // show IO icon
-    bool IOActive = (FS.dwOpenCounter > 0);
-    if (IOActive)
-        UIStaticDiskIO_start_time = Device.fTimeGlobal;
+    //bool IOActive = (FS.dwOpenCounter > 0);
+    //if (IOActive)
+    //    UIStaticDiskIO_start_time = Device.fTimeGlobal;
 
-    if ((UIStaticDiskIO_start_time + 1.0f) < Device.fTimeGlobal)
-        UIStaticDiskIO.Show(false);
-    else
-    {
-        u32 alpha = clampr(iFloor(255.f * (1.f - (Device.fTimeGlobal - UIStaticDiskIO_start_time) / 1.f)), 0, 255);
-        UIStaticDiskIO.Show(true);
-        UIStaticDiskIO.SetColor(color_rgba(255, 255, 255, alpha));
-    }
-    FS.dwOpenCounter = 0;
+    //if ((UIStaticDiskIO_start_time + 1.0f) < Device.fTimeGlobal)
+    //    UIStaticDiskIO.Show(false);
+    //else
+    //{
+    //    u32 alpha = clampr(iFloor(255.f * (1.f - (Device.fTimeGlobal - UIStaticDiskIO_start_time) / 1.f)), 0, 255);
+    //    UIStaticDiskIO.Show(true);
+    //    UIStaticDiskIO.SetColor(color_rgba(255, 255, 255, alpha));
+    //}
+    //FS.dwOpenCounter = 0;
 
     if (!m_pActor)
         return;
@@ -367,7 +368,7 @@ void CUIMainIngameWnd::Update()
     {
         if (!(Device.dwFrame % 30))
         {
-            bool b_God = (GodMode() || (!Game().local_player)) ? true : Game().local_player->testFlag(GAME_PLAYER_FLAG_INVINCIBLE);
+            bool b_God = GodMode();
             if (b_God)
                 SetWarningIconColor(ewiInvincible, 0xffffffff);
             else if (!external_icon_ctrl)
@@ -454,35 +455,34 @@ void CUIMainIngameWnd::Update()
 
 bool CUIMainIngameWnd::OnKeyboardPress(int dik)
 {
-    if (Level().IR_GetKeyState(DIK_LSHIFT) || Level().IR_GetKeyState(DIK_RSHIFT))
+    const bool shift = Level().IR_GetKeyState(DIK_LSHIFT) || Level().IR_GetKeyState(DIK_RSHIFT);
+    const auto bind = get_binded_action(dik);
+
+    if (bind == kHIDEHUD)
     {
-        switch (dik)
+        if (shift)
         {
-        case DIK_NUMPADMINUS:
             UIZoneMap->ZoomOut();
-            return true;
-            break;
-        case DIK_NUMPADPLUS:
-            UIZoneMap->ZoomIn();
-            return true;
-            break;
         }
-    }
-    else
-    {
-        switch (dik)
+        else
         {
-        case DIK_NUMPADMINUS:
-            //.HideAll();
             HUD().GetUI()->HideGameIndicators();
-            return true;
-            break;
-        case DIK_NUMPADPLUS:
-            //.ShowAll();
-            HUD().GetUI()->ShowGameIndicators();
-            return true;
-            break;
+            HUD().GetUI()->hud_disabled_by_user = true;
         }
+        return true;
+    }
+    else if (bind == kSHOWHUD)
+    {
+        if (shift)
+        {
+            UIZoneMap->ZoomIn();
+        }
+        else
+        {
+            HUD().GetUI()->ShowGameIndicators();
+            HUD().GetUI()->hud_disabled_by_user = false;
+        }
+        return true;
     }
 
     return false;
@@ -850,8 +850,10 @@ void CUIMainIngameWnd::script_register(lua_State* L)
 {
     module(L)[
 
-        class_<CUIMainIngameWnd, CUIWindow>("CUIMainIngameWnd").def("GetStatic", &GetStaticRaw, raw<2>()),
-        def("get_main_window", &GetMainIngameWindow) // get_mainingame_window better??
-        ,
-        def("setup_game_icon", &SetupGameIcon)];
+        class_<CUIMainIngameWnd, CUIWindow>("CUIMainIngameWnd")
+            .def("GetStatic", &GetStaticRaw, raw<2>()),
+
+        def("get_main_window", &GetMainIngameWindow), // get_mainingame_window better??
+        def("setup_game_icon", &SetupGameIcon)
+    ];
 }

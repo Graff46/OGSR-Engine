@@ -97,7 +97,6 @@ virtual bool natural_weapon() const { return false; }
 virtual bool natural_detector() const { return false; }
 
 #ifdef XRGAME_EXPORTS
-u32 dwfGetItemCost(CSE_ALifeInventoryItem* tpALifeInventoryItem);
 virtual void spawn_supplies();
 virtual void add_online(const bool& update_registries);
 virtual void add_offline(const xr_vector<ALife::_OBJECT_ID>& saved_children, const bool& update_registries);
@@ -143,6 +142,7 @@ virtual u32 ef_weapon_type() const;
 virtual u32 ef_creature_type() const;
 #ifdef XRGAME_EXPORTS
 virtual void on_spawn();
+void spawn_artefacts();
 virtual CSE_ALifeItemWeapon* tpfGetBestWeapon(ALife::EHitType& tHitType, float& fHitPower);
 virtual ALife::EMeetActionType tfGetActionType(CSE_ALifeSchedulable* tpALifeSchedulable, int iGroupIndex, bool bMutualDetection);
 virtual bool bfActive();
@@ -285,7 +285,6 @@ virtual ALife::EMeetActionType tfGetActionType(CSE_ALifeSchedulable* tpALifeSche
 virtual bool bfActive();
 virtual CSE_ALifeDynamicObject* tpfGetBestDetector();
 virtual void vfDetachAll(bool bFictitious = false){};
-void vfCheckForPopulationChanges();
 virtual void add_online(const bool& update_registries);
 virtual void add_offline(const xr_vector<ALife::_OBJECT_ID>& saved_children, const bool& update_registries);
 virtual void on_register();

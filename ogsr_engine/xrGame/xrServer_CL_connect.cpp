@@ -113,31 +113,6 @@ void xrServer::SendConnectResult(IClient* CL, u8 res, u8 res1, const char* Resul
     SendTo(CL->ID, P);
 };
 
-void xrServer::Check_GameSpy_CDKey_Success(IClient* CL)
-{
-    Msg("!!xrServer::Check_GameSpy_CDKey_Success - 1");
-    if (NeedToCheckClient_BuildVersion(CL))
-        return;
-
-    Msg("!!xrServer::Check_GameSpy_CDKey_Success - 2");
-    Check_BuildVersion_Success(CL);
-};
-
-bool xrServer::NeedToCheckClient_BuildVersion(IClient* CL)
-{
-    //#ifdef DEBUG
-    // return false;
-    //#else
-
-    CL->flags.bVerified = FALSE;
-    NET_Packet P;
-    P.w_begin(M_AUTH_CHALLENGE);
-    SendTo(CL->ID, P);
-    return true;
-
-    //#endif
-};
-
 void xrServer::OnBuildVersionRespond(IClient* CL, NET_Packet& P)
 {
     u16 Type;
@@ -156,27 +131,7 @@ void xrServer::OnBuildVersionRespond(IClient* CL, NET_Packet& P)
     }
     else
     {
-        bool bAccessUser = false;
-        string512 res_check;
-
-        if (!CL->flags.bLocal)
-        {
-            bAccessUser = Check_ServerAccess(CL, res_check);
-        }
-
-        if (CL->flags.bLocal || bAccessUser)
-        {
-            Check_BuildVersion_Success(CL);
-        }
-        else
-        {
-            Msg(res_check);
-            strcat_s(res_check, "Invalid login/password. Client \"");
-            strcat_s(res_check, CL->name.c_str());
-            strcat_s(res_check, "\" disconnected.");
-
-            SendConnectResult(CL, 0, 2, res_check);
-        }
+        Check_BuildVersion_Success(CL);
     }
 };
 

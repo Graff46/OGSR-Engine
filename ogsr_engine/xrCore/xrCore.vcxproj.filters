@@ -90,16 +90,10 @@
     <ClCompile Include="xr_trims.cpp">
       <Filter>Math\Extensions</Filter>
     </ClCompile>
-    <ClCompile Include="FileSystem.cpp">
-      <Filter>FS</Filter>
-    </ClCompile>
     <ClCompile Include="FS.cpp">
       <Filter>FS</Filter>
     </ClCompile>
     <ClCompile Include="LocatorAPI.cpp">
-      <Filter>FS</Filter>
-    </ClCompile>
-    <ClCompile Include="LocatorAPI_auth.cpp">
       <Filter>FS</Filter>
     </ClCompile>
     <ClCompile Include="LocatorAPI_defs.cpp">
@@ -349,7 +343,7 @@
     <ClInclude Include="Utils\FastDelegate.hpp">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Utils\thread_pool.hpp">
+    <ClInclude Include="Utils\task_thread_pool.hpp">
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="Utils\imdexlib\fast_dynamic_cast.hpp">
@@ -382,10 +376,8 @@
     <ClInclude Include="trivial_encryptor.h">
       <Filter>FS</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuildStep Include="FileSystem.h">
-      <Filter>FS</Filter>
-    </CustomBuildStep>
+    <ClInclude Include="crc32.h">
+      <Filter>shared memory/string library</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -819,14 +819,14 @@ void CWeaponMagazinedWGrenade::PlayAnimShoot()
         //анимация стрельбы из подствольника
         string128 guns_shoot_anm;
         xr_strconcat(guns_shoot_anm, "anm_shoot", (IsZoomed() && !IsRotatingToZoom()) ? "_aim" : "", IsMisfire() ? "_jammed" : (iAmmoElapsed2 == 0 ? "_empty" : ""), "_g");
-        PlayHUDMotion({guns_shoot_anm, "anim_shoot_g", "anm_shots_g"}, used_cop_fire_point(), GetState());
+        PlayHUDMotion({guns_shoot_anm, "anim_shoot_g", "anm_shots_g"}, false, GetState());
     }
     else if (IsGrenadeLauncherAttached())
     {
         string128 guns_shoot_anm;
         xr_strconcat(guns_shoot_anm, "anm_shoot", (IsZoomed() && !IsRotatingToZoom()) ? (IsScopeAttached() ? "_aim_scope" : "_aim") : "",
                      IsMisfire() ? "_jammed" : (iAmmoElapsed == 1 ? "_last" : ""), IsSilencerAttached() ? "_sil" : "", "_w_gl");
-        PlayHUDMotion({guns_shoot_anm, "anim_shoot_gl", "anm_shots_w_gl"}, used_cop_fire_point(), GetState());
+        PlayHUDMotion({guns_shoot_anm, "anim_shoot_gl", "anm_shots_w_gl"}, false, GetState());
     }
     else
         inherited::PlayAnimShoot();
@@ -864,7 +864,7 @@ void CWeaponMagazinedWGrenade::save(NET_Packet& output_packet)
 {
     inherited::save(output_packet);
     save_data(m_bGrenadeMode, output_packet);
-    save_data(m_magazine2.size(), output_packet);
+    save_data(static_cast<u32>(m_magazine2.size()), output_packet);
     save_data(m_ammoType2, output_packet);
     // Msg( "~~[%s][%s] saved: m_bGrenadeMode: [%d], m_magazine2.size(): [%u], m_ammoType2: [%u]", __FUNCTION__, this->Name(), m_bGrenadeMode, m_magazine2.size(), m_ammoType2 );
 }

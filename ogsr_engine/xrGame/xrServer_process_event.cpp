@@ -44,16 +44,9 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
 
     switch (type)
     {
-    case GE_GAME_EVENT: {
-        u16 game_event_type;
-        P.r_u16(game_event_type);
-        game->AddDelayedEvent(P, game_event_type, timestamp, sender);
-    }
-    break;
     case GE_INFO_TRANSFER:
     case GE_WPN_STATE_CHANGE:
     case GE_ZONE_STATE_CHANGE:
-    case GE_ACTOR_JUMPING:
     case GEG_PLAYER_ATTACH_HOLDER:
     case GEG_PLAYER_DETACH_HOLDER:
     case GEG_PLAYER_ACTIVATEARTEFACT:
@@ -62,27 +55,6 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
     case GEG_PLAYER_ITEM2RUCK:
     case GE_GRENADE_EXPLODE: {
         SendBroadcast(BroadcastCID, P, MODE);
-    }
-    break;
-    case GE_INV_ACTION: {
-        xrClientData* CL = ID_to_client(sender);
-        if (CL)
-            CL->net_Ready = TRUE;
-        if (SV_Client)
-            SendTo(SV_Client->ID, P, net_flags(TRUE, TRUE));
-    }
-    break;
-    case GE_RESPAWN: {
-        CSE_Abstract* E = receiver;
-        if (E)
-        {
-            R_ASSERT(E->s_flags.is(M_SPAWN_OBJECT_PHANTOM));
-
-            svs_respawn R;
-            R.timestamp = timestamp + E->RespawnTime * 1000;
-            R.phantom = destination;
-            q_respawn.insert(R);
-        }
     }
     break;
     case GE_TRADE_BUY:
@@ -126,14 +98,8 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
         VERIFY(verify_entities());
     }
     break;
-    case GE_HIT:
-    case GE_HIT_STATISTIC: {
+    case GE_HIT:{
         P.r_pos -= 2;
-        if (type == GE_HIT_STATISTIC)
-        {
-            P.B.count -= 4;
-            P.w_u32(sender.value());
-        };
         game->AddDelayedEvent(P, GAME_EVENT_ON_HIT, 0, ClientID());
     }
     break;
@@ -216,8 +182,6 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
         VERIFY(verify_entities());
     }
     break;
-    case GE_ADDON_ATTACH:
-    case GE_ADDON_DETACH:
     case GE_CHANGE_POS: {
         SendTo(SV_Client->ID, P, net_flags(TRUE, TRUE));
     }
@@ -230,10 +194,9 @@ void xrServer::Process_event(NET_Packet& P, ClientID sender)
 #endif
     }
     break;
-    case GEG_PLAYER_ITEM_SELL: {
-        game->OnPlayer_Sell_Item(sender, P);
+    /*case GEG_PLAYER_ITEM_SELL: {
     }
-    break;
+    break;*/
     case GE_TELEPORT_OBJECT: {
         game->teleport_object(P, destination);
     }

@@ -178,6 +178,9 @@
     <Filter Include="Debug">
       <UniqueIdentifier>{cc1e8298-c23d-409f-ac5a-df5c6d5ed185}</UniqueIdentifier>
     </Filter>
+    <Filter Include="imgui_render">
+      <UniqueIdentifier>{7c74773a-ef3c-4d85-8757-98df76dc3d66}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cl_intersect.h">
@@ -319,12 +322,6 @@
       <Filter>Shading templates</Filter>
     </ClInclude>
     <ClInclude Include="..\xrRender\Blender_Particle.h">
-      <Filter>Shading templates</Filter>
-    </ClInclude>
-    <ClInclude Include="blender_ssao.h">
-      <Filter>Shading templates</Filter>
-    </ClInclude>
-    <ClInclude Include="dx11HDAOCSBlender.h">
       <Filter>Shading templates</Filter>
     </ClInclude>
     <ClInclude Include="dx11MinMaxSMBlender.h">
@@ -729,6 +726,15 @@
     <ClInclude Include="..\xrRender\Debug\dxPixEventWrapper.h">
       <Filter>Debug</Filter>
     </ClInclude>
+    <ClInclude Include="blender_dof.h">
+      <Filter>Shading templates</Filter>
+    </ClInclude>
+    <ClInclude Include="blender_blur.h">
+      <Filter>Shading templates</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xrRenderDX10\imgui_impl_dx11.h">
+      <Filter>imgui_render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -911,12 +917,6 @@
     <ClCompile Include="..\xrRender\Blender_Particle.cpp">
       <Filter>Shading templates</Filter>
     </ClCompile>
-    <ClCompile Include="blender_ssao.cpp">
-      <Filter>Shading templates</Filter>
-    </ClCompile>
-    <ClCompile Include="dx11HDAOCSBlender.cpp">
-      <Filter>Shading templates</Filter>
-    </ClCompile>
     <ClCompile Include="dx11MinMaxSMBlender.cpp">
       <Filter>Shading templates</Filter>
     </ClCompile>
@@ -1037,9 +1037,6 @@
     <ClCompile Include="r4_rendertarget_phase_combine.cpp">
       <Filter>Core_Target</Filter>
     </ClCompile>
-    <ClCompile Include="r4_rendertarget_phase_hdao.cpp">
-      <Filter>Core_Target</Filter>
-    </ClCompile>
     <ClCompile Include="r4_rendertarget_phase_luminance.cpp">
       <Filter>Core_Target</Filter>
     </ClCompile>
@@ -1059,9 +1056,6 @@
       <Filter>Core_Target</Filter>
     </ClCompile>
     <ClCompile Include="r4_rendertarget_phase_smap_S.cpp">
-      <Filter>Core_Target</Filter>
-    </ClCompile>
-    <ClCompile Include="r4_rendertarget_phase_ssao.cpp">
       <Filter>Core_Target</Filter>
     </ClCompile>
     <ClCompile Include="..\xrRender\ColorMapManager.cpp">
@@ -1336,6 +1330,21 @@
     </ClCompile>
     <ClCompile Include="..\xrRender\RenderTargetPhaseSSSS.cpp">
       <Filter>Core_Target</Filter>
+    </ClCompile>
+    <ClCompile Include="blender_dof.cpp">
+      <Filter>Shading templates</Filter>
+    </ClCompile>
+    <ClCompile Include="..\xrRender\rendertarget_phase_dof.cpp">
+      <Filter>Core_Target</Filter>
+    </ClCompile>
+    <ClCompile Include="blender_blur.cpp">
+      <Filter>Shading templates</Filter>
+    </ClCompile>
+    <ClCompile Include="..\xrRender\rendertarget_phase_blur.cpp">
+      <Filter>Core_Target</Filter>
+    </ClCompile>
+    <ClCompile Include="..\xrRenderDX10\imgui_impl_dx11.cpp">
+      <Filter>imgui_render</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

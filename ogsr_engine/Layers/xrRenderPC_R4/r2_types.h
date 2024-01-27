@@ -1,7 +1,6 @@
 #pragma once
 
 // r3xx code-path (MRT)
-#define r2_RT_depth "$user$depth" // MRT
 #define r2_RT_MSAAdepth "$user$msaadepth" // MRT
 #define r2_RT_P "$user$position" // MRT
 #define r2_RT_N "$user$normal" // MRT
@@ -16,9 +15,6 @@
 
 #define r2_T_sky0 "$user$sky0"
 #define r2_T_sky1 "$user$sky1"
-
-#define r2_RT_ssao_temp "$user$ssao_temp" // temporary rt for ssao calculation
-#define r2_RT_half_depth "$user$half_depth" // temporary rt for ssao calculation
 
 #define r2_RT_generic0 "$user$generic0" // ---
 #define r2_RT_generic0_r "$user$generic0_r" // ---
@@ -52,6 +48,17 @@
 // SMAA
 #define r2_RT_smaa_edgetex "$user$smaa_edgetex"
 #define r2_RT_smaa_blendtex "$user$smaa_blendtex"
+
+#define r2_RT_blur_h_2 "$user$blur_h_2"
+#define r2_RT_blur_2 "$user$blur_2"
+
+#define r2_RT_blur_h_4 "$user$blur_h_4"
+#define r2_RT_blur_4 "$user$blur_4"
+
+#define r2_RT_blur_h_8 "$user$blur_h_8"
+#define r2_RT_blur_8 "$user$blur_8"
+
+#define r2_RT_dof "$user$dof"
 
 #define r2_RT_secondVP "$user$viewport2" // --#SM+#-- +SecondVP+ Хранит картинку со второго вьюпорта
 
@@ -109,10 +116,18 @@ const u32 LUMINANCE_size = 16;
 //	For rain R3 rendering
 #define SE_SUN_RAIN_SMAP 5
 
-extern float ps_r2_gloss_factor;
-IC float u_diffuse2s(float x, float y, float z)
+inline float u_diffuse2s(const float x, const float y, const float z)
 {
-    float v = (x + y + z) / 3.f;
-    return ps_r2_gloss_factor * ((v < 1) ? powf(v, 2.f / 3.f) : v);
+    if (ps_ssfx_gloss_method == 0)
+    {
+        const float v = (x + y + z) / 3.f;
+        return /*ps_r2_gloss_min +*/ ps_r2_gloss_factor * ((v < 1) ? powf(v, 2.f / 3.f) : v);
+    }
+    else
+    {
+        // Remove sun from the equation and clamp value.
+        return ps_ssfx_gloss_minmax.x + clampr(ps_ssfx_gloss_minmax.y - ps_ssfx_gloss_minmax.x, 0.0f, 1.0f) * ps_ssfx_gloss_factor;
+    }
 }
-IC float u_diffuse2s(Fvector3& c) { return u_diffuse2s(c.x, c.y, c.z); }
+
+inline float u_diffuse2s(const Fvector3& c) { return u_diffuse2s(c.x, c.y, c.z); }

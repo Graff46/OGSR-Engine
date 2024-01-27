@@ -174,6 +174,7 @@ void CActor::PickupModeUpdate_COD()
 
     float maxlen = 1000.0f;
     CInventoryItem* pNearestItem = NULL;
+    xr_unordered_map<CInventoryItem*, bool> cashe;
     for (u32 o_it = 0; o_it < ISpatialResult.size(); o_it++)
     {
         ISpatial* spatial = ISpatialResult[o_it];
@@ -185,6 +186,12 @@ void CActor::PickupModeUpdate_COD()
         if (!pIItem->CanTake())
             continue;
         if (pIItem->object().CLS_ID == CLSID_OBJECT_G_RPG7 || pIItem->object().CLS_ID == CLSID_OBJECT_G_FAKE)
+            continue;
+
+        if (!cashe.contains(pIItem))
+            cashe.emplace(pIItem, READ_IF_EXISTS(pSettings, r_bool, pIItem->object().cNameSect().c_str(), "can_pickup", true));
+        
+        if (!cashe.at(pIItem))
             continue;
 
         CGrenade* pGrenade = smart_cast<CGrenade*>(spatial->dcast_CObject());

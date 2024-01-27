@@ -25,12 +25,24 @@ void CarPassengers::create(IKinematics* pKinematics)
 			_GetItem(str, i, boneName, '|');
 			_GetItem(str, ++i, vecStr, '|');
 
+			float angle = 0.f;
 			Fvector offset{};
-			sscanf(vecStr, "%f,%f,%f", &offset.x, &offset.y, &offset.z); 
+			sscanf(vecStr, "%f,%f,%f,%f", &offset.x, &offset.y, &offset.z, &angle); 
 
 			u16 idBone = strcmp(boneName, "root") ? pKinematics->LL_BoneID(boneName) : pKinematics->LL_GetBoneRoot();
 			Fmatrix mx = pKinematics->LL_GetTransform(idBone);
 
+			if (angle != 0.f)
+            {
+				angle = angle * (M_PI / 180);
+				
+				Fvector c = mx.c;
+				Fmatrix dirM;
+				dirM.setXYZ(0.f, angle, 0.f);
+
+				mx.mulA_43(dirM);
+				mx.c = c;
+            }
 			mx.c.add(offset);
 
 			list.emplace(id, Place{ id, mx, false, 0 });

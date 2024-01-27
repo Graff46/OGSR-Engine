@@ -129,7 +129,7 @@ void CActor::detach_Vehicle()
     R_ASSERT(V);
     V->PlayCycle(m_anims->m_normal.legs_idle);
     V->PlayCycle(m_anims->m_normal.m_torso_idle);
-    m_holderID = u16(-1);
+    m_holder_id = m_holderID = u16(-1);
 
     //.	SetWeaponHideState(whs_CAR, FALSE);
     SetWeaponHideState(INV_STATE_CAR, false);

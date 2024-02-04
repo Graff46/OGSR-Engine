@@ -102,6 +102,10 @@ BOOL CActor::CanPickItem(const CFrustum& frustum, const Fvector& from, CObject* 
     if (!item->getVisible())
         return FALSE;
 
+    CInventoryItem* ii = smart_cast<CInventoryItem*>(item);
+    if ((ii) && !(ii->CanActorTake()))
+        return FALSE;
+
     BOOL bOverlaped = FALSE;
     Fvector dir, to;
     item->Center(to);
@@ -151,7 +155,7 @@ void CActor::PickupModeUpdate_COD()
 
     //подбирание объекта
     if (inventory().m_pTarget && inventory().m_pTarget->Useful() && m_pUsableObject && m_pUsableObject->nonscript_usable() &&
-        !Level().m_feel_deny.is_object_denied(smart_cast<CGameObject*>(inventory().m_pTarget)))
+        !Level().m_feel_deny.is_object_denied(smart_cast<CGameObject*>(inventory().m_pTarget)) && (inventory().m_pTarget->CanActorTake()))
     {
         CInventoryItem* pNearestItem = inventory().m_pTarget;
         if (m_bPickupMode)
@@ -183,7 +187,7 @@ void CActor::PickupModeUpdate_COD()
             continue;
         if (pIItem->object().H_Parent() != NULL)
             continue;
-        if (!pIItem->CanTake())
+        if (!pIItem->CanActorTake())
             continue;
         if (pIItem->object().CLS_ID == CLSID_OBJECT_G_RPG7 || pIItem->object().CLS_ID == CLSID_OBJECT_G_FAKE)
             continue;

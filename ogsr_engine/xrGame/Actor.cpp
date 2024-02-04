@@ -1164,7 +1164,7 @@ void CActor::shedule_Update(u32 DT)
         {
             m_sDefaultObjAction = m_sCarCharacterUseAction;
         }
-        else if (inventory().m_pTarget && inventory().m_pTarget->CanTake())
+        else if (inventory().m_pTarget && inventory().m_pTarget->CanActorTake())
         {
             if (b_allow_drag)
                 m_sDefaultObjAction = m_sInventoryItemUseOrDragAction;

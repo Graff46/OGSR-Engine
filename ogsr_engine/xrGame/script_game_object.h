@@ -829,6 +829,10 @@ public:
 
     void setVisible(bool value);
 
+    void start_particles(LPCSTR pname, LPCSTR bone);
+
+    void stop_particles(LPCSTR pname, LPCSTR bone);
+
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CScriptGameObject)

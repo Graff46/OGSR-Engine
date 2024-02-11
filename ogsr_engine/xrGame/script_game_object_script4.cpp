@@ -180,6 +180,9 @@ class_<CScriptGameObject> script_register_game_object3(class_<CScriptGameObject>
         .def("setEnabled", &CScriptGameObject::setEnabled)
         .def("setVisible", &CScriptGameObject::setVisible)
 
+        .def("start_particles", &CScriptGameObject::start_particles)
+        .def("stop_particles", &CScriptGameObject::stop_particles)
+
         .property("inventory", &get_obj_inventory)
         .property("immunities", &get_obj_immunities)
         .property("is_alive", &get_obj_alive)

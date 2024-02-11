@@ -9,6 +9,7 @@
 
 #include "fbasicvisual.h"
 #include "../../xr_3da/fmesh.h"
+#include <filesystem>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -83,7 +84,6 @@ static bool replaceShaders(const char* N, char* fnS, u32 fnS_size)
 
     return false;
 }
-
 
 void dxRender_Visual::Load(const char* N, IReader* data, u32)
 {

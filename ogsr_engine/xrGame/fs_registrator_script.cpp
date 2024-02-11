@@ -151,6 +151,14 @@ LPCSTR get_file_age_str(CLocatorAPI* fs, LPCSTR nm)
     return asctime(newtime);
 }
 
+CLocatorAPI* set_new_path(CLocatorAPI* fs, LPCSTR initial, LPCSTR newpath)
+{
+	FS_Path* fpath = fs->get_path(initial);
+	fpath->_set((LPSTR) newpath);
+    fs->rescan_physical_path(fpath->m_Path, TRUE);
+	return fs;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////// SCRIPT C++17 FILESYSTEM - START ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +235,19 @@ static std::string get_last_write_time_string(const stdfs::directory_entry& file
 //Время последнего изменения файла в формате [02:01:2018 14:03:32]
 static std::string get_last_write_time_string_short(const stdfs::directory_entry& file) { return format_last_write_time(file, "[%d:%m:%Y %T]"); }
 
+void rescan_path(CLocatorAPI* fs, PCSTR initial, bool recurse)
+{
+	FS_Path* fpath = fs->get_path(initial);
+    fs->rescan_physical_path(fpath->m_Path, recurse);
+}
+
+void rescan_path2(CLocatorAPI* fs, PCSTR initial, PCSTR path, bool recurse, bool force)
+{
+    string_path tmp;
+    fs->update_path(tmp, initial, path);
+    fs->rescan_physical_path(tmp, recurse, force);
+}
+
 #pragma optimize("s", on)
 void script_register_stdfs(lua_State* L)
 {
@@ -275,8 +296,8 @@ void fs_registrator::script_register(lua_State* L)
 
               class_<FS_file_list>("FS_file_list").def("Size", &FS_file_list::Size).def("GetAt", &FS_file_list::GetAt).def("Free", &FS_file_list::Free),
 
-              /*		class_<FS_Path>("FS_Path")
-                          .def_readonly("m_Path",						&FS_Path::m_Path)
+              class_<FS_Path>("FS_Path"),
+               /*           .def_readonly("m_Path",						&FS_Path::m_Path)
                           .def_readonly("m_Root",						&FS_Path::m_Root)
                           .def_readonly("m_Add",						&FS_Path::m_Add)
                           .def_readonly("m_DefExt",					&FS_Path::m_DefExt)
@@ -329,7 +350,10 @@ void fs_registrator::script_register(lua_State* L)
 
                   .def("file_list_open", &file_list_open_script)
                   .def("file_list_open", &file_list_open_script_2)
-                  .def("file_list_open_ex", &file_list_open_ex),
+                  .def("file_list_open_ex", &file_list_open_ex)
+                  .def("set_path", &set_new_path)
+                  .def("rescan_path", &rescan_path)
+                  .def("rescan_path2", &rescan_path2),
 
               def("getFS", [] { return &FS; })];
 }

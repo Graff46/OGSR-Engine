@@ -31,8 +31,34 @@
 #include "car.h"
 #include "sight_manager_space.h"
 #include "../xr_3da/IGame_Persistent.h"
+#include "actor.h"
 
 using namespace luabind;
+
+bool exit_car(CScriptGameObject* obj, const float angle) //Graff46
+{
+	CHolderCustom* holder = obj->get_current_holder();
+	bool result = false;
+	if (holder) {
+		CCar* car = smart_cast<CCar*>(holder);
+		if (car) {
+			Fvector dir = Fvector().set(car->Direction());
+			dir.setHP(dir.getH() + deg2rad(angle), 0);
+			result = car->Exit(Device.vCameraPosition, dir);
+			if (result) Actor()->detach_Vehicle();
+		}
+	}
+
+	return result;
+}
+
+bool CanTrade(CScriptGameObject* obj, bool def = false)
+{
+	CInventoryItem* p = smart_cast<CInventoryItem*>(&obj->object());
+	if (p)
+		return p->CanTrade();
+	return def;
+}
 
 class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>&& instance)
 {
@@ -420,5 +446,8 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
         .def("add_feel_touch", (void(CScriptGameObject::*)(float, const luabind::object&, const luabind::functor<void>&))(&CScriptGameObject::addFeelTouch))
         .def("remove_feel_touch",
              (void(CScriptGameObject::*)(const luabind::object&, const luabind::functor<void>&, const luabind::functor<bool>&))(&CScriptGameObject::removeFeelTouch))
-        .def("remove_feel_touch", (void(CScriptGameObject::*)(const luabind::object&, const luabind::functor<void>&))(&CScriptGameObject::removeFeelTouch));
+        .def("remove_feel_touch", (void(CScriptGameObject::*)(const luabind::object&, const luabind::functor<void>&))(&CScriptGameObject::removeFeelTouch))
+        // Graff46
+        .def("exit_car", &exit_car)
+        .def("can_trade", &CanTrade);
 }

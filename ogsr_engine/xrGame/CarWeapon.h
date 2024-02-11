@@ -4,6 +4,7 @@
 #include "../xr_3da/bone.h"
 
 class CPhysicsShellHolder;
+class CCar;
 
 class CCarWeapon : public CShootingObject
 {
@@ -22,6 +23,7 @@ protected:
     virtual bool IsHudModeNow() { return false; };
 
     CPhysicsShellHolder* m_object;
+    CCar* car;
     bool m_bActive;
     bool m_bAutoFire;
     float m_weapon_h;
@@ -36,7 +38,7 @@ public:
         eWpnAutoFire,
         eWpnToDefaultDir,
     };
-    CCarWeapon(CPhysicsShellHolder* obj);
+    CCarWeapon(CCar* obj);
     virtual ~CCarWeapon();
     static void BoneCallbackX(CBoneInstance* B);
     static void BoneCallbackY(CBoneInstance* B);

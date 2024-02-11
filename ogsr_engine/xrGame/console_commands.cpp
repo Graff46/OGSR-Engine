@@ -420,6 +420,28 @@ public:
     }
 };
 
+class CCC_Script : public IConsole_Command
+{
+public:
+	CCC_Script(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = false; };
+	virtual void Execute(LPCSTR args)
+	{
+		if (!xr_strlen(args))
+		{
+			Log("* Specify script name!");
+		}
+		else
+		{
+			// rescan pathes
+			FS_Path* P = FS.get_path("$game_scripts$");
+            FS.rescan_physical_path(P->m_Path, TRUE);
+			// run script
+			ai().script_engine().process_file(args, true);
+		}
+	}
+};
+
+
 bool valid_file_name(LPCSTR file_name)
 {
     LPCSTR I = file_name;
@@ -1422,6 +1444,9 @@ void CCC_RegisterCommands()
     // Demo
     CMD1(CCC_DemoPlay, "demo_play");
     CMD1(CCC_DemoRecord, "demo_record");
+
+    //script from OXR
+	CMD1(CCC_Script,			"run_script");
 
 #ifndef MASTER_GOLD
     // ai

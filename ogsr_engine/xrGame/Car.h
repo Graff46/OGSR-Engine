@@ -16,6 +16,10 @@
 #include "Explosive.h"
 #include "PHDestroyable.h"
 #include "DelayedActionFuse.h"
+#include "ui/UICarPanel.h"
+#include "CarPassengers.h"
+#include "CarWpnseat.h"
+
 // refs
 class ENGINE_API CBoneInstance;
 class CActor;
@@ -48,6 +52,7 @@ class CCar : public CEntity,
 {
 private:
     collide::rq_results RQR;
+    CSE_ALifeCar* se_obj = nullptr;
 
 #ifdef DEBUG
     CFunctionGraph m_dbg_power_rpm;
@@ -93,6 +98,8 @@ private:
     ////////////////////////////////////////////////////////////////////////
     CCarDamageParticles m_damage_particles;
     ///////////////////////////////////////////////////////////////////////
+
+    Fvector lastPosition;
 protected:
     enum ECarCamType
     {
@@ -151,11 +158,14 @@ public:
         float radius{};
         CPhysicsJoint* joint;
         CCar* car;
+        shared_str name;
         struct SWheelCollisionParams
         {
             float spring_factor;
             float damping_factor;
             float mu_factor;
+            float mu2_factor;
+            SWheel* pwheel;
             SWheelCollisionParams();
         } collision_params;
 
@@ -185,6 +195,7 @@ public:
             joint = NULL;
             inited = false;
         }
+        DECLARE_SCRIPT_REGISTER_FUNCTION;
     };
     struct SWheelDrive
     {
@@ -372,6 +383,7 @@ private:
 
 private:
     CCarWeapon* m_car_weapon;
+    CUICarPanel* car_panel;
     float m_steer_angle;
     bool m_repairing;
     u16 m_bone_steer;
@@ -379,9 +391,18 @@ private:
     CCameraBase* active_camera;
 
     Fvector m_camera_position;
+	Fvector m_camera_position_2;
+	Fvector current_camera_position;
+
+    bool actorPassenger = false;
+    Fvector camDelta;
 
 public:
     IC CCameraBase* get_active_camera() { return active_camera; };
+    void OnCameraChange(int type);
+    void setCamParam(LPCSTR sec);
+    Fmatrix m_sits_transforms; // driver_place
+    const xr_map<u16, SWheel>* getWheelsMap() { return &m_wheels_map; };
 
 private:
     ////////////////////////////////////////////////////
@@ -397,7 +418,7 @@ private:
     xr_map<u16, SDoor> m_doors;
     xr_vector<SDoor*> m_doors_update;
     xr_vector<Fvector> m_gear_ratious;
-    Fmatrix m_sits_transforms; // driver_place
+    
     float m_current_gear_ratio;
 
     /////////////////////////////////////////////////////////////
@@ -429,10 +450,16 @@ private:
     float m_steering_speed;
     float m_ref_radius;
     size_t m_current_transmission_num;
+    bool reverse_rule;
+    bool brpOn;
+    bool ctrlOn;
     ///////////////////////////////////////////////////
     CCarLights m_lights;
     ////////////////////////////////////////////////////
+    CSE_ALifeDynamicObject* se_owner;
     /////////////////////////////////////////////////
+    bool actorAsPassenger = false;
+    ///////////////////////////////////////////////////
     void InitParabola();
     float _stdcall Parabola(float rpm);
     // float GetSteerAngle();
@@ -467,14 +494,14 @@ private:
     void TransmissionUp();
     void TransmissionDown();
     IC size_t CurrentTransmission() { return m_current_transmission_num; }
-    void PressRight();
-    void PressLeft();
+    void PressRight(bool reverseCall = false);
+    void PressLeft(bool reverseCalll = false);
     void PressForward();
     void PressBack();
     void PressBreaks();
 
-    void ReleaseRight();
-    void ReleaseLeft();
+    void ReleaseRight(bool reverseCalll = false);
+    void ReleaseLeft(bool reverseCalll = false);
     void ReleaseForward();
     void ReleaseBack();
     void ReleaseBreaks();
@@ -506,8 +533,6 @@ private:
     void CarExplode();
     ////////////////////////////////////////////		////////
 
-    void OnCameraChange(int type);
-
     bool HUDview() { return IsFocused(); }
 
     static void cb_Steer(CBoneInstance* B);
@@ -521,11 +546,17 @@ public:
     virtual bool allowWeapon() const { return false; }; //	{return true;};
     virtual bool HUDView() const;
     virtual Fvector ExitPosition() { return m_exit_position; }
-    virtual Fvector ExitVelocity();
+    virtual Fvector ExitVelocity(Fvector exitPos);
+    virtual Fvector ExitVelocity() { return ExitVelocity(m_exit_position); };
     void GetVelocity(Fvector& vel) { m_pPhysicsShell->get_LinearVel(vel); }
     void cam_Update(float dt, float fov);
     void detach_Actor();
-    bool attach_Actor(CGameObject* actor) override;
+    bool attach_Actor(CGameObject* actor, bool isPassengers = false) override;
+    bool attach_NPC_Vehicle(CGameObject* npc, u8 seat = u8(-1));
+    void predNPCattach(CAI_Stalker* stalker);
+    void detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId = u16(-1));
+    void throwOutAll();
+    u16 calcDoorForPlace(const Fvector* posPlace);
     bool is_Door(u16 id, xr_map<u16, SDoor>::iterator& i);
     bool is_Door(u16 id);
     bool DoorOpen(u16 id);
@@ -556,7 +587,9 @@ public:
     // Input
     virtual void OnMouseMove(int x, int y);
     virtual void OnKeyboardPress(int dik);
+    virtual void OnKeyPress(int dik, bool manual);
     virtual void OnKeyboardRelease(int dik);
+    virtual void OnKeyRelease(int dik, bool manual);
     virtual void OnKeyboardHold(int dik);
     virtual void vfProcessInputKey(int iCommand, bool bPressed);
     virtual void OnEvent(NET_Packet& P, u16 type);
@@ -591,6 +624,11 @@ public:
     // Inventory for the car
     CInventory* GetInventory() { return inventory; }
     void VisualUpdate(float fov = 90.0f);
+    Fvector calcExitPosition(Fvector* pos);
+    bool ActorInside() { return OwnerActor() || actorPassenger; };
+    CSE_ALifeDynamicObject* get_se_owner() { return se_owner; };
+    void setActorAsPassenger(bool val) { actorAsPassenger = val; };
+    u32 updateLevelVertex();
 
 protected:
     virtual void SpawnInitPhysics(CSE_Abstract* D);
@@ -612,6 +650,9 @@ public:
     bool IsLightsOn();
     void SwitchLights();
 
+    CarPassengers* passengers;
+    CarWpnSeat* wpnSeat;
+    bool getActorAsPassenger() { return actorAsPassenger; };
 private:
     template <class T>
     IC void fill_wheel_vector(LPCSTR S, xr_vector<T>& type_wheels);
@@ -620,6 +661,8 @@ private:
 
     // Inventory for the car
     CInventory* inventory;
+
+    u16 idDoorsExit4Driver = u16(-1);
 
     virtual void reinit();
     virtual void reload(LPCSTR section);

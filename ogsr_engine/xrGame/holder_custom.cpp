@@ -2,7 +2,7 @@
 #include "holder_custom.h"
 #include "actor.h"
 
-bool CHolderCustom::attach_Actor(CGameObject* actor)
+bool CHolderCustom::attach_Actor(CGameObject* actor, bool isPassengers)
 {
     m_owner = actor;
     m_ownerActor = smart_cast<CActor*>(actor);

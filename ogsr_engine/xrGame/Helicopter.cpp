@@ -222,7 +222,7 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
     m_light_render = ::Render->light_create();
     m_light_render->set_shadow(false);
     m_light_render->set_type(IRender_Light::POINT);
-    m_light_render->set_range(m_light_range);
+    m_light_render->set_range(m_light_range * pSettings->r_float("dynamic_light", "range_koef"));
     m_light_render->set_color(m_light_color);
 
     if (g_Alive())

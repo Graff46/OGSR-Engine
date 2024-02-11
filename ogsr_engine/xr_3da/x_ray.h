@@ -55,6 +55,7 @@ public:
     void load_draw_internal();
     void SetLoadingScreen(ILoadingScreen* newScreen);
     void DestroyLoadingScreen();
+    bool ShowLoadingScreen() { return !!loadingScreen; };
 };
 
 extern ENGINE_API CApplication* pApp;

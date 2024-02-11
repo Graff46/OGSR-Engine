@@ -50,7 +50,6 @@ private:
 
     int m_iLockRescan;
 
-    void rescan_physical_path(LPCSTR full_path, BOOL bRecurse);
     void check_pathes();
 
     files_set files;
@@ -136,6 +135,7 @@ public:
     FS_Path* get_path(LPCSTR path);
     FS_Path* append_path(LPCSTR path_alias, LPCSTR root, LPCSTR add, BOOL recursive);
     LPCSTR update_path(string_path& dest, LPCSTR initial, LPCSTR src);
+    void rescan_physical_path(LPCSTR full_path, BOOL bRecurse, BOOL force = FALSE);
 
     int file_list(FS_FileSet& dest, LPCSTR path, u32 flags = FS_ListFiles, LPCSTR mask = 0);
 

@@ -37,7 +37,8 @@ void CCameraLook::Update(Fvector& point, Fvector& /**noise_dangle/**/)
 
     float covariance = VIEWPORT_NEAR * 6.f;
     vDir.invert(vDirection);
-    g_pGameLevel->ObjectSpace.RayPick(point, vDir, dist + covariance, collide::rqtBoth, R, parent);
+    //g_pGameLevel->ObjectSpace.RayPick(point, vDir, dist + covariance, collide::rqtBoth, R, parent);
+    R = Level().GetPickResult(point, vDir, dist + covariance, parent);
 
     float d = psCamSlideInert * prev_d + (1.f - psCamSlideInert) * (R.range - covariance);
     prev_d = d;

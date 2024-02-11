@@ -6044,6 +6044,7 @@
     <ClInclude Include="matrix_utils.h">
       <Filter>Core\Client\Objects\physics\IK</Filter>
     </ClInclude>
+    <ClInclude Include="Seasons.h" />
     <ClInclude Include="player_hud.h">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
     </ClInclude>
@@ -6076,6 +6077,12 @@
     </ClInclude>
     <ClInclude Include="embedded_editor\embedded_editor_pos_informer.h">
       <Filter>EmbeddedEditor</Filter>
+    <ClInclude Include="CarPassengers.h">
+      <Filter>Core\Client\Objects\vehicles\Car</Filter>
+    </ClInclude>
+    <ClInclude Include="NpcCarStor.h" />
+    <ClInclude Include="CarWpnSeat.h">
+      <Filter>Core\Client\Objects\vehicles\Car\CarWeapon</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -8834,6 +8841,7 @@
     <ClCompile Include="pose_extrapolation.cpp">
       <Filter>Core\Client\Objects\physics\IK</Filter>
     </ClCompile>
+    <ClCompile Include="Seasons.cpp" />
     <ClCompile Include="player_hud.cpp">
       <Filter>Core\Client\Objects\items &amp; weapons\Weapons\HUD</Filter>
     </ClCompile>
@@ -8869,6 +8877,12 @@
     </ClCompile>
     <ClCompile Include="embedded_editor\embedded_editor_pos_informer.cpp">
       <Filter>EmbeddedEditor</Filter>
+    <ClCompile Include="CarPassengers.cpp">
+      <Filter>Core\Client\Objects\vehicles\Car</Filter>
+    </ClCompile>
+    <ClCompile Include="NpcCarStor.cpp" />
+    <ClCompile Include="CarWpnSeat.cpp">
+      <Filter>Core\Client\Objects\vehicles\Car\CarWeapon</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

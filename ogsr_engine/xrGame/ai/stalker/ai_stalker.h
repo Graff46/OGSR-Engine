@@ -119,6 +119,7 @@ public:
     CInventoryItem* m_best_ammo;
     const CInventoryItem* m_best_found_item_to_kill;
     const CInventoryItem* m_best_found_ammo;
+    CHolderCustom* m_holderCustom = nullptr;
 
     // covers being used
 public:
@@ -568,6 +569,9 @@ private:
 public:
     IC const u32& throw_time_interval() const;
     IC void throw_time_interval(const u32& value);
+
+public:
+    u32 timeLastExitCar;
 
 public:
     DECLARE_SCRIPT_REGISTER_FUNCTION

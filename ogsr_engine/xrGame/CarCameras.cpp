@@ -15,6 +15,7 @@
 #include "camerafirsteye.h"
 #include "level.h"
 #include "../xr_3da/cameramanager.h"
+#include "../Include/xrRender/Kinematics.h"
 
 bool CCar::HUDView() const { return active_camera->tag == ectFirst; }
 
@@ -25,16 +26,20 @@ void CCar::cam_Update(float dt, float fov)
     Da.set(0, 0, 0);
     // bool							owner = !!Owner();
 
-    XFORM().transform_tiny(P, m_camera_position);
+    if (wpnSeat->actorOwner)
+        XFORM().transform_tiny(P, wpnSeat->getCameraOffset());
+    else
+        XFORM().transform_tiny(P, current_camera_position);
 
     switch (active_camera->tag)
     {
     case ectFirst:
         // rotate head
-        if (OwnerActor())
-            OwnerActor()->Orientation().yaw = -active_camera->yaw;
-        if (OwnerActor())
-            OwnerActor()->Orientation().pitch = -active_camera->pitch;
+        if (ActorInside())
+        {
+            Actor()->Orientation().yaw = -active_camera->yaw;
+            Actor()->Orientation().pitch = -active_camera->pitch;
+        }   
         break;
     case ectChase: break;
     case ectFree: break;
@@ -46,21 +51,27 @@ void CCar::cam_Update(float dt, float fov)
 
 void CCar::OnCameraChange(int type)
 {
-    if (Owner())
+    if (ActorInside() && (!wpnSeat->actorOwner))
     {
         if (type == ectFirst)
         {
-            Owner()->setVisible(FALSE);
+            Actor()->setVisible(FALSE);
+            current_camera_position = m_camera_position;
+
+            if (actorPassenger)
+                current_camera_position.add(camDelta);
         }
         else if (active_camera->tag == ectFirst) //-V595
         {
-            Owner()->setVisible(TRUE);
+            Actor()->setVisible(TRUE);
+            current_camera_position = m_camera_position_2;
         }
     }
 
     if (!active_camera || active_camera->tag != type)
     {
         active_camera = camera[type];
+
         if (ectFree == type)
         {
             Fvector xyz;
@@ -68,4 +79,9 @@ void CCar::OnCameraChange(int type)
             active_camera->yaw = xyz.y;
         }
     }
+}
+
+void CCar::setCamParam(LPCSTR sec)
+{
+    camera[ectFirst]->Load(sec);
 }

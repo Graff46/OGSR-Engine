@@ -657,7 +657,7 @@ void CEnvironment::load_weathers()
     if (!WeatherCycles.empty())
         return;
 
-    if (FS.path_exist("$game_weathers$"))
+    if (USED_COP_WEATHER)
     {
         auto file_list = FS.file_list_open("$game_weathers$", "");
 

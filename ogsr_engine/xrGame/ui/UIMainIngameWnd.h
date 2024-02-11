@@ -49,16 +49,15 @@ protected:
     CUIMotionIcon UIMotionIcon;
     CUIZoneMap* UIZoneMap;
 
-    //иконка, показывающая количество активных PDA
-    CUIStatic UIPdaOnline;
-
-    //изображение оружия
-    CUIStatic UIWeaponBack;
-    CUIStatic UIWeaponSignAmmo;
-    CUIStatic UIWeaponIcon;
-
-    Frect UIWeaponIcon_rect;
-
+	//иконка, показывающая количество активных PDA
+	CUIStatic UIPdaOnline;
+	
+	//изображение оружия
+	CUIStatic UIWeaponBack;
+	CUIStatic UIWeaponSignAmmo;
+	CUIStatic UIWeaponIcon;
+	Frect UIWeaponIcon_rect;
+	float static_wpn_icon_scale = 1.f;
 public:
     CUIStatic* GetPDAOnline() { return &UIPdaOnline; };
     CUIZoneMap* GetUIZoneMap() { return UIZoneMap; }

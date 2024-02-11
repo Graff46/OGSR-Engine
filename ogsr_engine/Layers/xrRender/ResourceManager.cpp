@@ -298,7 +298,7 @@ void CResourceManager::Delete(const Shader* S)
     Msg("! ERROR: Failed to find complete shader");
 }
 
-void CResourceManager::DeferredUpload()
+void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
 {
     if (!RDEVICE.b_is_Ready)
         return;
@@ -309,17 +309,45 @@ void CResourceManager::DeferredUpload()
     if (ps_r2_ls_flags_ext.test(R2FLAGEXT_MT_TEXLOAD))
     {
         for (const auto& it : m_textures)
-            TTAPI->submit_detach([](CTexture* tex) { tex->Load(); }, it.second);
+            TTAPI->submit_detach([](CTexture* tex) { if (needUnload) tex->Unload(); tex->Load(); }, it.second);
 
         TTAPI->wait_for_tasks();
     }
     else
         for (auto& pair : m_textures)
+        {
+            if (needUnload)
+                pair.second->Unload();
             pair.second->Load();
+        }
+            
 
     Msg("CResourceManager::DeferredUpload -> END");
 }
-
+/*
+void	CResourceManager::DeferredUnload	()
+{
+	if (!RDEVICE.b_is_Ready)				return;
+	for (map_TextureIt t=m_textures.begin(); t!=m_textures.end(); t++)
+		t->second->Unload();
+}
+*/
+#ifdef _EDITOR
+void	CResourceManager::ED_UpdateTextures(AStringVec* names)
+{
+	// 1. Unload
+	if (names){
+		for (u32 nid=0; nid<names->size(); nid++)
+		{
+			map_TextureIt I = m_textures.find	((*names)[nid].c_str());
+			if (I!=m_textures.end())	I->second->Unload();
+		}
+	}else{
+		for (map_TextureIt t=m_textures.begin(); t!=m_textures.end(); t++)
+			t->second->Unload();
+	}
+}
+#endif
 void CResourceManager::_GetMemoryUsage(u32& m_base, u32& c_base, u32& m_lmaps, u32& c_lmaps)
 {
     m_base = c_base = m_lmaps = c_lmaps = 0;

@@ -23,6 +23,7 @@ private:
     _LEVEL_ID m_level_id;
     float m_actor_health;
     shared_str m_level_name;
+    shared_str seasonNameStr;
 
 public:
     CSavedGameWrapper(LPCSTR saved_game_name);
@@ -34,6 +35,7 @@ public:
     inline const _LEVEL_ID& level_id() const;
     inline LPCSTR level_name() const;
     inline const float& actor_health() const;
+    inline	const char* get_season() const;
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CSavedGameWrapper)

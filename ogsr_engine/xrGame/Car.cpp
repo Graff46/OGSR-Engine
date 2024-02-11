@@ -31,6 +31,8 @@
 #include "car_memory.h"
 #include "script_callback_ex.h"
 #include "script_game_object.h"
+#include "../xr_3da/x_ray.h"
+#include "NpcCarStor.h"
 
 BONE_P_MAP CCar::bone_map = BONE_P_MAP();
 
@@ -95,6 +97,12 @@ CCar::CCar()
     m_steer_angle = 0.f;
     m_current_rpm = 0.f;
     m_current_engine_power = 0.f;
+    car_panel = NULL;
+
+    passengers = xr_new<CarPassengers>(this);
+    wpnSeat = nullptr;
+
+    lastPosition = Fvector3().set(0, 0, 0);
 
 #ifdef DEBUG
     InitDebug();
@@ -111,6 +119,8 @@ CCar::~CCar(void)
     xr_delete(inventory);
     xr_delete(m_car_weapon);
     xr_delete(m_memory);
+    xr_delete(passengers);
+    xr_delete(wpnSeat);
     //	xr_delete			(l_tpEntityAction);
 }
 
@@ -157,17 +167,48 @@ void CCar::Load(LPCSTR section)
         self->spatial.type |= STYPE_VISIBLEFORAI;
 }
 
+#include "alife_simulator.h"
+#include "alife_object_registry.h"
+#include "ai_object_location.h"
+#include "game_sv_single.h"
 BOOL CCar::net_Spawn(CSE_Abstract* DC)
 {
 #ifdef DEBUG
     InitDebug();
 #endif
     CSE_Abstract* e = (CSE_Abstract*)(DC);
-    CSE_ALifeCar* co = smart_cast<CSE_ALifeCar*>(e);
+    se_obj = smart_cast<CSE_ALifeCar*>(e);
+
     BOOL R = inherited::net_Spawn(DC);
 
-    PKinematics(Visual())->CalculateBones_Invalidate();
-    PKinematics(Visual())->CalculateBones();
+    IKinematics* K = PKinematics(Visual());
+    K->CalculateBones_Invalidate();
+    K->CalculateBones();
+
+    CInifile* pUserData = K->LL_UserData();
+
+    fill_doors_map(pUserData->r_string("car_definition", "doors"), m_doors);
+
+    u16 id;
+    if (pUserData->line_exist("car_definition", "driver_place"))
+        id = K->LL_BoneID(pUserData->r_string("car_definition", "driver_place"));
+    else
+        id = K->LL_GetBoneRoot();
+
+    Fmatrix* sitTransform = &K->LL_GetTransform(id);
+    m_sits_transforms.set(*sitTransform);
+
+    passengers->create(K);
+
+    CObject* npc;
+    CSE_ALifeDynamicObject* se_npc;
+    for (const auto& [npcId, seat] : NpcCarStor::getFromCarId(ID()))
+    {
+        if (npc = Level().Objects.net_Find(npcId))
+            attach_NPC_Vehicle(smart_cast<CGameObject*>(npc), seat);
+        else if ((se_npc = ai().get_alife()->objects().object(npcId, true)) && (ai().game_graph().valid_vertex_id(se_npc->m_tGraphID)))
+            se_npc->alife().teleport_object(npcId, ai_location().game_vertex_id(), ai_location().level_vertex_id(), Position());
+    }
 
     CPHSkeleton::Spawn(e);
     setEnabled(TRUE);
@@ -175,7 +216,7 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     PKinematics(Visual())->CalculateBones_Invalidate();
     PKinematics(Visual())->CalculateBones();
     m_fSaveMaxRPM = m_max_rpm;
-    SetfHealth(co->health);
+    SetfHealth(se_obj->health);
 
     if (!g_Alive())
         b_exploded = true;
@@ -184,7 +225,6 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
 
     CDamagableItem::RestoreEffect();
 
-    CInifile* pUserData = PKinematics(Visual())->LL_UserData();
     if (pUserData->section_exist("destroyed"))
         CPHDestroyable::Load(pUserData, "destroyed");
     if (pUserData->section_exist("mounted_weapon_definition"))
@@ -196,7 +236,17 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
         m_memory->reload(pUserData->r_string("visual_memory_definition", "section"));
     }
 
-    return (CScriptEntity::net_Spawn(DC) && R);
+    bool result = (CScriptEntity::net_Spawn(DC) && R);
+
+    wpnSeat = xr_new<CarWpnSeat>(this, K);
+
+    if (ID() == Actor()->HolderID()) 
+    {
+        Actor()->attach_Vehicle(smart_cast<CHolderCustom*>(this));
+        PPhysicsShell()->EnableCollision();
+    }
+
+    return result;
 }
 
 void CCar::ActorObstacleCallback(bool& do_colide, bool bo1, dContact& c, SGameMtl* material_1, SGameMtl* material_2)
@@ -232,11 +282,23 @@ void CCar::net_Destroy()
 #ifdef DEBUG
     DBgClearPlots();
 #endif
+    if (!NpcCarStor::setFlagClear)
+        throwOutAll();
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
     if (m_bone_steer != BI_NONE)
     {
         pKinematics->LL_GetBoneInstance(m_bone_steer).reset_callback();
     }
+
+    if (CActor* A = OwnerActor())
+    {
+        if (!m_doors.empty())
+            m_doors.begin()->second.GetExitPosition(m_exit_position);
+        else
+            m_exit_position = calcExitPosition(&m_sits_transforms.c);
+        A->detach_Vehicle();
+    }
+
     CScriptEntity::net_Destroy();
     inherited::net_Destroy();
     CExplosive::net_Destroy();
@@ -318,17 +380,17 @@ void CCar::RestoreNetState(CSE_PHSkeleton* /*po*/)
     auto obj = PPhysicsShellHolder();
     if (!obj)
         return;
-    auto se_obj = obj->alife_object();
-    if (!se_obj)
+    auto seObj = obj->alife_object();
+    if (!seObj)
         return;
 
-    auto po = smart_cast<CSE_PHSkeleton*>(se_obj);
+    auto po = smart_cast<CSE_PHSkeleton*>(seObj);
     ASSERT_FMT(po, "[%s]: %s is not CSE_PHSkeleton", __FUNCTION__, obj->Name_script());
     if (!po->_flags.test(CSE_PHSkeleton::flSavedData))
         return;
     CPHSkeleton::RestoreNetState(po);
 
-    CSE_ALifeCar* co = smart_cast<CSE_ALifeCar*>(se_obj);
+    CSE_ALifeCar* co = smart_cast<CSE_ALifeCar*>(seObj);
     ASSERT_FMT(co, "[%s]: %s is not CSE_ALifeCar", __FUNCTION__, obj->Name_script());
     if (co->door_states.size() == m_doors.size())
     {
@@ -396,7 +458,9 @@ void CCar::RestoreNetState(CSE_PHSkeleton* /*po*/)
         dd.sub(activation_shape.Position(), center);
         activation_shape.Destroy();
         sof.c.add(dd);
-        PPhysicsShell()->EnableCollision();
+        
+        if (ID() != Actor()->HolderID())
+            PPhysicsShell()->EnableCollision();
     }
 
     replace.mul(sof, inv);
@@ -452,11 +516,13 @@ void CCar::UpdateEx(float fov)
     //	Log("UpdateCL",Device.dwFrame);
     // XFORM().set(m_pPhysicsShell->mXFORM);
     VisualUpdate(fov);
-    if (OwnerActor() && OwnerActor()->IsMyCamera())
+    if (ActorInside() && Actor()->IsMyCamera())
     {
         cam_Update(Device.fTimeDelta, fov);
-        OwnerActor()->Cameras().UpdateFromCamera(Camera());
-        OwnerActor()->Cameras().ApplyDevice();
+        Actor()->Cameras().UpdateFromCamera(Camera());
+
+        if (!Level().Cameras().GetCamEffector(cefDemo))
+            Actor()->Cameras().ApplyDevice();
     }
 }
 
@@ -466,6 +532,9 @@ void CCar::UpdateCL()
 {
     inherited::UpdateCL();
     CExplosive::UpdateCL();
+
+    updateLevelVertex();
+
     if (m_car_weapon)
     {
         m_car_weapon->UpdateCL();
@@ -473,7 +542,7 @@ void CCar::UpdateCL()
             m_memory->set_camera(m_car_weapon->ViewCameraPos(), m_car_weapon->ViewCameraDir(), m_car_weapon->ViewCameraNorm());
     }
     ASCUpdate();
-    if (Owner())
+    if (ActorInside())
         return;
     //	UpdateEx			(g_fov);
     VisualUpdate(90);
@@ -481,6 +550,7 @@ void CCar::UpdateCL()
         ProcessScripts();
 }
 
+#include "stalker_movement_manager.h"
 void CCar::VisualUpdate(float fov)
 {
     m_pPhysicsShell->InterpolateGlobalTransform(&XFORM());
@@ -500,13 +570,19 @@ void CCar::VisualUpdate(float fov)
             Owner()->XFORM().mul_43(XFORM(), m_sits_transforms);
         }
 
-        if (HUD().GetUI()) //
+        if ((OwnerActor()) && (HUD().GetUI())) //
         {
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(true);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth() /* /100.f*/);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetSpeed(lin_vel.magnitude() / 1000.f * 3600.f / 100.f);
-            HUD().GetUI()->UIMainIngameWnd->CarPanel().SetRPM(m_current_rpm / m_max_rpm / 2.f);
+            //car_panel->Show(true);
+            car_panel->SetCarHealth(GetfHealth() /* /100.f*/);
+            car_panel->SetSpeed(lin_vel.magnitude() * 3.6);
+            car_panel->SetRPM(m_current_rpm / m_max_rpm);
         }
+    }
+
+    if (m_pPhysicsShell->isEnabled())
+    {
+        for (const auto& place : *passengers->getOccupiedPlaces())
+            place.first->XFORM().mul_43(XFORM(), place.second->xform);
     }
 
     UpdateExhausts();
@@ -565,8 +641,9 @@ void CCar::Hit(SHit* pHDS)
         CDelayedActionFuse::CheckCondition(GetfHealth());
     }
     CDamagableItem::HitEffect();
-    if (Owner() && Owner()->ID() == Level().CurrentEntity()->ID())
-        HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth() /* /100.f */);
+
+    if (OwnerActor())
+        car_panel->SetCarHealth(GetfHealth()/* /100.f */);
 }
 
 void CCar::ChangeCondition(float fDeltaCondition)
@@ -575,8 +652,9 @@ void CCar::ChangeCondition(float fDeltaCondition)
     CDamagableItem::HitEffect();
     if (Local() && !g_Alive() && !AlreadyDie())
         KillEntity(Initiator());
-    if (Owner() && Owner()->ID() == Level().CurrentEntity()->ID())
-        HUD().GetUI()->UIMainIngameWnd->CarPanel().SetCarHealth(GetfHealth() /* /100.f */);
+
+    if (OwnerActor())
+        car_panel->SetCarHealth(GetfHealth()/* /100.f */);
 }
 
 void CCar::PHHit(float P, Fvector& dir, CObject* who, s16 element, Fvector p_in_object_space, float impulse, ALife::EHitType hit_type)
@@ -623,50 +701,87 @@ void CCar::ApplyDamage(u16 level)
 }
 void CCar::detach_Actor()
 {
-    if (!Owner())
+    if (!ActorInside())
         return;
-    Owner()->setVisible(1);
-    CHolderCustom::detach_Actor();
+
+    if (wpnSeat->actorOwner)
+        wpnSeat->leaveSeat();
+
+    Actor()->setVisible(1);
+
     PPhysicsShell()->remove_ObjectContactCallback(ActorObstacleCallback);
     NeutralDrive();
     Unclutch();
     ResetKeys();
     m_current_rpm = m_min_rpm;
-    HUD().GetUI()->UIMainIngameWnd->CarPanel().Show(false);
+    car_panel->Show(false);
     /// Break();
     // H_SetParent(NULL);
-    HandBreak();
+    if (OwnerActor())
+        HandBreak();
+
     processing_deactivate();
+
+    if ((actorPassenger) && (active_camera->tag == ectFirst))
+    {
+        Actor()->setVisible(FALSE);
+        current_camera_position = m_camera_position;
+    }
+
+    passengers->removePassenger(smart_cast<CGameObject*>(Actor()));
+    actorPassenger = false;
+    se_owner = nullptr;
 #ifdef DEBUG
     DBgClearPlots();
 #endif
+
+    callback(GameObject::eDetachVehicle)(Actor()->lua_game_object(), true);
+
+    if (OwnerActor())
+    {
+        CHolderCustom::detach_Actor();
+        se_owner = nullptr;
+    }
 }
 
-bool CCar::attach_Actor(CGameObject* actor)
+bool CCar::attach_Actor(CGameObject* actor, bool isPassengers)
 {
     if (CPHDestroyable::Destroyed())
         return false;
-    CHolderCustom::attach_Actor(actor);
 
-    IKinematics* K = smart_cast<IKinematics*>(Visual());
-    CInifile* ini = K->LL_UserData();
-    int id;
-    if (ini->line_exist("car_definition", "driver_place"))
-        id = K->LL_BoneID(ini->r_string("car_definition", "driver_place"));
-    else
-    {
-        Owner()->setVisible(0);
-        id = K->LL_GetBoneRoot();
-    }
-    CBoneInstance& instance = K->LL_GetBoneInstance(u16(id));
-    m_sits_transforms.set(instance.mTransform);
-    actor->XFORM().mul_43(XFORM(), m_sits_transforms);
+    isPassengers = isPassengers || actorAsPassenger;
+
+    if (!isPassengers)
+        CHolderCustom::attach_Actor(actor);
 
     OnCameraChange(ectFirst);
+
+    Fmatrix* placeMX = &m_sits_transforms;
+    if (isPassengers)
+    {
+        actorPassenger = true;
+
+        placeMX = (Fmatrix*) passengers->addPassenger(actor);
+
+        camDelta.set(0.f, 0.f, 0.f);
+        camDelta.sub(placeMX->c, m_sits_transforms.c);
+        current_camera_position.add(camDelta);
+    } 
+    else
+    {
+        car_panel->Show(true);
+        car_panel->SetCarGear(CurrentTransmission());
+        se_owner = actor->alife_object();
+    }
+
+    actor->XFORM().mul_43(XFORM(), *placeMX);   
+
     PPhysicsShell()->Enable();
     PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
     processing_activate();
     ReleaseBreaks();
+
+    callback(GameObject::eAttachVehicle)(actor->lua_game_object(), isPassengers);
 
     return true;
 }
@@ -742,12 +857,13 @@ void CCar::ParseDefinitions()
     CExplosive::Load(ini, "explosion");
     // CExplosive::SetInitiator(ID());
     m_camera_position = ini->r_fvector3("car_definition", "camera_pos");
+    m_camera_position_2 = READ_IF_EXISTS(ini, r_fvector3, "car_definition", "camera_pos_2", m_camera_position);
+    current_camera_position = m_camera_position;
     ///////////////////////////car definition///////////////////////////////////////////////////
     fill_wheel_vector(ini->r_string("car_definition", "driving_wheels"), m_driving_wheels);
     fill_wheel_vector(ini->r_string("car_definition", "steering_wheels"), m_steering_wheels);
     fill_wheel_vector(ini->r_string("car_definition", "breaking_wheels"), m_breaking_wheels);
     fill_exhaust_vector(ini->r_string("car_definition", "exhausts"), m_exhausts);
-    fill_doors_map(ini->r_string("car_definition", "doors"), m_doors);
 
     ///////////////////////////car properties///////////////////////////////
 
@@ -771,6 +887,7 @@ void CCar::ParseDefinitions()
     m_power_decrement_factor = READ_IF_EXISTS(ini, r_float, "car_definition", "power_decrement_factor", m_power_increment_factor);
     m_rpm_decrement_factor = READ_IF_EXISTS(ini, r_float, "car_definition", "rpm_decrement_factor", m_rpm_increment_factor);
     m_power_neutral_factor = READ_IF_EXISTS(ini, r_float, "car_definition", "power_neutral_factor", m_power_neutral_factor);
+    reverse_rule = READ_IF_EXISTS(ini, r_bool, "car_definition", "reverse_steer", false);
     R_ASSERT2(m_power_neutral_factor > 0.1f && m_power_neutral_factor < 1.f, "power_neutral_factor must be 0 - 1 !!");
     if (ini->line_exist("car_definition", "exhaust_particles"))
     {
@@ -975,6 +1092,8 @@ void CCar::Init()
 
     CDamageManager::reload("car_definition", "damage", ini);
 
+	car_panel = &HUD().GetUI()->UIMainIngameWnd->CarPanel();
+    car_panel->setColor(false);
     HandBreak();
     Transmission(1);
 }
@@ -999,6 +1118,8 @@ void CCar::ReleaseHandBreak()
         i->Neutral();
     if (e_state_drive == drive)
         Drive();
+
+    if (OwnerActor()) car_panel->SetCarGear(CurrentTransmission());
 }
 void CCar::Drive()
 {
@@ -1025,6 +1146,8 @@ void CCar::StartEngine()
     m_current_rpm = 0.f;
     m_current_engine_power = 0.f;
     b_starting = true;
+
+    car_panel->setColor(true);
 }
 void CCar::StopEngine()
 {
@@ -1038,6 +1161,8 @@ void CCar::StopEngine()
     b_engine_on = false;
     UpdatePower(); // set engine friction;
     m_current_rpm = 0.f;
+
+    car_panel->setColor(false);
 }
 
 void CCar::Stall()
@@ -1050,6 +1175,8 @@ void CCar::Stall()
     b_engine_on = false;
     UpdatePower(); // set engine friction;
     m_current_rpm = 0.f;
+
+    car_panel->setColor(false);
 }
 void CCar::ReleasePedals()
 {
@@ -1147,6 +1274,8 @@ void CCar::HandBreak()
     e = m_breaking_wheels.end();
     for (; i != e; ++i)
         i->HandBreak();
+
+    if (OwnerActor()) car_panel->SetCarGear("P");
 }
 
 void CCar::StartBreaking()
@@ -1168,8 +1297,12 @@ void CCar::StopBreaking()
         Drive();
     b_breaks = false;
 }
-void CCar::PressRight()
+void CCar::PressRight(bool reverseCall)
 {
+    if ((reverse_rule) && (!reverseCall)) return PressLeft(true);
+
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(1);
+    
     if (lsp)
     {
         if (!fwp)
@@ -1179,8 +1312,12 @@ void CCar::PressRight()
         SteerRight();
     rsp = true;
 }
-void CCar::PressLeft()
+void CCar::PressLeft(bool reverseCall)
 {
+    if ((reverse_rule) && (!reverseCall)) return PressRight(true);
+
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(-1);
+
     if (rsp)
     {
         if (!fwp)
@@ -1221,6 +1358,8 @@ void CCar::PressBack()
 }
 void CCar::PressBreaks()
 {
+    brpOn = bool ((!brpOn) && (ctrlOn));
+    
     HandBreak();
     brp = true;
 }
@@ -1232,6 +1371,8 @@ void CCar::DriveBack()
     if (1 == CurrentTransmission() || 0 == CurrentTransmission())
         Starter();
     Drive();
+
+    if (OwnerActor()) car_panel->SetCarGear("R");
 }
 void CCar::DriveForward()
 {
@@ -1242,16 +1383,24 @@ void CCar::DriveForward()
         Starter();
     Drive();
 }
-void CCar::ReleaseRight()
+void CCar::ReleaseRight(bool reverseCall)
 {
+    if ((reverse_rule) && (!reverseCall)) return ReleaseLeft(true);
+
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(0);
+
     if (lsp)
         SteerLeft();
     else
         SteerIdle();
     rsp = false;
 }
-void CCar::ReleaseLeft()
+void CCar::ReleaseLeft(bool reverseCall)
 {
+    if ((reverse_rule) && (!reverseCall)) return ReleaseRight(true);
+
+	if (OwnerActor()) OwnerActor()->steer_Vehicle(0);
+
     if (rsp)
         SteerRight();
     else
@@ -1270,7 +1419,7 @@ void CCar::ReleaseForward()
     }
     else
     {
-        Unclutch();
+        //Unclutch();
         NeutralDrive();
     }
 
@@ -1293,7 +1442,7 @@ void CCar::ReleaseBack()
     }
     else
     {
-        Unclutch();
+        //Unclutch();
         NeutralDrive();
     }
     bkp = false;
@@ -1301,6 +1450,11 @@ void CCar::ReleaseBack()
 
 void CCar::ReleaseBreaks()
 {
+    if (brpOn) {
+		brpOn = false;
+		return;
+	}
+
     ReleaseHandBreak();
     brp = false;
 }
@@ -1311,12 +1465,14 @@ void CCar::Transmission(size_t num)
     {
         if (CurrentTransmission() != num)
         {
-            // m_car_sound					->TransmissionSwitch()		;
+            m_car_sound->TransmissionSwitch();
             AscCall(ascSndTransmission);
             m_current_transmission_num = num;
             m_current_gear_ratio = m_gear_ratious[num][0];
             b_transmission_switching = true;
-            Drive();
+            if (e_state_drive != neutral) Drive();
+
+			if (OwnerActor()) car_panel->SetCarGear(m_current_transmission_num);
         }
     }
 #ifdef DEBUG
@@ -1443,7 +1599,7 @@ bool CCar::Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos)
 {
     xr_map<u16, SDoor>::iterator i;
 
-    if (!Owner())
+    if (1)//(!Owner())
     {
         if (Enter(pos, dir, foot_pos))
             return true;
@@ -1471,7 +1627,7 @@ bool CCar::Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos)
         }
     }
 
-    if (Owner())
+    if (ActorInside())
         return Exit(pos, dir);
 
     return false;
@@ -1555,8 +1711,8 @@ float CCar::Parabola(float rpm)
     float value = m_a * expf(-ex * ex) * rpm;
     if (value < 0.f)
         return 0.f;
-    if (e_state_drive == neutral)
-        value *= m_power_neutral_factor;
+    if ((e_state_drive == neutral) && (m_current_engine_power > m_max_power * m_power_neutral_factor))
+        value *= -value;
     return value;
 }
 
@@ -1774,14 +1930,17 @@ void CCar::CarExplode()
     b_exploded = true;
     CExplosive::GenExplodeEvent(Position(), Fvector().set(0.f, 1.f, 0.f));
 
-    CActor* A = OwnerActor();
+    /*CActor* A = OwnerActor();
     if (A)
     {
         if (!m_doors.empty())
             m_doors.begin()->second.GetExitPosition(m_exit_position);
         else
             m_exit_position.set(Position());
-        A->detach_Vehicle();
+        A->detach_Vehicle();*/
+    throwOutAll();
+    if (CActor* A = OwnerActor())
+    {
         if (A->g_Alive() <= 0.f)
             A->character_physics_support()->movement()->DestroyCharacter();
     }
@@ -1909,9 +2068,7 @@ IC void CCar::fill_doors_map(LPCSTR S, xr_map<u16, SDoor>& doors)
         doors.insert(mk_pair(bone_id, door));
         BONE_P_PAIR_IT J = bone_map.find(bone_id);
         if (J == bone_map.end())
-        {
             bone_map.insert(mk_pair(bone_id, physicsBone()));
-        }
     }
 }
 
@@ -1938,8 +2095,7 @@ float CCar::RefWheelMaxSpeed() { return m_max_rpm / m_current_gear_ratio; }
 float CCar::EngineCurTorque() { return m_current_engine_power / m_current_rpm; }
 float CCar::RefWheelCurTorque()
 {
-    if (b_transmission_switching)
-        return 0.f;
+    //if (b_transmission_switching) return 0.f;
     return EngineCurTorque() * ((m_current_gear_ratio < 0.f) ? -m_current_gear_ratio : m_current_gear_ratio);
 }
 void CCar::GetRayExplosionSourcePos(Fvector& pos) { random_point_in_object_box(pos, this); }
@@ -1992,13 +2148,14 @@ void CCar::Die(CObject* who)
     CarExplode();
 }
 
-Fvector CCar::ExitVelocity()
+Fvector CCar::ExitVelocity(Fvector exitPos)
 {
     CPhysicsShell* P = PPhysicsShell();
     if (!P || !P->isActive())
         return Fvector().set(0, 0, 0);
+
     CPhysicsElement* E = P->get_ElementByStoreOrder(0);
-    Fvector v = ExitPosition();
+    Fvector v = exitPos;
     dBodyGetPointVel(E->get_body(), v.x, v.y, v.z, cast_fp(v));
     return v;
 }
@@ -2008,11 +2165,11 @@ void CCar::SyncNetState()
     auto obj = PPhysicsShellHolder();
     if (!obj)
         return;
-    auto se_obj = obj->alife_object();
-    if (!se_obj)
+    auto seObj = obj->alife_object();
+    if (!seObj)
         return;
 
-    auto co = smart_cast<CSE_ALifeCar*>(se_obj);
+    auto co = smart_cast<CSE_ALifeCar*>(seObj);
     ASSERT_FMT(co, "[%s]: %s is not CSE_ALifeCar", __FUNCTION__, obj->Name_script());
 
     co->o_Position = Position();
@@ -2037,4 +2194,288 @@ void CCar::SyncNetState()
     }
 
     co->health = GetfHealth();
+}
+
+#include "actor_anim_defs.h"
+#include "ai/stalker/ai_stalker.h"
+#include "stalker_animation_manager.h"
+#include "stalker_movement_manager.h"
+#include "sight_manager.h"
+#include "stalker_planner.h"
+bool CCar::attach_NPC_Vehicle(CGameObject* npc, u8 seat)
+{
+    if (CPHDestroyable::Destroyed())
+        return false;
+
+    bool driver = seat == 0;
+
+    CHolderCustom* vehicle = smart_cast<CHolderCustom*>(this);
+
+    if (!vehicle)
+        return false;
+
+    CAI_Stalker *stalker = smart_cast<CAI_Stalker*>(npc);
+
+    IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(npc->Visual());
+    R_ASSERT(npcAV);
+
+    const Fmatrix* placeMatrix = driver ? &m_sits_transforms : passengers->addPassenger(npc, seat);
+
+    if (driver)
+    {
+        if (Owner())
+            detach_NPC_Vehicle(Owner());
+
+        se_owner = npc->alife_object();
+        CHolderCustom::attach_Actor(npc);
+    } 
+    else if (!placeMatrix)
+        return false;
+
+    stalker->m_holderCustom = vehicle;
+
+    // temp play animation
+    u16 anim_type = DriverAnimationType();
+
+    SActorVehicleAnims* m_vehicle_anims = xr_new<SActorVehicleAnims>();
+    m_vehicle_anims->Create(npcAV);
+
+    npc->XFORM().mul_43(XFORM(), *placeMatrix);
+    npc->setVisible(TRUE);
+
+    SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
+    npcAV->PlayCycle(anims.idles[0], FALSE);
+    
+    if (m_pPhysicsShell)
+        PPhysicsShell()->Enable();
+    //PPhysicsShell()->add_ObjectContactCallback(ActorObstacleCallback);
+    processing_activate();
+    ReleaseBreaks();
+    
+    if (stalker->character_physics_support() && stalker->character_physics_support()->movement()->CharacterExist())
+    {
+        stalker->character_physics_support()->movement()->DestroyCharacter();
+        stalker->character_physics_support()->movement()->PHCharacter()->b_exist = false;
+        stalker->movement().enable_movement(false);
+    }
+
+    stalker->sight().enable(false);
+
+    stalker->brain().active(false);
+
+    smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, true);
+    
+    stalker->CStepManager::on_animation_start(MotionID(), 0);
+
+    NpcCarStor::add(stalker->ID(), ID(), seat);
+
+    if (seat == (u8(-1) - 1))
+        wpnSeat->onSeat(npc);
+
+    callback(GameObject::eAttachVehicle)(npc->lua_game_object(), !driver);
+
+    return true;
+}
+
+void CCar::predNPCattach(CAI_Stalker* stalker)
+{
+    stalker->animation().reinit();
+    stalker->character_physics_support()->movement()->DisableCharacter();
+    
+    stalker->movement().enable_movement(false);
+    stalker->sight().enable(false);
+    character_physics_support()->movement()->PHCharacter()->b_exist = false;
+    
+    u16 anim_type = DriverAnimationType();
+
+    SActorVehicleAnims* m_vehicle_anims = xr_new<SActorVehicleAnims>();
+    IKinematicsAnimated* npcAV = smart_cast<IKinematicsAnimated*>(stalker->Visual());
+    m_vehicle_anims->Create(npcAV);
+
+    Fmatrix* placeMatrix = &m_sits_transforms;
+    if (passengers->getOccupiedPlaces()->contains(smart_cast<CGameObject*>(stalker)))
+        placeMatrix = &passengers->getOccupiedPlaces()->at(smart_cast<CGameObject*>(stalker))->xform;
+    
+    stalker->XFORM().mul_43(XFORM(), *placeMatrix);
+
+    SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
+    npcAV->PlayCycle(anims.idles[0], FALSE);
+}
+
+#include "PHShellSplitter.h"
+#include "xrserver_objects_alife_monsters.h"
+#include "ai_object_location.h"
+#include "restricted_object.h"
+#include "alife_simulator.h"
+void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
+{
+    bool isDriver = (Owner() && (Owner()->ID() == npc->ID()));
+
+    if (npc->ID() == Actor()->ID())
+    {
+        if (!m_doors.empty())
+            m_doors.begin()->second.GetExitPosition(m_exit_position);
+        else
+            m_exit_position = calcExitPosition(&m_sits_transforms.c);
+
+        return Actor()->detach_Vehicle();
+    }
+
+    CAI_Stalker* stalker = smart_cast<CAI_Stalker*>(npc);
+
+    if ( (!isDriver) && (!passengers->getOccupiedPlaces()->contains(npc)))
+        return;
+
+    if (wpnSeat->getOwnerID() == npc->ID())
+        wpnSeat->leaveSeat();
+
+    CPHShellSplitterHolder* sh = PPhysicsShell()->SplitterHolder();
+
+    if (sh)
+        sh->Activate();
+    
+    if (isDriver)
+        CHolderCustom::detach_Actor();
+
+    stalker->setVisible(1);
+
+    NeutralDrive();
+    Unclutch();
+    ResetKeys();
+    m_current_rpm = m_min_rpm;
+
+    HandBreak();
+
+    if ((!Owner()) && (passengers->getOccupiedPlaces()->empty()))
+        processing_deactivate();
+#ifdef DEBUG
+    DBgClearPlots();
+#endif
+    //
+
+    if ((isDriver) && (idDoorsExit4Driver == u16(-1)))
+        idDoorsExit4Driver = calcDoorForPlace(&m_sits_transforms.c);
+
+    Fvector posExit;
+    u16 exitDoor;
+
+    if (isDriver)
+        exitDoor = idDoorsExit4Driver;
+    else if (exitDoorId == u16(-1))
+        exitDoor = passengers->getOccupiedPlaces()->at(npc)->exitDoorId;
+    else
+        exitDoor = exitDoorId;
+
+    SDoor* door = &m_doors.at(exitDoor);
+    door->GetExitPosition(posExit);
+
+    Fmatrix root;
+    root.mul_43(door->closed_door_form_in_object, XFORM());
+   
+    stalker->character_physics_support()->movement()->SetPosition(posExit);
+    Fvector veloc_;
+    PPhysicsShell()->get_LinearVel(veloc_);
+    stalker->character_physics_support()->movement()->SetVelocity(veloc_);
+
+    stalker->CStepManager::reload(stalker->cNameSect().c_str());
+
+    stalker->animation().reload(stalker);
+
+    stalker->brain().active(true);
+    stalker->sight().enable(true);
+
+    if (stalker->character_physics_support())
+    {
+        stalker->character_physics_support()->movement()->CreateCharacter();
+        stalker->character_physics_support()->movement()->PHCharacter()->b_exist = true;
+        stalker->movement().enable_movement(true);
+    }
+
+    passengers->removePassenger(npc);
+
+    CSE_ALifeHumanStalker* tpHuman = smart_cast<CSE_ALifeHumanStalker*>(stalker->alife_object());
+
+    CStalkerMovementManager* movement = &stalker->movement();
+    movement->m_head.current.yaw = movement->m_head.target.yaw = movement->m_body.current.yaw =
+        movement->m_body.target.yaw = angle_normalize_signed(-tpHuman->o_torso.yaw);
+    movement->m_body.current.pitch = movement->m_body.target.pitch = 0;
+    
+    stalker->m_holderCustom = nullptr;
+    NpcCarStor::remove(npc->ID());
+    stalker->timeLastExitCar = Device.dwTimeGlobal;
+
+    smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
+
+    callback(GameObject::eDetachVehicle)(npc->lua_game_object(), !isDriver);
+}
+
+void CCar::throwOutAll()
+{
+    if (CActor* A = OwnerActor())
+    {
+        if (!m_doors.empty())
+            m_doors.begin()->second.GetExitPosition(m_exit_position);
+        else
+            m_exit_position = calcExitPosition(&m_sits_transforms.c);
+        A->detach_Vehicle();
+    }
+    else if (CGameObject* npc = Owner())
+        if (!npc->getDestroy())
+            detach_NPC_Vehicle(npc);
+
+    for (const auto& [npc, plc] : passengers->getOccupiedPlaces2())
+        if (!npc->getDestroy())
+            detach_NPC_Vehicle(npc);
+}
+
+u16 CCar::calcDoorForPlace(const Fvector* posPlace)
+{
+    float minDist = FLT_MAX;
+    float dist;
+    u16 DoorId = u16(-1);
+    IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
+
+    for (const auto& door : m_doors)
+    {
+        dist = pKinematics->LL_GetTransform(door.first).c.distance_to(*posPlace);
+        if (dist < minDist)
+        {
+            minDist = dist;
+            DoorId = (u16) door.first;
+        }
+    }
+
+    return DoorId;
+}
+
+Fvector CCar::calcExitPosition(Fvector* pos)
+{
+    Fvector exitPos;
+
+    u16 doorId = calcDoorForPlace(pos);
+    m_doors.at(doorId).GetExitPosition(exitPos);
+
+    return exitPos;
+}
+
+u32 CCar::updateLevelVertex()
+{
+    /*if ((Position().distance_to_xz(lastPosition) >= 0.7) && (!getDestroy()))
+    {
+        Fvector center;
+        Center(center);
+        center.x = Position().x;
+        center.z = Position().z;
+        u32 l_dwNewLevelVertexID = ai().level_graph().vertex(ai_location().level_vertex_id(), center);
+
+        VERIFY(ai().level_graph().valid_vertex_id(l_dwNewLevelVertexID));
+
+        if (ai_location().level_vertex_id() == l_dwNewLevelVertexID)
+            return;
+
+        lastPosition = Position();
+
+    }*/
+
+    return ai_location().level_vertex_id();
 }

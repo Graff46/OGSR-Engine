@@ -242,6 +242,7 @@ private:
     void SelectEnv(EnvVec* envs, CEnvDescriptor*& e, float tm);
 
     void calculate_dynamic_sun_dir();
+    void clearIniFiles();
 
 public:
     static bool sort_env_pred(const CEnvDescriptor* x, const CEnvDescriptor* y) { return x->exec_time < y->exec_time; }
@@ -307,6 +308,8 @@ public:
 public:
     CEnvironment();
 
+    void init(bool condCOPWeather = true);
+
     INGAME_EDITOR_VIRTUAL ~CEnvironment();
 
     INGAME_EDITOR_VIRTUAL void load();
@@ -353,12 +356,12 @@ public:
 
     std::future<void> awaiter;
     bool async_started{};
+    INGAME_EDITOR_VIRTUAL void load_weathers();
+    INGAME_EDITOR_VIRTUAL void load_weather_effects();
 
 protected:
     INGAME_EDITOR_VIRTUAL CEnvDescriptor* create_descriptor(shared_str const& identifier, CInifile* config);
     INGAME_EDITOR_VIRTUAL CEnvDescriptor* create_descriptor_shoc(LPCSTR exec_tm, LPCSTR S);
-    INGAME_EDITOR_VIRTUAL void load_weathers();
-    INGAME_EDITOR_VIRTUAL void load_weather_effects();
     INGAME_EDITOR_VIRTUAL void create_mixer();
     void destroy_mixer();
     void load_level_specific_ambients();

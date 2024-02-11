@@ -93,3 +93,17 @@ void CStalkerAnimationManager::assign_bone_callbacks()
     int spin_bone = kinematics->LL_BoneID(pSettings->r_string(section, "bone_spin"));
     kinematics->LL_GetBoneInstance(u16(spin_bone)).set_callback(bctCustom, &spine::callback, &object());
 }
+
+void CStalkerAnimationManager::VehicleHeadCallback(CBoneInstance* B)
+{
+    CGameObject* A = static_cast<CGameObject*>(B->callback_param());
+    VERIFY(A);
+    Fmatrix spin;
+    float bone_yaw = angle_normalize_signed(A->Orientation().yaw) * 0.75f;
+    float bone_pitch = angle_normalize_signed(A->Orientation().pitch) * 0.75f;
+    float bone_roll = angle_normalize_signed(A->Orientation().roll) * 0.2f;// r_head_factor;
+    Fvector c = B->mTransform.c;
+    spin.setHPB(bone_yaw, bone_pitch, -bone_roll);
+    B->mTransform.mulA_43(spin);
+    B->mTransform.c = c;
+}

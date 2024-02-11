@@ -30,7 +30,7 @@ public:
     virtual ~CHolderCustom() { ; }
     virtual void UpdateEx(float fov){}; // called by owner
     virtual CHolderCustom* cast_holder_custom() { return this; }
-    bool Engaged() { return m_owner != NULL; }
+    bool Engaged() { return !!m_owner; }
     virtual void OnMouseMove(int x, int y) = 0;
     virtual void OnKeyboardPress(int dik) = 0;
     virtual void OnKeyboardRelease(int dik) = 0;
@@ -41,7 +41,7 @@ public:
     virtual void cam_Update(float dt, float fov = 90.0f) = 0;
 
     virtual bool Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos) = 0;
-    virtual bool attach_Actor(CGameObject* actor);
+    virtual bool attach_Actor(CGameObject* actor, bool isPassengers = false);
     virtual void detach_Actor();
     virtual bool allowWeapon() const = 0;
     virtual bool HUDView() const = 0;

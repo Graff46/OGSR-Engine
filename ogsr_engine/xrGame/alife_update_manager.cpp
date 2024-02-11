@@ -23,6 +23,8 @@
 #include "profiler.h"
 #include "mt_config.h"
 #include "gamepersistent.h"
+#include "string_table.h"
+#include "NpcCarStor.h"
 
 using namespace ALife;
 
@@ -156,6 +158,8 @@ bool CALifeUpdateManager::change_level(NET_Packet& net_packet)
     net_packet.r_vec3(graph().actor()->o_Position);
     net_packet.r_vec3(graph().actor()->o_Angle);
 
+    NpcCarStor::replaceLevelNpcOfCar(graph().actor()->m_tGraphID, graph().actor()->m_tNodeID, &graph().actor()->o_Position);
+
     Level().ClientSave();
 
     graph().actor()->o_torso.yaw = graph().actor()->o_Angle.y;
@@ -177,8 +181,12 @@ bool CALifeUpdateManager::change_level(NET_Packet& net_packet)
         holder->o_Angle = graph().actor()->o_Angle;
     }
 
+    LPCSTR destLevelName = CStringTable().translate(
+        ai().game_graph().header().level(ai().game_graph().vertex(graph().actor()->m_tGraphID)->level_id()).name().c_str()
+    ).c_str();
+
     string256 autoave_name;
-    strconcat(sizeof(autoave_name), autoave_name, Core.UserName, "_", "autosave");
+    strconcat(sizeof(autoave_name), autoave_name, Core.UserName, "_", "autosave", "_", destLevelName);
     LPCSTR temp0 = strchr(**m_server_command_line, '/');
     VERIFY(temp0);
     string256 temp;

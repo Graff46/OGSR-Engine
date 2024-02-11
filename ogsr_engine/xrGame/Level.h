@@ -30,6 +30,7 @@ class CLevelSoundManager;
 class CDebugRenderer;
 
 extern float g_fov;
+extern float gt_fov;
 
 const int maxRP = 64;
 const int maxTeams = 32;
@@ -305,6 +306,22 @@ public:
     virtual void OnSessionTerminate(LPCSTR reason);
     void OnDestroyObject(u16 id) override;
     virtual void OnChangeCurrentWeather(const char* sect) override;
+
+    void LoadCars();
+
+    struct RQandignores
+    {
+        xr_vector<CObject*> ignore_objects;
+        collide::rq_result RQ;
+        RQandignores(xr_vector<CObject*> objects, collide::rq_result rq)
+        {
+            ignore_objects = objects;
+            RQ = rq;
+        }
+    };
+    collide::rq_result GetPickResultVecIgnores(
+        Fvector pos, Fvector dir, float range, xr_vector<CObject*> ignore_objects = {});
+    collide::rq_result GetPickResult(Fvector pos, Fvector dir, float range, CObject* ignore = NULL);
 
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };

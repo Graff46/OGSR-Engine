@@ -672,7 +672,7 @@ public:
     void OpenInvBox(CScriptGameObject* object);
     CScriptGameObject* ObjectFromInvBox(int _i);
     float GetCamFOV();
-    void SetCamFOV(float _fov);
+    void SetCamFOV(float _fov, bool nostor = false);
 
     void SetMaxWeight(float _weight);
     void SetMaxWalkWeight(float _weight);
@@ -826,6 +826,10 @@ public:
     void setEnabled(bool value);
 
     void setVisible(bool value);
+
+    void start_particles(LPCSTR pname, LPCSTR bone);
+
+    void stop_particles(LPCSTR pname, LPCSTR bone);
 
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };

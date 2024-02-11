@@ -38,6 +38,7 @@
 #ifdef DEBUG
 #include "debug_renderer.h"
 #endif
+#include <Car.h>
 
 CActor* g_actor = NULL;
 
@@ -211,10 +212,12 @@ BOOL CActor::net_Spawn(CSE_Abstract* DC)
         m_HeavyBreathSnd.stop();
     }
 
-    auto callback = fastdelegate::MakeDelegate(this, &CActor::on_requested_spawn);
     m_holder_id = E->m_holderID;
     if (E->m_holderID != ALife::_OBJECT_ID(-1))
+    {
+        auto callback = fastdelegate::MakeDelegate(this, &CActor::on_requested_spawn);
         Level().client_spawn_manager().add(E->m_holderID, ID(), callback);
+    } 
     // F
     //-------------------------------------------------------------
     m_iLastHitterID = u16(-1);
@@ -275,6 +278,8 @@ void CActor::net_Destroy()
     processing_deactivate();
     m_holder = NULL;
     m_holderID = u16(-1);
+    CSE_ALifeCreatureActor* E = smart_cast<CSE_ALifeCreatureActor*>(alife_object());
+    E->m_holderID = u16(-1);
 
     SetDefaultVisualOutfit(NULL);
 
@@ -404,6 +409,22 @@ void CActor::ChangeVisual(shared_str NewVisual)
     g_SetAnimation(mstate_real);
     Visual()->dcast_PKinematics()->CalculateBones_Invalidate();
     Visual()->dcast_PKinematics()->CalculateBones();
+
+    CCar* car;
+    if ((Holder()) && (car = smart_cast<CCar*>(Holder())))
+    {
+        IKinematicsAnimated* V = smart_cast<IKinematicsAnimated*>(Visual());
+        R_ASSERT(V);
+        u16 anim_type = car->DriverAnimationType();
+        SVehicleAnimCollection& anims = m_vehicle_anims->m_vehicles_type_collections[anim_type];
+        V->PlayCycle(anims.idles[0], FALSE);
+
+        ResetCallbacks();
+        u16 head_bone = V->dcast_PKinematics()->LL_BoneID("bip01_head");
+        V->dcast_PKinematics()->LL_GetBoneInstance(u16(head_bone)).set_callback(bctPhysics, VehicleHeadCallback, this);
+
+        character_physics_support()->movement()->DestroyCharacter();
+    }
 };
 
 void CActor::save(NET_Packet& output_packet)
@@ -412,6 +433,8 @@ void CActor::save(NET_Packet& output_packet)
     CInventoryOwner::save(output_packet);
     output_packet.w_u8(u8(m_bOutBorder));
     output_packet.w_u8(u8(character_physics_support()->movement()->BoxID()));
+
+    output_packet.w_u8(isPassenger ? 1 : 0);
 }
 
 void CActor::load(IReader& input_packet)
@@ -421,6 +444,8 @@ void CActor::load(IReader& input_packet)
     m_bOutBorder = !!(input_packet.r_u8());
     if (ai().get_alife()->header().version() > 5)
         m_loaded_ph_box_id = input_packet.r_u8();
+
+    isPassenger = (bool) input_packet.r_u8();
 }
 
 #ifdef DEBUG
@@ -506,6 +531,7 @@ void CActor::net_Save(NET_Packet& P)
     inherited::net_Save(P);
     m_pPhysics_support->in_NetSave(P);
     P.w_u16(m_holderID);
+    //P.w_u8(isPassenger ? 1 : 0);
 #endif
 }
 

@@ -92,6 +92,14 @@ bool CUIXmlInit::InitWindow(CUIXml& xml_doc, LPCSTR path, int index, CUIWindow* 
         width = width * device_scale.x;
         height = height * device_scale.y;
     }
+    else if (xml_doc.ReadAttribInt(path, index, "percent", 0))
+	{
+		width = width * 1024 * 0.01;
+		height = height * 768 * 0.01;
+
+		x = x * 1024 * 0.01;
+		y = y * 768 * 0.01;
+	}
     pWnd->Init(x, y, width, height);
 
     string512 buf;

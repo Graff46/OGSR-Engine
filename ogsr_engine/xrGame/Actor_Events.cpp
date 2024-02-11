@@ -159,7 +159,7 @@ void CActor::OnEvent(NET_Packet& P, u16 type)
         }
         VERIFY(m_holder == NULL);
         CHolderCustom* holder = smart_cast<CHolderCustom*>(O);
-        if (!holder->Engaged())
+        //if (!holder->Engaged())
             use_Holder(holder);
     }
     break;

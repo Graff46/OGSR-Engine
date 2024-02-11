@@ -226,7 +226,7 @@ void dxRenderDeviceRender::overdrawEnd()
 
 void dxRenderDeviceRender::DeferredLoad(BOOL E) { Resources->DeferredLoad(E); }
 
-void dxRenderDeviceRender::ResourcesDeferredUpload() { Resources->DeferredUpload(); }
+void dxRenderDeviceRender::ResourcesDeferredUpload(BOOL needUnload = FALSE) { Resources->DeferredUpload(needUnload); }
 
 void dxRenderDeviceRender::ResourcesGetMemoryUsage(u32& m_base, u32& c_base, u32& m_lmaps, u32& c_lmaps)
 {

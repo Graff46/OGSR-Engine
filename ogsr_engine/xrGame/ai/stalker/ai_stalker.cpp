@@ -63,6 +63,9 @@
 #include "../../team_hierarchy_holder.h"
 #include "../../squad_hierarchy_holder.h"
 #include "../../group_hierarchy_holder.h"
+#include "Car.h"
+#include "../../../xr_3da/x_ray.h"
+#include "NpcCarStor.h"
 
 #ifdef DEBUG
 #include "../../alife_simulator.h"
@@ -288,6 +291,15 @@ void CAI_Stalker::Die(CObject* who)
     //запретить использование слотов в инвенторе
     inventory().SetSlotsUseful(false);
 
+    if (m_holderCustom)
+    {
+        CCar* car = smart_cast<CCar*>(m_holderCustom);
+        CGameObject* obj = smart_cast<CGameObject*>(this);
+        car->passengers->removePassenger(obj);
+        m_holderCustom = nullptr;
+        NpcCarStor::remove(ID());
+    }
+
 #pragma todo("KD: Поскольку весь лут непися пока обрабатывается в скриптах, в этом месте отключено удаление лута")
 #if 0
 	if (inventory().GetActiveSlot() >= inventory().m_slots.size())
@@ -328,6 +340,9 @@ void CAI_Stalker::Load(LPCSTR section)
     m_can_select_items = !!pSettings->r_bool(section, "can_select_items");
 }
 
+#include "alife_simulator.h"
+#include "alife_object_registry.h"
+#include "ai_object_location.h"
 BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
 {
     CSE_Abstract* e = (CSE_Abstract*)(DC);
@@ -416,14 +431,39 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     {
         movement().locations().Load(*SpecificCharacter().terrain_sect());
     }
+    
+    CCar* car{};
+    ALife::_OBJECT_ID carId;
+    u8 seat;
+    if (NpcCarStor::get(ID(), carId, seat))
+    {
+        CObject* obj = Level().Objects.net_Find(carId);
+        if (obj) 
+        {
+            car = smart_cast<CCar*>(obj);
+            XFORM().mulA_43(car->XFORM());
+        }
+    }
 
     m_pPhysics_support->in_NetSpawn(e);
+
+    if (car)
+        car->attach_NPC_Vehicle(smart_cast<CGameObject*>(this), seat);
 
     return (TRUE);
 }
 
 void CAI_Stalker::net_Destroy()
 {
+    if (CCar* car = m_holderCustom ? smart_cast<CCar*>(m_holderCustom) : nullptr)
+    {
+        if (car && car->Owner() && car->Owner()->ID() == ID())
+            car->CHolderCustom::detach_Actor();
+        else if (car && car->passengers->getOccupiedPlaces()->contains(cast_game_object()))
+            car->passengers->getOccupiedPlaces()->erase(cast_game_object());
+    }
+
+    m_holderCustom = nullptr;
     m_pPhysics_support->SyncNetState();
     inherited::net_Destroy();
     CInventoryOwner::net_Destroy();
@@ -920,11 +960,26 @@ bool CAI_Stalker::can_attach(const CInventoryItem* inventory_item) const
     return (CObjectHandler::can_attach(inventory_item));
 }
 
+#include "holder_custom.h"
 void CAI_Stalker::save(NET_Packet& packet)
 {
     inherited::save(packet);
     CInventoryOwner::save(packet);
     brain().save(packet);
+
+    if (m_holderCustom)
+    {
+        ALife::_OBJECT_ID id = smart_cast<CGameObject*>(m_holderCustom)->ID();
+        CCar* car = smart_cast<CCar*>(m_holderCustom);
+
+        packet.w_u16(id);
+        packet.w_u8( car->passengers->getSeatId(smart_cast<CGameObject*>(this)) );
+    }
+    else 
+    {
+        packet.w_u16(u16(-1));
+        packet.w_u8(0);
+    } 
 }
 
 void CAI_Stalker::load(IReader& packet)
@@ -932,6 +987,12 @@ void CAI_Stalker::load(IReader& packet)
     inherited::load(packet);
     CInventoryOwner::load(packet);
     brain().load(packet);
+
+    ALife::_OBJECT_ID id = (ALife::_OBJECT_ID) packet.r_u16();
+    u8 place = packet.r_u8();
+
+    if (id != u16(-1))
+        NpcCarStor::add(ID(), id, place);
 }
 
 void CAI_Stalker::load_critical_wound_bones()

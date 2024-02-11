@@ -34,6 +34,8 @@
 #include "monster_community.h"
 #include "GamePersistent.h"
 #include "EffectorBobbing.h"
+#include "../xr_3da/fdemoplay.h"
+#include "..\xr_3da\XR_IOConsole.h"
 
 using namespace luabind;
 
@@ -928,6 +930,38 @@ void iterate_nearest(const Fvector& pos, float radius, luabind::functor<bool> fu
     }
 }
 
+void run_xrdemo(LPCSTR xrdemoName)
+{
+    string_path fn;
+    u32 loops = 0;
+    LPSTR comma = strchr(const_cast<LPSTR>(xrdemoName), ',');
+    if (comma) {
+        loops = atoi(comma + 1);
+        *comma = 0;
+    }
+    strconcat(sizeof(fn), fn, xrdemoName, ".xrdemo");
+    FS.update_path(fn, "$game_anims$", fn);
+    if (!FS.exist(fn)) {
+        Console->Show();
+        Msg("! Error: *.xrdemo file not found!");
+        return;
+    }
+
+    g_pGameLevel->Cameras().AddCamEffector(xr_new<CDemoPlay>(fn, 1.0f, loops));
+}
+
+void reinit(CEnvironment* self, bool condCOPWeather = true)
+{
+    self->init(condCOPWeather);
+
+    self->load_weathers();
+    self->load_weather_effects();
+}
+
+void reload_cars()
+{
+    Level().LoadCars();
+}
 
 #pragma optimize("s", on)
 void CLevel::script_register(lua_State* L)
@@ -944,7 +978,11 @@ void CLevel::script_register(lua_State* L)
                   .property("m_identifier", [](CEnvDescriptor* self) { return self->m_identifier.c_str(); })
                   .def("set_env_ambient", &CEnvDescriptor::setEnvAmbient),
               class_<CEnvironment>("CEnvironment")
-                  .def("getCurrentWeather", [](CEnvironment* self, const size_t idx) { R_ASSERT(idx < 2); return self->Current[idx]; }),
+                  .def("current", current_environment)
+                  .def("ForceReselectEnvs", &CEnvironment::ForceReselectEnvs)
+                  .def("getCurrentWeather", [](CEnvironment* self, const size_t idx) { R_ASSERT(idx < 2); return self->Current[idx]; })
+                  .def("reinit", reinit)
+                  .def_readonly("COP_weather", &CEnvironment::USED_COP_WEATHER),
 
               class_<CPHCall>("CPHCall").def("set_pause", &CPHCall::setPause),
 
@@ -1050,8 +1088,10 @@ void CLevel::script_register(lua_State* L)
 
             //--#SM+# Begin --
             def("set_blender_mode_main", &set_blender_mode_main), def("get_blender_mode_main", &get_blender_mode_main), def("set_shader_params", &set_shader_params),
-            def("get_shader_params", &get_shader_params)
+            def("get_shader_params", &get_shader_params),
             //--#SM+# End --
+            def("run_xrdemo", &run_xrdemo), //Graff46
+            def("reload_cars", &reload_cars) //Graff46
     ],
 
         module(L, "actor_stats")[def("add_points", &add_actor_points), def("add_points_str", &add_actor_points_str), def("get_points", &get_actor_points),

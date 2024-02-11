@@ -47,7 +47,7 @@ void SCarLight::ParseDefinitions(LPCSTR section)
     clr.set(ini->r_fcolor(section, "color"));
     // clr.mul_rgb				(torch->spot_brightness);
     // fBrightness				= torch->spot_brightness;
-    light_render->set_range(ini->r_float(section, "range"));
+    light_render->set_range(ini->r_float(section, "range") * pSettings->r_float("dynamic_light", "range_koef"));
     light_render->set_color(clr);
     light_render->set_cone(deg2rad(ini->r_float(section, "cone_angle")));
     light_render->set_texture(ini->r_string(section, "spot_texture"));
@@ -194,16 +194,12 @@ bool CCarLights::findLight(u16 bone_id, SCarLight*& light)
 {
     SCarLight find_light;
     find_light.bone_id = bone_id;
-
-    auto e = m_lights.end();
-    auto i = std::find_if(m_lights.begin(), e, SFindLightPredicate(&find_light));
-    if (i != e)
-    {
-        light = *i;
-        return true;
-    }
-    else
+    i = std::find_if(m_lights.begin(), e, SFindLightPredicate(&find_light));
+    if (i == e)
         return false;
+
+    light = *i;
+    return true; //-V783
 }
 CCarLights::~CCarLights()
 {

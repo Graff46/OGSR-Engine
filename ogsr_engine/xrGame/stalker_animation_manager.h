@@ -148,6 +148,7 @@ public:
     virtual void update();
     void play_fx(float power_factor, int fx_index);
     void play_delayed_callbacks();
+    static void VehicleHeadCallback(CBoneInstance* B);
 
 public:
     void add_script_animation(LPCSTR animation, bool hand_usage = false, bool use_movement_controller = false);

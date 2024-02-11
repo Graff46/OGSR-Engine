@@ -15,6 +15,7 @@
 #include "mainmenu.h"
 #include "object_factory.h"
 #include "relation_registry.h"
+#include "Seasons.h"
 
 LPCSTR alife_section = "alife";
 
@@ -55,6 +56,7 @@ CALifeSimulator::CALifeSimulator(xrServer* server, shared_str* command_line)
     R_ASSERT2(ai().script_engine().functor(start_game_callback, functor), "failed to get start game callback");
     functor();
 
+    //Seasons::reset();
     load(p.m_game_or_spawn, !xr_strcmp(p.m_new_or_load, "load") ? false : true, !xr_strcmp(p.m_new_or_load, "new"));
     RELATION_REGISTRY().build_reverse_personal();
 }

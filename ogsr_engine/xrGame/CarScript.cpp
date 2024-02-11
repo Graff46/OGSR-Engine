@@ -3,11 +3,57 @@
 #include "Car.h"
 #include "CarWeapon.h"
 #include "script_game_object.h"
+#include "xrServer_Objects_ALife_Monsters.h"
+#include <Actor.h>
 
 using namespace luabind;
 
-u8 CCar__IsLightsOn(CCar* self) { return self->IsLightsOn() ? 1 : 0; }
-u8 CCar__IsEngineOn(CCar* self) { return self->IsEngineOn() ? 1 : 0; }
+bool attachNPC(CCar* car, CScriptGameObject* npc, bool driver = false)
+{
+    return car->attach_NPC_Vehicle(&npc->object(), driver ? 0 : u8(-1));
+}
+
+void detachNPC(CCar* car, CScriptGameObject* npc)
+{
+    return car->detach_NPC_Vehicle(&npc->object());
+}
+
+luabind::object getPassengers(CCar* car)
+{
+    luabind::object t = luabind::newtable(ai().script_engine().lua());
+
+    u8 i = 0;
+    for (const auto& [npc, place] : *car->passengers->getOccupiedPlaces())
+        t[++i] = npc->lua_game_object();
+
+    return t;
+}
+
+luabind::object getWheels(CCar* car)
+{
+    luabind::object t = luabind::newtable(ai().script_engine().lua());
+
+    u16 i = 0;
+    for (const auto& [id, wheel] : *car->getWheelsMap())
+        t[++i] = wheel.joint;
+
+    return t;
+}
+
+void setWpnSeat(CCar* car, CScriptGameObject* npc)
+{
+    if (car->passengers->getOccupiedPlaces()->contains(&npc->object()))
+        return car->wpnSeat->onSeat(&npc->object());
+    else if (npc->ID() == Actor()->ID())
+    {
+        car->setActorAsPassenger(true);
+        Actor()->attach_Vehicle(smart_cast<CHolderCustom*>(car));
+    } 
+    else
+        car->attach_NPC_Vehicle(&npc->object(), u8(-1) - 1);
+
+    car->wpnSeat->onSeat(&npc->object());
+}
 
 #pragma optimize("s", on)
 void CCar::script_register(lua_State* L)
@@ -33,9 +79,35 @@ void CCar::script_register(lua_State* L)
                   .def("GetFuelTank", &CCar::GetFuelTank)
                   .def("GetFuel", &CCar::GetFuel)
                   .def("SetFuel", &CCar::SetFuel)
-                  .def("IsLightsOn", &CCar__IsLightsOn)
-                  .def("IsEngineOn", &CCar__IsEngineOn)
+                  .def("IsLightsOn", &CCar::IsLightsOn)
+                  .def("IsEngineOn", &CCar::IsEngineOn)
                   .def("SwitchEngine", &CCar::SwitchEngine)
                   .def("SwitchLights", &CCar::SwitchLights)
+                  .def("attach", &attachNPC)
+                  .def("detach", &detachNPC)
+                  .def_readonly("handbrake", &CCar::brp)
+                  .def("set_actor_as_passenger", &CCar::setActorAsPassenger)
+                  .def("actor_inside", &CCar::ActorInside)
+                  .def("get_owner", [](CCar* car) {return car->Owner() ? car->Owner()->lua_game_object() : nullptr; })
+                  .def("get_passengers", &getPassengers)
+                  .def("get_passengers_count", [](CCar* car) { return car->passengers->countPlaces(); })
+                  .def("get_passengers_vacant_sits", [](CCar* car) { return car->passengers->vacantSits(); })
+                  .def("level_vertex", &CCar::updateLevelVertex)
+                  .def("set_on_wpn_seat", &setWpnSeat)
+                  .def("leave_wpn_seat", [](CCar* car) { car->wpnSeat->leaveSeat(); })
+                  .def("set_camera", &CCar::OnCameraChange)
+                  //.def("set_camera_dir", [](CCar* car, Fvector f) { car->get_active_camera()->vDirection.set(f); })
+                  //.def("get_wheels", &getWheels)
                   .def(constructor<>())];
+}
+
+void CCar::SWheel::script_register(lua_State* L) // не работает
+{
+    module(L)[class_<CCar::SWheel, bases<CDamagableHealthItem>>("SWheel")
+                  .def_readonly("joint", &CCar::SWheel::joint)
+                  .def_readonly("name", &CCar::SWheel::name)
+                  .def("set_mu", [](CCar::SWheel* wheel, float k) { wheel->collision_params.mu_factor = k; })
+                  .def("set_mu2", [](CCar::SWheel* wheel, float k) { wheel->collision_params.mu2_factor = k; })
+                  .def("set_spring_damping_factor", [](CCar::SWheel* wheel, float spring, float damping) { wheel->joint->SetJointSDfactors(spring, damping); })];
+                  //.def("is_driving", [](CCar::SWheel* wheel, float spring, float damping) { std::find(wheel->car->m_driving_wheels.begin(), wheel->car->m_driving_wheels.end(), wheel) != wheel->car->m_driving_wheels.end();})];
 }

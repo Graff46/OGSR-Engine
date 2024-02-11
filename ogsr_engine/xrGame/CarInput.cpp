@@ -136,12 +136,16 @@ bool CCar::bfAssignObject(CScriptEntityAction* tpEntityAction)
 void CCar::vfProcessInputKey(int iCommand, bool bPressed)
 {
     if (bPressed)
-        OnKeyboardPress(iCommand);
+        OnKeyPress(iCommand, false);
     else
-        OnKeyboardRelease(iCommand);
+        OnKeyRelease(iCommand, false);
 }
 
 void CCar::OnKeyboardPress(int cmd)
+{
+    OnKeyPress(cmd, true);
+}
+void CCar::OnKeyPress(int cmd, bool manualInput)
 {
     if (Remote())
         return;
@@ -151,60 +155,74 @@ void CCar::OnKeyboardPress(int cmd)
     case kCAM_1: OnCameraChange(ectFirst); break;
     case kCAM_2: OnCameraChange(ectChase); break;
     case kCAM_3: OnCameraChange(ectFree); break;
-    case kACCEL: TransmissionUp(); break;
-    case kCROUCH: TransmissionDown(); break;
-    case kFWD: PressForward(); break;
-    case kBACK: PressBack(); break;
-    case kR_STRAFE:
-        PressRight();
-        if (OwnerActor())
-            OwnerActor()->steer_Vehicle(1);
-        break;
-    case kL_STRAFE:
-        PressLeft();
-        if (OwnerActor())
-            OwnerActor()->steer_Vehicle(-1);
-        break;
-    case kJUMP: PressBreaks(); break;
-    case kENGINE: SwitchEngine(); break;
     case kTORCH: m_lights.SwitchHeadLights(); break;
-    case kNIGHT_VISION: {
-        auto* Act = OwnerActor();
-        if (Act)
-        {
-            auto* pTorch = smart_cast<CTorch*>(Act->inventory().ItemFromSlot(TORCH_SLOT));
-            if (pTorch)
-            {
-                pTorch->SwitchNightVision();
-            }
-        }
-    }
-    break;
     case kUSE: break;
     };
+
+    if (OwnerActor() || !manualInput)
+    {
+        switch (cmd)
+        {
+        case kACCEL:TransmissionUp(); break;
+        case kCROUCH: ctrlOn = true; TransmissionDown(); break;
+        case kFWD:PressForward(); break;
+        case kBACK:PressBack(); break;
+        case kR_STRAFE:
+            PressRight();
+            if (OwnerActor())
+                OwnerActor()->steer_Vehicle(1);
+            break;
+        case kL_STRAFE:
+            PressLeft();
+            if (OwnerActor())
+                OwnerActor()->steer_Vehicle(-1);
+            break;
+        case kJUMP: PressBreaks(); break;
+        case kENGINE: SwitchEngine(); break;
+        }
+    }
+
+    if ((wpnSeat->actorOwner) && (cmd == kWPN_FIRE))
+        Action(CCarWeapon::eWpnAutoFire, 1);
 }
 
 void CCar::OnKeyboardRelease(int cmd)
+{
+    OnKeyRelease(cmd, true);
+}
+void CCar::OnKeyRelease(int cmd, bool manualInput)
 {
     if (Remote())
         return;
     switch (cmd)
     {
     case kACCEL: break;
-    case kFWD: ReleaseForward(); break;
-    case kBACK: ReleaseBack(); break;
-    case kL_STRAFE:
-        ReleaseLeft();
-        if (OwnerActor())
-            OwnerActor()->steer_Vehicle(0);
-        break;
-    case kR_STRAFE:
-        ReleaseRight();
-        if (OwnerActor())
-            OwnerActor()->steer_Vehicle(0);
-        break;
-    case kJUMP: ReleaseBreaks(); break;
     };
+
+    if (OwnerActor() || !manualInput)
+    {
+        switch (cmd)
+        {
+        case kFWD: ReleaseForward(); break;
+        case kBACK: ReleaseBack(); break;
+        case kL_STRAFE:
+            ReleaseLeft();
+            if (OwnerActor())
+                OwnerActor()->steer_Vehicle(0);
+            break;
+        case kR_STRAFE:
+            ReleaseRight();
+            if (OwnerActor())
+                OwnerActor()->steer_Vehicle(0);
+            break;
+        case kJUMP: ReleaseBreaks(); break;
+        case kCROUCH: ctrlOn = false; break;
+        }
+    }
+
+    if ((wpnSeat->actorOwner) && (cmd == kWPN_FIRE))
+        Action(CCarWeapon::eWpnAutoFire, 0);
+
 }
 
 void CCar::OnKeyboardHold(int cmd)

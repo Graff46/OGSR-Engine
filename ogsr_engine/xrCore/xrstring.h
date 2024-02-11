@@ -113,11 +113,15 @@ public:
     char operator[](size_t id) const { return p_->value[id]; }
     bool operator!() const { return !p_; }
     const char* operator*() const { return p_ ? p_->value : nullptr; }
+    // Чтобы можно было легко кастить в std::string_view как и все остальные строки
+    operator std::string_view() const { return std::string_view{p_ ? p_->value : ""}; }
 
     // Чтобы можно было легко кастить в std::string_view как и все остальные строки
     operator std::string_view() const { return std::string_view{p_ ? p_->value : ""}; }
 
     const char* c_str() const { return p_ ? p_->value : nullptr; }
+    // Используется в погодном редакторе.
+    const char* data() const { return p_ ? p_->value : ""; }
 
     //Используется в погодном редакторе.
     const char* data() const { return p_ ? p_->value : ""; }
@@ -131,7 +135,6 @@ public:
         str_value* tmp = p_;
         p_ = rhs.p_;
         rhs.p_ = tmp;
-
     }
     bool equal(const shared_str& rhs) const { return (p_ == rhs.p_); }
 

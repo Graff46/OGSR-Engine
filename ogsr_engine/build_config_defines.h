@@ -22,7 +22,7 @@
 //#define USE_MEMORY_VALIDATOR
 //****************************************************************************************************
 
-#define FSLTX "fsgame.ltx"
+#define FSLTX "fsgame_np.ltx"
 
 // Сколько последних сообщений показывать в истории ПДА
 #define NEWS_TO_SHOW 500

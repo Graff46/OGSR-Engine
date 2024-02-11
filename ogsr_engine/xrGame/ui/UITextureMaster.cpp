@@ -87,16 +87,25 @@ void CUITextureMaster::InitTexture(const char* texture_name, const char* shader_
 
     xr_map<shared_str, TEX_INFO>::iterator it;
 
-    it = m_textures.find(texture_name);
-
-    if (it != m_textures.end())
+    //if (!texture_name)
+    //{
+    //    tc->CreateShader("", shader_name);
+    //    tc->SetOriginalRectEx(Frect().set(0, 0, UI_BASE_WIDTH, UI_BASE_HEIGHT));
+    //    return;
+    //}
+    if (texture_name)
     {
-        tc->CreateShader(*((*it).second.file), shader_name);
-        tc->SetOriginalRectEx((*it).second.rect);
+        it = m_textures.find(texture_name);
+
+        if (it != m_textures.end())
+        {
+            tc->CreateShader(*((*it).second.file), shader_name);
+            tc->SetOriginalRectEx((*it).second.rect);
 #ifdef DEBUG
-        m_time += T.GetElapsed_ms();
+            m_time += T.GetElapsed_ms();
 #endif
-        return;
+            return;
+        }
     }
     tc->CreateShader(texture_name, shader_name);
 #ifdef DEBUG

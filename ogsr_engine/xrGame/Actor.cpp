@@ -767,7 +767,9 @@ void CActor::g_Physics(Fvector& _accel, float jump, float dt)
         }
     }
 }
+
 float g_fov = 67.5f; // 75.0f - SWM
+float gt_fov = g_fov;
 
 float CActor::currentFOV()
 {
@@ -775,11 +777,11 @@ float CActor::currentFOV()
 
     if (eacFirstEye == cam_active && pWeapon && pWeapon->IsZoomed() && (!pWeapon->ZoomTexture() || (!pWeapon->IsRotatingToZoom() && pWeapon->ZoomTexture())))
         if (Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system))
-            return atanf(tanf(g_fov * (0.5f * PI / 180)) / pWeapon->GetZoomFactor()) / (0.5f * PI / 180);
+            return atanf(tanf(gt_fov * (0.5f * PI / 180)) / pWeapon->GetZoomFactor()) / (0.5f * PI / 180);
         else
             return pWeapon->GetZoomFactor() * 0.75f;
     else
-        return g_fov;
+        return gt_fov;
 }
 
 void CActor::UpdateCL()
@@ -1167,7 +1169,7 @@ void CActor::shedule_Update(u32 DT)
         {
             m_sDefaultObjAction = m_sCarCharacterUseAction;
         }
-        else if (inventory().m_pTarget && inventory().m_pTarget->CanTake())
+        else if (inventory().m_pTarget && inventory().m_pTarget->CanActorTake())
         {
             if (b_allow_drag)
                 m_sDefaultObjAction = m_sInventoryItemUseOrDragAction;

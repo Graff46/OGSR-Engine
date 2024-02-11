@@ -65,7 +65,7 @@ void CLight_DB::Load(IReader* fs)
                 v_static.push_back(L);
                 L->set_position(Ldata.position);
                 L->set_rotation(tmp_D, tmp_R);
-                L->set_range(Ldata.range);
+                L->set_range(Ldata.range * pSettings->r_float("dynamic_light", "range_koef"));
                 L->set_color(Ldata.diffuse);
                 L->set_active(true);
                 //				R_ASSERT			(L->spatial.sector	);

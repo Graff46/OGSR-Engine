@@ -27,6 +27,7 @@ private:
     ref_light light_ambient;
     CLAItem* lanim;
     float ambient_power;
+    bool isOn = true;
 
     ref_glow glow_render;
 
@@ -36,6 +37,7 @@ private:
     void Init();
     void RespawnInit();
     bool Alive() { return fHealth > 0.f; }
+    bool hit_destroyed = true;
 
 public:
     CHangingLamp();
@@ -64,8 +66,12 @@ public:
     virtual void Center(Fvector& C) const;
     virtual float Radius() const;
 
-    void SetLSFParams(float _speed, float _amount, float _jit);
-    DECLARE_SCRIPT_REGISTER_FUNCTION
+	void SetLSFParams(float _speed, float _amount, float _jit);
+	void setParams(NET_Packet& p);
+	NET_Packet getLightParams();
+    IKinematics* K;
+
+	DECLARE_SCRIPT_REGISTER_FUNCTION
 };
 add_to_type_list(CHangingLamp)
 #undef script_type_list

@@ -17,6 +17,7 @@
 #include "alife_simulator.h"
 #include "alife_spawn_registry.h"
 #include "string_table.h"
+#include "Seasons.h"
 
 extern LPCSTR alife_section;
 
@@ -72,6 +73,7 @@ CSavedGameWrapper::CSavedGameWrapper(LPCSTR saved_game_name)
         FS.r_close(stream);
         CALifeTimeManager time_manager(alife_section);
         m_game_time = time_manager.game_time();
+        seasonNameStr = Seasons::getSeasonName();
         m_actor_health = 1.f;
         m_level_id = _LEVEL_ID(-1);
         m_level_name = "";
@@ -84,6 +86,11 @@ CSavedGameWrapper::CSavedGameWrapper(LPCSTR saved_game_name)
     FS.r_close(stream);
 
     IReader reader(source_data, source_count);
+
+	{
+		R_ASSERT2(reader.find_chunk(SEASON_CHUNK_DATA), "Can't find chunk SEASON_CHUNK_DATA");
+		reader.r_stringZ(seasonNameStr);
+	}
 
     {
         CALifeTimeManager time_manager(alife_section);

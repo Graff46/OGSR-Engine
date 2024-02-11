@@ -1194,12 +1194,48 @@ u32 CLocatorAPI::get_file_age(LPCSTR nm)
     return (I != files.end()) ? I->modif : u32(-1);
 }
 
-void CLocatorAPI::rescan_physical_path(LPCSTR full_path, BOOL bRecurse)
+void CLocatorAPI::set_file_age(LPCSTR nm, u32 age)
 {
-    auto I = file_find_it(full_path);
+    // проверить нужно ли пересканировать пути
+    check_pathes();
+
+    // set file
+    _utimbuf tm;
+    tm.actime = age;
+    tm.modtime = age;
+    int res = _utime(nm, &tm);
+    if (0 != res)
+    {
+        Msg("!Can't set file age: '%s'. Error: '%s'", nm, _sys_errlist[errno]);
+    }
+    else
+    {
+        // update record
+        files_it I = file_find_it(nm);
+        if (I != files.end())
+        {
+            file& F = (file&)*I;
+            F.modif = age;
+        }
+    }
+}
+
+void CLocatorAPI::rescan_physical_path(LPCSTR full_path, BOOL bRecurse, BOOL force)
+{
+    files_it I;
+
+    if (force)
+    {
+        file desc_f;
+        desc_f.name = full_path;
+        I = files.lower_bound(desc_f);
+    }    
+    else
+        I = file_find_it(full_path);
+
     if (I == files.end())
         return;
-
+    
     Msg("[rescan_physical_path] files count before: [%d]", files.size());
 
     const size_t base_len = strlen(full_path);

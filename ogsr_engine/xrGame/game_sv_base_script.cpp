@@ -15,6 +15,7 @@
 #include "UI/UIGameTutorial.h"
 #include "string_table.h"
 #include "object_broker.h"
+#include "Seasons.h"
 #include "player_hud.h"
 
 using namespace luabind;
@@ -47,6 +48,14 @@ u32 PlayHudMotion(u8 hand, LPCSTR hud_section, LPCSTR anm_name, bool bMixIn = tr
     return g_player_hud->script_anim_play(hand, hud_section, anm_name, bMixIn, speed, bOverride_item);
 }
 
+void changeSeason(LPCSTR seasonName, bool needRreload)
+{
+	Seasons::swithSeason(seasonName, needRreload);
+}
+
+LPCSTR getSeason() { return Seasons::getSeasonName(); }
+
+#pragma optimize("s",on)
 void StopHudMotion() { g_player_hud->script_anim_stop(); }
 
 float MotionLength(LPCSTR hud_section, LPCSTR anm_name, float speed) { return g_player_hud->motion_length_script(hud_section, anm_name, speed); }
@@ -124,9 +133,15 @@ void game_sv_GameState::script_register(lua_State* L)
        def("time", &get_time), 
        def("get_game_time", &get_time_struct),
 
-       def("start_tutorial", &start_tutorial), 
-       def("stop_tutorial", &stop_tutorial),
-       def("has_active_tutorial", &has_active_tutotial),
+                   def("start_tutorial", &start_tutorial), def("stop_tutorial", &stop_tutorial), def("has_active_tutorial", &has_active_tutotial),
+                   def("translate_string", &translate_string),
+                   def("change_season", &changeSeason),
+                   def("get_season", &getSeason),
+                   def("play_hud_motion", PlayHudMotion), def("stop_hud_motion", StopHudMotion), def("get_motion_length", MotionLength),
+                   def("hud_motion_allowed", AllowHudMotion),
+                   def("play_hud_anm", PlayBlendAnm), def("stop_hud_anm", StopBlendAnm), def("stop_all_hud_anms", StopAllBlendAnms),
+                   def("set_hud_anm_time", SetBlendAnmTime),
+                   def("generate_id", &generate_id)
 
        def("translate_string", &translate_string),
 

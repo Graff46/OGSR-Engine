@@ -743,7 +743,7 @@ void CCustomZone::StartIdleLight()
 {
     if (m_pIdleLight)
     {
-        m_pIdleLight->set_range(m_fIdleLightRange);
+        m_pIdleLight->set_range(m_fIdleLightRange * pSettings->r_float("dynamic_light", "range_koef"));
         Fvector pos = Position();
         pos.y += m_fIdleLightHeight;
         m_pIdleLight->set_position(pos);
@@ -768,7 +768,7 @@ void CCustomZone::UpdateIdleLight()
     fclr.set((float)color_get_B(clr) / 255.f, (float)color_get_G(clr) / 255.f, (float)color_get_R(clr) / 255.f, 1.f);
 
     float range = m_fIdleLightRange + m_fIdleLightRangeDelta * ::Random.randF(-1.f, 1.f);
-    m_pIdleLight->set_range(range);
+    m_pIdleLight->set_range(range * pSettings->r_float("dynamic_light", "range_koef"));
     m_pIdleLight->set_color(fclr);
 
     Fvector pos = Position();
@@ -978,7 +978,7 @@ void CCustomZone::StartBlowoutLight()
     m_fLightTimeLeft = m_fLightTime;
 
     m_pLight->set_color(m_LightColor.r, m_LightColor.g, m_LightColor.b);
-    m_pLight->set_range(m_fLightRange);
+    m_pLight->set_range(m_fLightRange * pSettings->r_float("dynamic_light", "range_koef"));
 
     Fvector pos = Position();
     pos.y += m_fLightHeight;
@@ -1004,7 +1004,7 @@ void CCustomZone::UpdateBlowoutLight()
         float r = m_fLightRange * scale;
         VERIFY(_valid(r));
         m_pLight->set_color(m_LightColor.r * scale, m_LightColor.g * scale, m_LightColor.b * scale);
-        m_pLight->set_range(r);
+        m_pLight->set_range(r * pSettings->r_float("dynamic_light", "range_koef"));
 
         Fvector pos = Position();
         pos.y += m_fLightHeight;

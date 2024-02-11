@@ -68,12 +68,13 @@ void CScriptNetPacket::script_register(lua_State* L)
                   .def("w_stringZ", (void(NET_Packet::*)(LPCSTR))(&NET_Packet::w_stringZ))
                   .def("w_matrix", &NET_Packet::w_matrix)
                   .def("w_clientID", &NET_Packet::w_clientID)
-
-                  //.def("w_chunk_open8", &NET_Packet::w_chunk_open8)
-                  //.def("w_chunk_close8", &NET_Packet::w_chunk_close8)
-                  //.def("w_chunk_open16", &NET_Packet::w_chunk_open16)
-                  //.def("w_chunk_close16", &NET_Packet::w_chunk_close16)
-
+                  .def("w_chunk_open8", &NET_Packet::w_chunk_open8)
+                  .def("w_chunk_close8", &NET_Packet::w_chunk_close8)
+                  .def("w_chunk_open16", &NET_Packet::w_chunk_open16)
+                  .def("w_chunk_close16", &NET_Packet::w_chunk_close16)
+                  .def("w_advance", &NET_Packet::w_advance)
+                  .def("r_begin", &NET_Packet::r_begin)
+                  //			.def("r",				&NET_Packet::r				)
                   .def("r_seek", &NET_Packet::r_seek)
 
                   .def("r_elapsed", &NET_Packet::r_elapsed)
@@ -115,6 +116,7 @@ void CScriptNetPacket::script_register(lua_State* L)
                   .def("r_stringZ", &r_stringZ)
                   .def("r_matrix", &NET_Packet::r_matrix)
                   .def("r_clientID", &r_clientID)
-
-    ];
-}
+                  .def("r_elapsed", &NET_Packet::r_elapsed)
+                  .def("r_advance", &NET_Packet::r_advance)
+                  .def("r_eof", &r_eof)];
+};

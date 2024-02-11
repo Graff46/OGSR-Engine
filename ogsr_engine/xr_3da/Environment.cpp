@@ -41,15 +41,10 @@ const float MAX_DIST_FACTOR = 0.95f;
 // environment
 CEnvironment::CEnvironment()
 {
-    USED_COP_WEATHER = FS.path_exist("$game_weathers$");
-
     m_last_weather_shift = 0;
     bNeed_re_create_env = FALSE;
     bWFX = false;
-    Current[0] = 0;
-    Current[1] = 0;
-    CurrentWeather = 0;
-    CurrentWeatherName = 0;
+
     eff_Rain = 0;
     eff_LensFlare = 0;
     eff_Thunderbolt = 0;
@@ -84,6 +79,21 @@ CEnvironment::CEnvironment()
     PerlinNoise1D->SetOctaves(2);
     PerlinNoise1D->SetAmplitude(0.66666f);
 
+    init();
+}
+
+void CEnvironment::init(bool condCOPWeather)
+{
+    clearIniFiles();
+
+    WeatherCycles.clear();
+    Current[0] = 0;
+    Current[1] = 0;
+    CurrentWeather = 0;
+    CurrentWeatherName = 0;
+
+    USED_COP_WEATHER = condCOPWeather && FS.path_exist("$game_weathers$");
+
     if (USED_COP_WEATHER)
     {
         string_path file_name;
@@ -111,6 +121,12 @@ CEnvironment::CEnvironment()
     }
     else
     {
+        m_ambients_config = nullptr;
+        m_sound_channels_config = nullptr;
+        m_effects_config = nullptr;
+        m_suns_config = nullptr;
+        m_thunderbolt_collections_config = nullptr;
+        m_thunderbolts_config = nullptr;
         // params
         p_var_alt = deg2rad(pSettings->r_float("thunderbolt_common", "altitude"));
         p_var_long = deg2rad(pSettings->r_float("thunderbolt_common", "delta_longitude"));
@@ -124,12 +140,8 @@ CEnvironment::CEnvironment()
     }
 }
 
-CEnvironment::~CEnvironment()
+void CEnvironment::clearIniFiles()
 {
-    xr_delete(PerlinNoise1D);
-
-    OnDeviceDestroy();
-
     if (m_ambients_config)
         CInifile::Destroy(m_ambients_config);
 
@@ -147,6 +159,15 @@ CEnvironment::~CEnvironment()
 
     if (m_thunderbolts_config)
         CInifile::Destroy(m_thunderbolts_config);
+}
+
+CEnvironment::~CEnvironment()
+{
+    xr_delete(PerlinNoise1D);
+
+    OnDeviceDestroy();
+
+    clearIniFiles();
 
     destroy_mixer();
 }
@@ -380,6 +401,7 @@ void CEnvironment::SelectEnvs(EnvVec* envs, CEnvDescriptor*& e0, CEnvDescriptor*
 void CEnvironment::SelectEnvs(float gt)
 {
     VERIFY(CurrentWeather);
+
     if ((Current[0] == Current[1]) && (Current[0] == 0))
     {
         VERIFY(!bWFX);
@@ -448,7 +470,7 @@ void CEnvironment::lerp(float& current_weight)
 
 void CEnvironment::OnFrame()
 {
-    if (!g_pGameLevel)
+    if ((!g_pGameLevel) || (!CurrentWeather))
         return;
 
     // Limit min at 200 to avoid slow-mo at extremly low speed.

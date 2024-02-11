@@ -383,7 +383,13 @@ u32 CScriptGameObject::InvBoxCount()
 
 float CScriptGameObject::GetCamFOV() { return g_fov; }
 
-void CScriptGameObject::SetCamFOV(float _fov) { g_fov = _fov; }
+void CScriptGameObject::SetCamFOV(float _fov, bool nosave)
+{
+	if (nosave)
+		gt_fov = _fov;
+	else
+		gt_fov = g_fov = _fov;
+}
 
 #include "HudManager.h"
 #include "UIGameSP.h"
@@ -926,4 +932,41 @@ void CScriptGameObject::setEnabled(bool value)
 void CScriptGameObject::setVisible(bool value)
 {
     object().setVisible(value);
+}
+
+void CScriptGameObject::start_particles(LPCSTR pname, LPCSTR bone)
+{
+    CParticlesPlayer* PP = smart_cast<CParticlesPlayer*>(&object());
+    if (!PP)
+        return;
+
+    IKinematics* K = smart_cast<IKinematics*>(object().Visual());
+    R_ASSERT(K);
+
+    u16 play_bone = K->LL_BoneID(bone);
+    R_ASSERT(play_bone != BI_NONE);
+    if (K->LL_GetBoneVisible(play_bone))
+        PP->StartParticles(pname, play_bone, Fvector().set(0, 1, 0), 9999);
+    else
+        ai().script_engine().script_log(
+            eLuaMessageTypeError, "Cant start particles, bone [%s] is not visible now", bone);
+}
+
+void CScriptGameObject::stop_particles(LPCSTR pname, LPCSTR bone)
+{
+    CParticlesPlayer* PP = smart_cast<CParticlesPlayer*>(&object());
+    if (!PP)
+        return;
+
+    IKinematics* K = smart_cast<IKinematics*>(object().Visual());
+    R_ASSERT(K);
+
+    u16 play_bone = K->LL_BoneID(bone);
+    R_ASSERT(play_bone != BI_NONE);
+
+    if (K->LL_GetBoneVisible(play_bone))
+        PP->StopParticles(9999, play_bone, true);
+    else
+        ai().script_engine().script_log(
+            eLuaMessageTypeError, "Cant stop particles, bone [%s] is not visible now", bone);
 }

@@ -191,7 +191,7 @@ void CLevel::IR_OnKeyboardPress(int key)
 #ifdef DEBUG
         FS.get_path("$game_config$")->m_Flags.set(FS_Path::flNeedRescan, TRUE);
         FS.get_path("$game_scripts$")->m_Flags.set(FS_Path::flNeedRescan, TRUE);
-        FS.rescan_pathes();
+        FS.rescan_physical_pathes();
 #endif // DEBUG
         string_path saved_game, command;
         strconcat(sizeof(saved_game), saved_game, Core.UserName, "_", "quicksave");

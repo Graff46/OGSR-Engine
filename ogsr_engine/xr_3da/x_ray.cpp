@@ -18,6 +18,7 @@
 #include "ILoadingScreen.h"
 #include "DiscordRPC.hpp"
 #include "splash.h"
+#include "../xrGame/Seasons.h"
 
 #define CORE_FEATURE_SET(feature, section) Core.Features.set(xrCore::Feature::feature, READ_IF_EXISTS(pSettings, r_bool, section, #feature, false))
 
@@ -654,6 +655,10 @@ void CApplication::Level_Set(u32 L)
 
     Level_Current = L;
     FS.get_path("$level$")->_set(Levels[L].folder);
+    string_path tmp;
+    FS_Path* gte = FS.get_path("$level_textures_ex$"); 
+    gte->_set(xr_strconcat(tmp, "seasons\\", Seasons::getSeasonName(), "\\levels\\", Levels[L].folder));
+    FS.rescan_physical_path(gte->m_Path, TRUE, TRUE);
 
     std::string temp = Levels[L].folder;
     temp.pop_back();

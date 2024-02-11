@@ -145,9 +145,13 @@ void CSoundRender_Source::load(LPCSTR name)
 
     fname = N;
 
-    strconcat(sizeof(fn), fn, N, ".ogg");
-    if (!FS.exist("$level$", fn))
-        FS.update_path(fn, "$game_sounds$", fn);
+	strconcat(sizeof(fn), fn, N, ".ogg");
+	if (!FS.exist("$level$", fn)) {
+		if (FS.exist("$sound_ex$", fn))
+			FS.update_path(fn, "$sound_ex$", fn);
+		else if (FS.exist("$game_sounds$", fn))
+			FS.update_path(fn, "$game_sounds$", fn);
+	}
 
     ASSERT_FMT_DBG(FS.exist(fn), "! Can't find sound [%s.ogg]", N);
     if (!FS.exist(fn))

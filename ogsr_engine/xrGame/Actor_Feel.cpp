@@ -103,6 +103,10 @@ BOOL CActor::CanPickItem(const CFrustum& frustum, const Fvector& from, CObject* 
     if (smart_cast<CObject*>(ObjectWeLookingAt()) == item)
         return TRUE;
 
+    CInventoryItem* ii = smart_cast<CInventoryItem*>(item);
+    if ((ii) && !(ii->CanActorTake()))
+        return FALSE;
+
     BOOL bOverlaped = FALSE;
     Fvector dir, to;
     item->Center(to);
@@ -156,7 +160,8 @@ void CActor::PickupModeUpdate_COD()
     if (inventory().m_pTarget 
         && inventory().m_pTarget->Useful() 
         && m_pUsableObject 
-        && m_pUsableObject->nonscript_usable() &&
+        && m_pUsableObject->nonscript_usable()
+        && (inventory().m_pTarget->CanActorTake()) &&
         !Level().m_feel_deny.is_object_denied(smart_cast<CGameObject*>(inventory().m_pTarget)))
     {
         CInventoryItem* pNearestItem = inventory().m_pTarget;
@@ -202,6 +207,7 @@ void CActor::PickupModeUpdate_COD()
     float maxlen = 1000.0f;
 
     CInventoryItem* pNearestItem = NULL;
+    xr_unordered_map<CInventoryItem*, bool> cashe;
     for (u32 o_it = 0; o_it < ISpatialResult.size(); o_it++)
     {
         ISpatial* spatial = ISpatialResult[o_it];
@@ -211,11 +217,17 @@ void CActor::PickupModeUpdate_COD()
 
         if (pIItem->object().H_Parent() != NULL)
             continue;
-
-        if (!pIItem->CanTake())
+        
+        if (!pIItem->CanActorTake())
             continue;
 
         if (pIItem->object().CLS_ID == CLSID_OBJECT_G_RPG7 || pIItem->object().CLS_ID == CLSID_OBJECT_G_FAKE)
+            continue;
+
+        if (!cashe.contains(pIItem))
+            cashe.emplace(pIItem, READ_IF_EXISTS(pSettings, r_bool, pIItem->object().cNameSect().c_str(), "can_pickup", true));
+        
+        if (!cashe.at(pIItem))
             continue;
 
         CGrenade* pGrenade = smart_cast<CGrenade*>(spatial->dcast_CObject());

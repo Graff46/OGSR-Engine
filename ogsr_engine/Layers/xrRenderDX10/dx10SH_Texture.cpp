@@ -497,7 +497,7 @@ void CTexture::Load(const char* Name)
             }
         }
     }
-    else if (FS.exist(fn, "$game_textures$", Name, ".seq"))
+    else if (FS.exist(fn, "$game_textures$", Name, ".seq") || (FS.exist(fn, "$game_textures_ex$", Name, ".seq")))
     {
         // Sequence
         string256 buffer;

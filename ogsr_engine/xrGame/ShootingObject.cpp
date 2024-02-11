@@ -184,7 +184,7 @@ void CShootingObject::Light_Render(const Fvector& P)
 
     light_render->set_position(P);
     light_render->set_color(light_build_color.r * light_scale, light_build_color.g * light_scale, light_build_color.b * light_scale);
-    light_render->set_range(light_build_range * light_scale);
+    light_render->set_range(light_build_range * light_scale * pSettings->r_float("dynamic_light", "range_koef"));
 
     if (!light_render->get_active())
     {

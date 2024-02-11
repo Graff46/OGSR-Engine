@@ -171,11 +171,14 @@ void CStalkerAnimationManager::update_impl()
     if (!object().g_Alive())
         return;
 
+    if (!!object().m_holderCustom)
+        return;
+
     play_delayed_callbacks();
     update_tracks();
-
+    
     if (play_script())
-        return;
+        return; 
 
     if (play_global())
         return;

@@ -14,6 +14,12 @@
 #include "xrUIXmlParser.h"
 #include "UIXmlInit.h"
 #include "string_table.h"
+#include <windows.h>
+#include <mmsystem.h>
+#include <vfw.h>
+#include <iostream>
+#include <fstream>
+#include <conio.h>
 
 UILoadingScreen::UILoadingScreen()
     : loadingProgress(nullptr), loadingProgressPercent(nullptr), loadingLogo(nullptr), loadingStage(nullptr), loadingHeader(nullptr), loadingTipNumber(nullptr),
@@ -22,10 +28,56 @@ UILoadingScreen::UILoadingScreen()
     UILoadingScreen::Initialize();
 }
 
+void UILoadingScreen::playSnd(bool play)
+{
+    if (play) 
+    {
+        string_path pth;
+        FS.update_path(pth, "$game_sounds$", "loaded.wav");
+
+        DWORD dwFileSize;
+        BYTE* pFileBytes;
+
+        std::ifstream  f(pth, std::ios::binary);
+
+        f.seekg(0, std::ios::end);
+        int lim = f.tellg();
+        dwFileSize = lim;
+
+        pFileBytes = new BYTE[lim];
+        f.seekg(0, std::ios::beg);
+
+        f.read((char*)pFileBytes, lim);
+
+        f.close();
+
+        BYTE* pDataOffset = (pFileBytes + 40);
+        float fVolume = psSoundVMusic; // set volume
+        __int16* p = (__int16*)(pDataOffset + 8);
+
+        for (int i = 80 / sizeof(*p); i < dwFileSize / sizeof(*p); i++) {
+            p[i] = (float)p[i] * fVolume;
+        }
+
+        PlaySound((LPCSTR)pFileBytes, NULL, SND_MEMORY | SND_LOOP | SND_ASYNC);
+    }
+    else
+    {
+        PlaySound(NULL, NULL, 0);
+    }
+}
+
+UILoadingScreen::~UILoadingScreen()
+{
+    playSnd(false);
+}
+
 void UILoadingScreen::Initialize()
 {
     CUIXml uiXml;
     R_ASSERT(uiXml.Init(CONFIG_PATH, UI_PATH, "ui_mm_loading_screen.xml"));
+
+    playSnd(true);
 
     const auto loadProgressBar = [&]() { loadingProgress = UIHelper::CreateProgressBar(uiXml, "loading_progress", this); };
 
@@ -42,6 +94,17 @@ void UILoadingScreen::Initialize()
         loadProgressBar();
         loadBackground();
     }
+
+    XML_NODE *texture_progress_node = uiXml.NavigateToNode("textures_progress_static", 0);
+    textures_progress_count = uiXml.GetNodesNum(texture_progress_node, "textures_progress");
+    for (int i = 0; i <= textures_progress_count; i++)
+    {
+        LPCSTR tex = uiXml.Read(texture_progress_node, "textures_progress", i, "");
+        textures_progress.push_back(xr_strdup(tex));
+    }
+    
+    current_texture_progress = 0;
+    textures_progress_static = UIHelper::CreateStatic(uiXml, "textures_progress_static", this, false);
 
     loadingLogo = UIHelper::CreateStatic(uiXml, "loading_logo", this, false);
     loadingProgressPercent = UIHelper::CreateStatic(uiXml, "loading_progress_percent", this, false);
@@ -73,6 +136,9 @@ void UILoadingScreen::Update(const int stagesCompleted, const int stagesTotal)
         xr_sprintf(buf, "%.0f%%", loadingProgress->GetProgressPos());
         loadingProgressPercent->SetText(buf);
     }
+
+    if ((stagesCompleted) > ((stagesTotal / textures_progress_count) * current_texture_progress))
+        textures_progress_static->InitTexture(textures_progress[current_texture_progress++]);
 
     CUIWindow::Update();
     Draw();

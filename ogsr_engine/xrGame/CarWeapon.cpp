@@ -9,6 +9,8 @@
 #include "weaponAmmo.h"
 #include "xr_level_controller.h"
 #include "game_object_space.h"
+#include "Car.h"
+#include "..\xr_3da\CameraBase.h"
 
 void CCarWeapon::BoneCallbackX(CBoneInstance* B)
 {
@@ -26,11 +28,12 @@ void CCarWeapon::BoneCallbackY(CBoneInstance* B)
     B->mTransform.mulB_43(rY);
 }
 
-CCarWeapon::CCarWeapon(CPhysicsShellHolder* obj)
+CCarWeapon::CCarWeapon(CCar* carObj)
 {
     m_bActive = false;
     m_bAutoFire = false;
-    m_object = obj;
+    m_object = smart_cast<CPhysicsShellHolder*>(carObj);
+    car = carObj;
     m_Ammo = xr_new<CCartridge>();
 
     IKinematics* K = smart_cast<IKinematics*>(m_object->Visual());
@@ -89,6 +92,13 @@ void CCarWeapon::UpdateCL()
 {
     if (!m_bActive)
         return;
+
+    if (car->wpnSeat->ownerExist())
+    {
+        Fvector dir = Device.vCameraDirection;
+        m_destEnemyDir.set(dir.normalize_safe());
+    }    
+
     UpdateBarrelDir();
     IKinematics* K = smart_cast<IKinematics*>(m_object->Visual());
     K->CalculateBones_Invalidate();
@@ -190,7 +200,7 @@ void CCarWeapon::UpdateBarrelDir()
     if (Device.dwFrame % 200 == 0)
     {
         Msg("m_cur_x_rot=[%f]", m_cur_x_rot);
-        Msg("m_cur_y_rot=[%f]", m_cur_y_rot);
+        //Msg("m_cur_y_rot=[%f]", m_cur_y_rot);
     }
 #endif
 }

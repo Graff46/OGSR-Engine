@@ -22,6 +22,7 @@
 #include "string_table.h"
 #include "..\xr_3da\IGame_Persistent.h"
 #include "script_vars_storage.h"
+#include "Seasons.h"
 
 using namespace ALife;
 
@@ -61,6 +62,8 @@ void CALifeStorageManager::save(LPCSTR save_name, bool update_name)
         registry().save(stream);
 
         g_ScriptVars.save(stream);
+
+        Seasons::save(stream);
 
         source_count = stream.tell();
         void* source_data = stream.pointer();
@@ -115,6 +118,7 @@ void CALifeStorageManager::load(void* buffer, const u32& buffer_size, LPCSTR fil
     registry().load(source);
 
     g_ScriptVars.load(source);
+    Seasons::load(source, level_name());
 
     can_register_objects(true);
 

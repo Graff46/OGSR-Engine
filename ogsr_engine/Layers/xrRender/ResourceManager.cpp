@@ -309,7 +309,7 @@ void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
     if (ps_r2_ls_flags_ext.test(R2FLAGEXT_MT_TEXLOAD))
     {
         for (const auto& it : m_textures)
-            TTAPI->submit_detach([](CTexture* tex) { if (needUnload) tex->Unload(); tex->Load(); }, it.second);
+            TTAPI->submit_detach([needUnload](CTexture* tex) { if (needUnload) tex->Unload(); tex->Load(); }, it.second);
 
         TTAPI->wait_for_tasks();
     }

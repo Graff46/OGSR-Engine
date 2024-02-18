@@ -99,10 +99,10 @@ ID3DBaseTexture* CRender::texture_load(LPCSTR fRName, u32& ret_msize, bool bStag
 
     if (
             strstr(fname, "_bump") &&
-            !FS.exist(fn, "$game_textures$", fname, ".dds") &&
-            !FS.exist(fn, "$level$", fname, ".dds")
             !FS.exist(fn, "$level_textures_ex$", fname, ".dds") &&
             !FS.exist(fn, "$game_textures_ex$",	fname, ".dds") &&
+            !FS.exist(fn, "$level$", fname, ".dds") &&
+            !FS.exist(fn, "$game_textures$", fname, ".dds")
         )
     {
         Msg("! Fallback to default bump map: [%s]", fname);
@@ -113,11 +113,11 @@ ID3DBaseTexture* CRender::texture_load(LPCSTR fRName, u32& ret_msize, bool bStag
             R_ASSERT(FS.exist(fn, "$game_textures$", "ed\\ed_dummy_bump", ".dds"), "ed_dummy_bump");
     }
     else if (
-            !FS.exist(fn, "$level$", fname, ".dds") &&
-            !FS.exist(fn, "$game_saves$", fname, ".dds") &&
-            !FS.exist(fn, "$game_textures$", fname, ".dds") &&
             !FS.exist(fn, "$level_textures_ex$", fname, ".dds") &&
-            !FS.exist(fn, "$game_textures_ex$", fname, ".dds")
+            !FS.exist(fn, "$game_textures_ex$", fname, ".dds") &&
+            !FS.exist(fn, "$game_saves$", fname, ".dds") &&
+            !FS.exist(fn, "$level$", fname, ".dds") &&
+            !FS.exist(fn, "$game_textures$", fname, ".dds")
         )
     {
         Msg("! Can't find texture [%s]", fname);

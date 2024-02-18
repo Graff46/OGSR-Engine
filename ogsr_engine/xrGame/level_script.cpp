@@ -978,7 +978,7 @@ void CLevel::script_register(lua_State* L)
                   .property("m_identifier", [](CEnvDescriptor* self) { return self->m_identifier.c_str(); })
                   .def("set_env_ambient", &CEnvDescriptor::setEnvAmbient),
               class_<CEnvironment>("CEnvironment")
-                  .def("current", current_environment)
+                  .def("current", [](CEnvironment* self) { return self->CurrentEnv; })
                   .def("ForceReselectEnvs", &CEnvironment::ForceReselectEnvs)
                   .def("getCurrentWeather", [](CEnvironment* self, const size_t idx) { R_ASSERT(idx < 2); return self->Current[idx]; })
                   .def("reinit", reinit)

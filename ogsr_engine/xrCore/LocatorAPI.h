@@ -145,6 +145,8 @@ public:
     void rescan_physical_pathes();
     void lock_rescan();
     void unlock_rescan();
+
+    void set_file_age(LPCSTR nm, u32 age);
 };
 
 extern XRCORE_API std::unique_ptr<CLocatorAPI> xr_FS;

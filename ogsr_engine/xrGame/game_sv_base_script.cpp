@@ -141,7 +141,7 @@ void game_sv_GameState::script_register(lua_State* L)
                    def("hud_motion_allowed", AllowHudMotion),
                    def("play_hud_anm", PlayBlendAnm), def("stop_hud_anm", StopBlendAnm), def("stop_all_hud_anms", StopAllBlendAnms),
                    def("set_hud_anm_time", SetBlendAnmTime),
-                   def("generate_id", &generate_id)
+                   def("generate_id", &generate_id),
 
        def("translate_string", &translate_string),
 

@@ -338,6 +338,7 @@ public:
     void ChangeGameTime(float game_time);
     void SetGameTime(float game_time, float time_factor);
     u32 GetWeatherLastShift() { return m_last_weather_shift; }
+    void ForceReselectEnvs();
 
     void OnDeviceCreate();
     void OnDeviceDestroy();

@@ -92,7 +92,7 @@ void CEnvironment::init(bool condCOPWeather)
     CurrentWeather = 0;
     CurrentWeatherName = 0;
 
-    USED_COP_WEATHER = condCOPWeather && FS.path_exist("$game_weathers$");
+    USED_COP_WEATHER = FS.path_exist("$game_weathers$");
 
     if (USED_COP_WEATHER)
     {
@@ -601,6 +601,20 @@ void CEnvironment::create_mixer()
 }
 
 void CEnvironment::destroy_mixer() { xr_delete(CurrentEnv); }
+
+void CEnvironment::ForceReselectEnvs()
+{
+    CEnvDescriptor** current_env_desc0 = &(*CurrentWeather)[0];
+    CEnvDescriptor** current_env_desc1 = &(*CurrentWeather)[1];
+    if ((*current_env_desc0)->exec_time > (*current_env_desc1)->exec_time)
+    {
+        CEnvDescriptor* tmp_desc = *current_env_desc0;
+        *current_env_desc0 = *current_env_desc1;
+        *current_env_desc1 = tmp_desc;
+    }
+    SelectEnvs(CurrentWeather, Current[0], Current[1], fGameTime);
+    // eff_Rain->InvalidateState(); //Тоже самое делается в CEnvironment::Invalidate, здесь не нужно.
+}
 
 SThunderboltDesc* CEnvironment::thunderbolt_description(CInifile& config, shared_str const& section)
 {

@@ -32,8 +32,12 @@ void UILoadingScreen::playSnd(bool play)
 {
     if (play) 
     {
+        s32 idx = ::Random.randI(1, READ_IF_EXISTS(pSettings, r_u8, "features", "count_loaded_sounds", 1));
+        string32 buf;
+        std::snprintf(buf, sizeof(buf), "loaded\\%d.wav", idx);
+
         string_path pth;
-        FS.update_path(pth, "$game_sounds$", "loaded.wav");
+        FS.update_path(pth, "$game_sounds$", buf);
 
         DWORD dwFileSize;
         BYTE* pFileBytes;

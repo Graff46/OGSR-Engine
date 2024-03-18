@@ -36,6 +36,8 @@ class UILoadingScreen : public ILoadingScreen, public CUIWindow
     int current_texture_progress;
     int textures_progress_count;
 
+    xr_vector<LPCSTR> snd_load;
+
 public:
     UILoadingScreen();
     ~UILoadingScreen();

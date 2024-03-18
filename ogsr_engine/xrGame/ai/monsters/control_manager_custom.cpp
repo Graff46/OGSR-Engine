@@ -156,6 +156,9 @@ void CControlManagerCustom::ta_fill_data(SAnimationTripleData& data, LPCSTR s1, 
 {
     // Load triple animations
     IKinematicsAnimated* skel_animated = smart_cast<IKinematicsAnimated*>(m_object->Visual());
+    if (!skel_animated)
+        return Msg("! CControlManagerCustom::ta_fill_data not object: %s", m_object->cNameSect().c_str());
+
     data.pool[0] = skel_animated->ID_Cycle_Safe(s1);
     VERIFY(data.pool[0]);
     data.pool[1] = skel_animated->ID_Cycle_Safe(s2);

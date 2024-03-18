@@ -729,13 +729,14 @@ void CCar::detach_Actor()
     }
 
     passengers->removePassenger(smart_cast<CGameObject*>(Actor()));
-    actorPassenger = false;
+    
     se_owner = nullptr;
 #ifdef DEBUG
     DBgClearPlots();
 #endif
 
-    callback(GameObject::eDetachVehicle)(Actor()->lua_game_object(), true);
+    callback(GameObject::eDetachVehicle)(Actor()->lua_game_object(), this->lua_game_object(), !OwnerActor());
+    actorPassenger = false;
 
     if (OwnerActor())
     {
@@ -1911,7 +1912,7 @@ void CCar::PhDataUpdate(dReal step)
     VERIFY(_valid(m_steer_angle));
 }
 
-BOOL CCar::UsedAI_Locations() { return (FALSE); }
+BOOL CCar::UsedAI_Locations() { return (TRUE); }
 
 u16 CCar::DriverAnimationType() { return m_driver_anim_type; }
 
@@ -2406,7 +2407,7 @@ void CCar::detach_NPC_Vehicle(CGameObject* npc, u16 exitDoorId)
 
     smart_cast<CInventoryOwner*>(stalker)->inventory().SetSlotsBlocked(INV_STATE_CAR, false, false);
 
-    callback(GameObject::eDetachVehicle)(npc->lua_game_object(), !isDriver);
+    callback(GameObject::eDetachVehicle)(npc->lua_game_object(), this->lua_game_object(), !isDriver);
 }
 
 void CCar::throwOutAll()

@@ -74,7 +74,7 @@ void CActor::attach_Vehicle(CHolderCustom* vehicle)
 
     CStepManager::on_animation_start(MotionID(), 0);
 
-    this->callback(GameObject::eAttachVehicle)(car->lua_game_object(), this->lua_game_object());
+    this->callback(GameObject::eAttachVehicle)(this->lua_game_object(), car->lua_game_object(), !car->OwnerActor());
 }
 
 void CActor::detach_Vehicle()
@@ -134,7 +134,7 @@ void CActor::detach_Vehicle()
     //.	SetWeaponHideState(whs_CAR, FALSE);
     SetWeaponHideState(INV_STATE_CAR, false);
 
-    this->callback(GameObject::eDetachVehicle)(car->lua_game_object(), this->lua_game_object());
+    this->callback(GameObject::eDetachVehicle)(this->lua_game_object(), car->lua_game_object(), !car->OwnerActor());
 }
 
 bool CActor::use_Vehicle(CHolderCustom* object)

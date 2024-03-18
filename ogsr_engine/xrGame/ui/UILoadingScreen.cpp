@@ -81,7 +81,18 @@ void UILoadingScreen::Initialize()
 
     const auto loadProgressBar = [&]() { loadingProgress = UIHelper::CreateProgressBar(uiXml, "loading_progress", this); };
 
-    const auto loadBackground = [&] { UIHelper::CreateStatic(uiXml, "background", this, false); };
+    const auto loadBackground = [&] { UIHelper:: UIHelper::CreateStatic(uiXml, "background", this, false); };
+
+    XML_NODE *texture_progress_node = uiXml.NavigateToNode("textures_progress_static", 0);
+    textures_progress_count = uiXml.GetNodesNum(texture_progress_node, "textures_progress");
+    for (int i = 0; i <= textures_progress_count; i++)
+    {
+        LPCSTR tex = uiXml.Read(texture_progress_node, "textures_progress", i, "");
+        textures_progress.push_back(xr_strdup(tex));
+    }
+    
+    current_texture_progress = 0;
+    textures_progress_static = UIHelper::CreateStatic(uiXml, "textures_progress_static", this, false);
 
     const auto node = uiXml.NavigateToNodeWithAttribute("loading_progress", "under_background", "0");
     if (node)
@@ -94,17 +105,6 @@ void UILoadingScreen::Initialize()
         loadProgressBar();
         loadBackground();
     }
-
-    XML_NODE *texture_progress_node = uiXml.NavigateToNode("textures_progress_static", 0);
-    textures_progress_count = uiXml.GetNodesNum(texture_progress_node, "textures_progress");
-    for (int i = 0; i <= textures_progress_count; i++)
-    {
-        LPCSTR tex = uiXml.Read(texture_progress_node, "textures_progress", i, "");
-        textures_progress.push_back(xr_strdup(tex));
-    }
-    
-    current_texture_progress = 0;
-    textures_progress_static = UIHelper::CreateStatic(uiXml, "textures_progress_static", this, false);
 
     loadingLogo = UIHelper::CreateStatic(uiXml, "loading_logo", this, false);
     loadingProgressPercent = UIHelper::CreateStatic(uiXml, "loading_progress_percent", this, false);

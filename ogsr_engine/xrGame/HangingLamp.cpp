@@ -487,7 +487,7 @@ void CHangingLamp::script_register(lua_State* L)
                            .def("turn_off", &CHangingLamp::TurnOff)
                            .def("set_lsf_params", &CHangingLamp::SetLSFParams)
                            .def("get_params", &CHangingLamp::getLightParams)
-                           .def("set_params", &CHangingLamp::setParams)];
+                           .def("set_params", &CHangingLamp::setParams)
                            .def("set_volumetric", [](CHangingLamp* self, const bool val) { self->light_render->set_volumetric(val); })
                            .def("set_volumetric_quality", [](CHangingLamp* self, const float val) { self->light_render->set_volumetric_quality(val); })
                            .def("set_volumetric_intensity", [](CHangingLamp* self, const float val) { self->light_render->set_volumetric_intensity(val); })

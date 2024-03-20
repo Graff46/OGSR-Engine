@@ -36,8 +36,8 @@ IBlender* CResourceManager::_GetBlender(LPCSTR Name)
 #if defined(USE_DX10) || defined(USE_DX11)
     if (I == m_blenders.end())
     {
-        Msg("DX10: Shader '%s' not found in library.", Name);
-        return 0;
+        //FATAL("!![%s] DX10: Shader [%s] not found in library.", __FUNCTION__, Name);
+        return nullptr;
     }
 #endif
     if (I == m_blenders.end())

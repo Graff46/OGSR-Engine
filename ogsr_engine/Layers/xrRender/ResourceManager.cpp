@@ -31,7 +31,7 @@ IBlender* CResourceManager::_GetBlender(LPCSTR Name)
 
     if (I == m_blenders.end())
     {
-        FATAL("!![%s] DX10: Shader [%s] not found in library.", __FUNCTION__, Name);
+        //FATAL("!![%s] DX10: Shader [%s] not found in library.", __FUNCTION__, Name);
         return nullptr;
     }
 

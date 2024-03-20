@@ -240,6 +240,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
         .def("set_tip_text", &CScriptGameObject::SetTipText)
         .def("set_tip_text_default", &CScriptGameObject::SetTipTextDefault)
         .def("set_nonscript_usable", &CScriptGameObject::SetNonscriptUsable)
+        .def("get_nonscript_usable", &CScriptGameObject::GetNonscriptUsable)
 
         // Script Zone
         .def("active_zone_contact", &CScriptGameObject::active_zone_contact)
@@ -336,6 +337,10 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
         .def("is_actor", &CScriptGameObject::IsActor)
         .def("is_custom_monster", &CScriptGameObject::IsCustomMonster)
         .def("is_weapon", &CScriptGameObject::IsWeapon)
+        .def("is_weapon_magazined", &CScriptGameObject::IsWeaponMagazined)
+        .def("is_weapon_shotgun", &CScriptGameObject::IsWeaponShotgun)
+        .def("is_weapon_gl", &CScriptGameObject::IsWeaponGL)
+        .def("is_binoculars", &CScriptGameObject::IsWeaponBinoculars)
         .def("is_medkit", &CScriptGameObject::IsMedkit)
         .def("is_eatable_item", &CScriptGameObject::IsEatableItem)
         .def("is_antirad", &CScriptGameObject::IsAntirad)
@@ -343,8 +348,6 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
         .def("is_scope", &CScriptGameObject::IsScope)
         .def("is_silencer", &CScriptGameObject::IsSilencer)
         .def("is_grenade_launcher", &CScriptGameObject::IsGrenadeLauncher)
-        .def("is_weapon_magazined", &CScriptGameObject::IsWeaponMagazined)
-        .def("is_weapon_shotgun", &CScriptGameObject::IsWeaponShotgun)
         .def("is_space_restrictor", &CScriptGameObject::IsSpaceRestrictor)
         .def("is_stalker", &CScriptGameObject::IsStalker)
         .def("is_anomaly", &CScriptGameObject::IsAnomaly)
@@ -363,9 +366,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
         .def("is_grenade", &CScriptGameObject::IsGrenade)
         .def("is_bottle_item", &CScriptGameObject::IsBottleItem)
         .def("is_torch", &CScriptGameObject::IsTorch)
-        .def("is_weapon_gl", &CScriptGameObject::IsWeaponGL)
         .def("is_inventory_box", &CScriptGameObject::IsInventoryBox)
-        .def("is_binoculars", &CScriptGameObject::IsWeaponBinoculars)
         .def("is_knife", &CScriptGameObject::IsKnife)
         .def("is_pistol", &CScriptGameObject::IsPistol)
 

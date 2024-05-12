@@ -1289,6 +1289,7 @@ void CCar::StartBreaking()
 }
 void CCar::StopBreaking()
 {
+    Msg("%s", "StopBreaking");
     xr_vector<SWheelBreak>::iterator i, e;
     i = m_breaking_wheels.begin();
     e = m_breaking_wheels.end();
@@ -1332,12 +1333,18 @@ void CCar::PressForward()
 {
     if (bkp)
     {
-        Unclutch();
+        //Unclutch();
         NeutralDrive();
     }
     else
     {
-        DriveForward();
+        if (backDrive)
+        {
+            NeutralDrive();
+            StartBreaking();
+        }
+        else
+            DriveForward();
     }
     fwp = true;
 }
@@ -1345,13 +1352,13 @@ void CCar::PressBack()
 {
     if (fwp)
     {
-        Unclutch();
+        //Unclutch();
         NeutralDrive();
     }
     else
     {
         // DriveBack();
-        Unclutch();
+        //Unclutch();
         NeutralDrive();
         StartBreaking();
     }
@@ -1369,9 +1376,11 @@ void CCar::DriveBack()
 {
     Clutch();
     Transmission(0);
-    if (1 == CurrentTransmission() || 0 == CurrentTransmission())
+    if (1 == CurrentTransmission())
         Starter();
     Drive();
+
+    backDrive = true;
 
     if (OwnerActor()) car_panel->SetCarGear("R");
 }
@@ -1421,6 +1430,9 @@ void CCar::ReleaseForward()
     else
     {
         //Unclutch();
+        if (backDrive);
+            StopBreaking();
+
         NeutralDrive();
     }
 
@@ -1527,21 +1539,29 @@ float CCar::EffectiveGravity()
 }
 float CCar::AntiGravityAccel() { return ph_world->Gravity() - EffectiveGravity(); }
 float CCar::GravityFactorImpulse() { return _sqrt(EffectiveGravity() / ph_world->Gravity()); }
-void CCar::UpdateBack()
+
+void CCar::breakingWheels()
 {
-    if (b_breaks)
+    float k = 1.f;
+    float time = (Device.fTimeGlobal - m_break_start);
+    if (time < m_break_time)
     {
-        float k = 1.f;
-        float time = (Device.fTimeGlobal - m_break_start);
-        if (time < m_break_time)
-        {
-            k *= (time / m_break_time);
-        }
-        xr_vector<SWheelBreak>::iterator i, e;
+        k *= (time / m_break_time);
+    }
+
+    xr_vector<SWheelBreak>::iterator i, e;
         i = m_breaking_wheels.begin();
         e = m_breaking_wheels.end();
         for (; i != e; ++i)
             i->Break(k);
+}
+
+void CCar::UpdateBack()
+{
+    if (b_breaks)
+    {
+        breakingWheels();
+
         Fvector v;
         m_pPhysicsShell->get_LinearVel(v);
         // if(DriveWheelsMeanAngleRate()<m_breaks_to_back_rate)
@@ -1887,8 +1907,20 @@ void CCar::PhDataUpdate(dReal step)
     }
 
     if (bkp)
-    {
         UpdateBack();
+    else if (backDrive)
+    {
+        Fvector v;
+        m_pPhysicsShell->get_LinearVel(v);
+        if (!(v.dotproduct(XFORM().k) < EPS))
+        {
+            StopBreaking();
+            backDrive = false;
+            if (fwp)
+                PressForward();
+        }
+        else if (b_breaks)
+            breakingWheels();
     }
 
     if (brp)

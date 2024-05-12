@@ -509,8 +509,11 @@ private:
     float EffectiveGravity();
     float AntiGravityAccel();
     float GravityFactorImpulse();
+
     void StartBreaking();
     void StopBreaking();
+    void breakingWheels();
+
     void UpdateBack();
 
     void HandBreak();
@@ -638,6 +641,8 @@ protected:
     virtual void RestoreNetState(CSE_PHSkeleton* po);
     void SetDefaultNetState(CSE_PHSkeleton* po);
     void SyncNetState();
+
+    bool backDrive = false;
 
 public:
     CCar(void);

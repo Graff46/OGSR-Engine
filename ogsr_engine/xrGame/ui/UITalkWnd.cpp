@@ -82,7 +82,7 @@ void CUITalkWnd::InitTalkDialog()
     //имена собеседников
     UITalkDialogWnd->UICharacterInfoLeft.InitCharacter(m_pOurInvOwner->object_id());
     UITalkDialogWnd->UICharacterInfoRight.InitCharacter(m_pOthersInvOwner->object_id());
-    UITalkDialogWnd->UIDialogFrame.UITitleText.SetText(m_pOthersInvOwner->Name());
+    UITalkDialogWnd->UIDialogFrame.UITitleText.SetText(shared_str().sprintf("%s - %s", m_pOthersInvOwner->Name(), CStringTable().translate(m_pOthersInvOwner->CharacterInfo().Community().id()).c_str()).c_str());
     UITalkDialogWnd->UIOurPhrasesFrame.UITitleText.SetText(m_pOurInvOwner->Name());
 
     //очистить лог сообщений

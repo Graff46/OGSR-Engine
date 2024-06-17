@@ -181,7 +181,9 @@ void CSpaceRestrictionHolder::unregister_restrictor(CSpaceRestrictor* space_rest
     shared_str restrictor_id = space_restrictor->cName();
 
     auto I = m_restrictions.find(restrictor_id);
-    ASSERT_FMT(I != m_restrictions.end(), "!![" __FUNCTION__ "] restrictor [%s] not found!", restrictor_id.c_str());
+    //ASSERT_FMT(I != m_restrictions.end(), "!![" __FUNCTION__ "] restrictor [%s] not found!", restrictor_id.c_str());
+    if (I == m_restrictions.end())
+        return;
 
     CSpaceRestrictionBridge* bridge = (*I).second;
     m_restrictions.erase(I);

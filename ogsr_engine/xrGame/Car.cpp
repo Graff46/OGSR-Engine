@@ -282,7 +282,7 @@ void CCar::net_Destroy()
 #ifdef DEBUG
     DBgClearPlots();
 #endif
-    if (!NpcCarStor::setFlagClear)
+    if (!NpcCarStor::isFlagClear())
         throwOutAll();
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
     if (m_bone_steer != BI_NONE)
@@ -841,6 +841,7 @@ bool CCar::Exit(const Fvector& pos, const Fvector& dir)
         if (i->second.CanExit(pos, dir))
         {
             i->second.GetExitPosition(m_exit_position);
+            Msg("car_pos_exit:x:%2.f__y:%2.f__z:%2.f", m_exit_position.x, m_exit_position.y, m_exit_position.z);
             return true;
         }
     }
@@ -1430,7 +1431,7 @@ void CCar::ReleaseForward()
     else
     {
         //Unclutch();
-        if (backDrive);
+        if (backDrive)
             StopBreaking();
 
         NeutralDrive();
@@ -2491,6 +2492,7 @@ Fvector CCar::calcExitPosition(Fvector* pos)
     return exitPos;
 }
 
+Fmatrix _F;
 u32 CCar::updateLevelVertex()
 {
     /*if ((Position().distance_to_xz(lastPosition) >= 0.7) && (!getDestroy()))
@@ -2508,7 +2510,13 @@ u32 CCar::updateLevelVertex()
 
         lastPosition = Position();
 
-    }*/
+    }
+
+    CSE_ALifeDynamicObject* seObj = this->alife_object();
+
+    _F = XFORM();
+    _F.c = seObj->o_Position;
+    XFORM().set(_F);*/
 
     return ai_location().level_vertex_id();
 }

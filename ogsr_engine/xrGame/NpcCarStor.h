@@ -22,4 +22,5 @@ public:
     static void clear();
     static void setFlagClear(bool flag);
     static void replaceLevelNpcOfCar(GameGraph::_GRAPH_ID destGvid, u32 destLvid, Fvector* destPos);
+    static bool isFlagClear() {return needClear;};
 };

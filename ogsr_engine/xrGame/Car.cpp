@@ -1621,7 +1621,7 @@ bool CCar::Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos)
 {
     xr_map<u16, SDoor>::iterator i;
 
-    if (1)//(!Owner())
+    if (!OwnerActor())
     {
         if (Enter(pos, dir, foot_pos))
             return true;

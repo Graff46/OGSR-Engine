@@ -93,8 +93,9 @@ void CCar::SCarSound::UpdateStalling()
 void CCar::SCarSound::UpdateDrive()
 {
     VERIFY(!ph_world->Processing());
-    float scale = 0.5f + 0.5f * pcar->m_current_rpm / pcar->m_torque_rpm;
-    clamp(scale, 0.5f, 1.25f);
+    //float scale = 0.5f + 0.5f * pcar->m_current_rpm / pcar->m_torque_rpm;
+    float scale = (pow(pcar->m_current_rpm - (pcar->m_max_rpm / 2), 3) / ((pcar->m_max_rpm - pcar->m_min_rpm) * 7999)) + 1;
+    clamp(scale, 0.5f, 3.5f);
     snd_engine.set_frequency(scale);
     SetSoundPosition(snd_engine);
 }

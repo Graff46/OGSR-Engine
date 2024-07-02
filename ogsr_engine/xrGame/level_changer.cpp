@@ -200,7 +200,7 @@ void CLevelChanger::ChangeLevel()
     if (pGameSP)
     {
         Actor()->callback(GameObject::eLevelChangerAction)(lua_game_object(), (CUIWindow*)pGameSP->UIChangeLevelWnd);
-        pGameSP->ChangeLevel(m_game_vertex_id, m_level_vertex_id, m_position, m_angles, p, r, b);
+        pGameSP->ChangeLevel(m_game_vertex_id, m_level_vertex_id, m_position, Actor()->HolderID() == u16(-1) ? Fvector3() : m_angles, p, r, b);
     }
 }
 

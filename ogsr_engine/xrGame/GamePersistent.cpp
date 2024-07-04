@@ -204,10 +204,7 @@ void CGamePersistent::WeathersUpdate()
     {
         if (g_pGameLevel)
         {
-            CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
-            BOOL bIndoor = TRUE;
-            if (actor)
-                bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.04f; //--#SM+#-- [0.05f слишком завышен был]
+            const bool bIndoor = g_pGamePersistent->IsActorInHideout();
 
             int data_set = (Random.randF() < (1.f - Environment().CurrentEnv->weight)) ? 0 : 1;
 
@@ -275,7 +272,7 @@ void CGamePersistent::WeathersUpdate()
                             }
                 */
                 // start effect
-                if ((FALSE == bIndoor) && (0 == ambient_particles) && Device.dwTimeGlobal > ambient_effect_next_time)
+                if (!bIndoor && !ambient_particles && Device.dwTimeGlobal > ambient_effect_next_time)
                 {
                     CEnvAmbient::SEffect* eff = env_amb->get_rnd_effect();
                     if (eff)
@@ -385,10 +382,7 @@ void CGamePersistent::WeathersUpdate()
     {
         if (g_pGameLevel)
         {
-            CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
-            BOOL bIndoor = TRUE;
-            if (actor)
-                bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.04f; //--#SM+#-- [0.05f слишком завышен был]
+            const bool bIndoor = g_pGamePersistent->IsActorInHideout();
 
             int data_set = (Random.randF() < (1.f - Environment().CurrentEnv->weight)) ? 0 : 1;
 
@@ -418,7 +412,7 @@ void CGamePersistent::WeathersUpdate()
                 }
 
                 // start effect
-                if ((FALSE == bIndoor) && (0 == ambient_particles) && Device.dwTimeGlobal > ambient_effect_next_time)
+                if (!bIndoor && !ambient_particles && Device.dwTimeGlobal > ambient_effect_next_time)
                 {
                     CEnvAmbient::SEffect* eff = env_amb->get_rnd_effect();
                     if (eff)

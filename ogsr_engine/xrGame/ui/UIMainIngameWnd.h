@@ -39,7 +39,6 @@ public:
     bool OnKeyboardPress(int dik);
 
 protected:
-    //CUIStatic UIStaticDiskIO;
     CUIStatic UIStaticHealth;
     CUIStatic UIStaticArmor;
     CUIStatic UIStaticQuickHelp;
@@ -82,7 +81,7 @@ protected:
     CUIScrollView* m_UIIcons{};
 
 public:
-    CUIArtefactPanel* m_artefactPanel;
+    CUIArtefactPanel* m_artefactPanel{};
 
 public:
     // Енумы соответсвующие предупреждающим иконкам

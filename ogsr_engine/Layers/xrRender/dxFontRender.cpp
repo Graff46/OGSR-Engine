@@ -179,8 +179,9 @@ void dxFontRender::OnRender(CGameFont& owner)
 
         const u32 last = i + count;
 
-        //u32 di = i;
-        //RenderFragment(owner, di, true, 2, 2, length, last);
+        u32 di = i;
+        if (ps_r2_ls_flags_ext.test(R2FLAGEXT_FONT_SHADOWS))
+            RenderFragment(owner, di, true, 2, 2, length, last);
         RenderFragment(owner, i, false, 0, 0, length, last);
     }
 }

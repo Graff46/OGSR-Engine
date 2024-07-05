@@ -1209,6 +1209,7 @@ void CCar::UpdatePower()
 {
     m_current_rpm = EngineDriveSpeed();
     m_current_engine_power = EnginePower();
+
     if (b_auto_switch_transmission && !b_transmission_switching)
     {
         VERIFY2(CurrentTransmission() < m_gear_ratious.size(), "wrong transmission");
@@ -1221,6 +1222,7 @@ void CCar::UpdatePower()
     xr_vector<SWheelDrive>::iterator i, e;
     i = m_driving_wheels.begin();
     e = m_driving_wheels.end();
+
     for (; i != e; ++i)
         i->UpdatePower();
 }
@@ -1387,6 +1389,7 @@ void CCar::DriveBack()
 
     if (OwnerActor()) car_panel->SetCarGear("R");
 }
+
 void CCar::DriveForward()
 {
     Clutch();
@@ -1396,6 +1399,7 @@ void CCar::DriveForward()
         Starter();
     Drive();
 }
+
 void CCar::ReleaseRight(bool reverseCall)
 {
     if ((reverse_rule) && (!reverseCall)) return ReleaseLeft(true);
@@ -1408,6 +1412,7 @@ void CCar::ReleaseRight(bool reverseCall)
         SteerIdle();
     rsp = false;
 }
+
 void CCar::ReleaseLeft(bool reverseCall)
 {
     if ((reverse_rule) && (!reverseCall)) return ReleaseRight(true);
@@ -1420,6 +1425,7 @@ void CCar::ReleaseLeft(bool reverseCall)
         SteerIdle();
     lsp = false;
 }
+
 void CCar::ReleaseForward()
 {
     if (bkp)
@@ -1441,6 +1447,7 @@ void CCar::ReleaseForward()
 
     fwp = false;
 }
+
 void CCar::ReleaseBack()
 {
     if (b_breaks)
@@ -1920,7 +1927,10 @@ void CCar::PhDataUpdate(dReal step)
             StopBreaking();
             backDrive = false;
             if (fwp)
+            {
+                ReleaseForward();
                 PressForward();
+            } 
         }
         else if (b_breaks)
             breakingWheels();

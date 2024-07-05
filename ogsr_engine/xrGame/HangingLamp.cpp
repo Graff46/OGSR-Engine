@@ -30,6 +30,7 @@ void CHangingLamp::Init()
     light_ambient = 0;
     glow_render = 0;
     K = nullptr;
+    lights_turned_on = true;
 }
 
 void CHangingLamp::RespawnInit()
@@ -76,8 +77,12 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 {
     CSE_Abstract* e = (CSE_Abstract*)(DC);
     CSE_ALifeObjectHangingLamp* lamp = smart_cast<CSE_ALifeObjectHangingLamp*>(e);
+
     R_ASSERT(lamp);
-    inherited::net_Spawn(DC);
+
+    if (!inherited::net_Spawn(DC))
+        return FALSE;
+
     Fcolor clr;
 
     // set bone id
@@ -160,7 +165,7 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
 	if (lamp->flags.is(CSE_ALifeObjectHangingLamp::flPhysic)&&!Visual())
 		Msg("! WARNING: lamp, obj name [%s],flag physics set, but has no visual",*cName());
 //.	if (lamp->flags.is(CSE_ALifeObjectHangingLamp::flPhysic)&&Visual()&&!guid_physic_bone)	fHealth=0.f;
-	if (Alive() && isOn)
+	if (Alive() && lights_turned_on)
 		TurnOn();
 	else{
 		processing_activate();	// temporal enable
@@ -321,9 +326,7 @@ void CHangingLamp::TurnOn()
 }
 
 void CHangingLamp::TurnOff()
-{
-    isOn = true;
-    
+{  
 	if (light_render) 
         light_render->set_active(false);
 
@@ -333,7 +336,7 @@ void CHangingLamp::TurnOff()
         glow_render->set_active(false);
     if (light_ambient)
         light_ambient->set_active(false);
-    if (Visual())
+    if ((Visual()) && (light_bone != BI_NONE))
         smart_cast<IKinematics*>(Visual())->LL_SetBoneVisible(light_bone, FALSE, TRUE);
     processing_deactivate();
 }

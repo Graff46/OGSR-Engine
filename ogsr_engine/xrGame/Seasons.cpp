@@ -4,6 +4,7 @@
 #include "..\xrSound\SoundRender_Core.h"
 #include "ui/UILoadingScreen.h"
 #include "..\xr_3da\x_ray.h"
+#include <Actor.h>
 
 std::string Seasons::currentSeason = "default";
 void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelName)
@@ -26,7 +27,8 @@ void Seasons::swithSeason(LPCSTR newSeason, BOOL needReload, shared_str levelNam
 
 		if (needReload) {
 			Device.m_pRender->DeferredLoad(FALSE);
-			Device.m_pRender->ResourcesDeferredUpload(TRUE);
+			//Device.m_pRender->ResourcesDeferredUpload(TRUE);
+            Actor()->startTexturesUpd();
 			if (Device.b_is_Ready) Device.Reset();
 
 			//SoundRender->reload();

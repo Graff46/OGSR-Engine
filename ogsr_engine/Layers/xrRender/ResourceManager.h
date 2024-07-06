@@ -65,10 +65,15 @@ private:
     xr_vector<ShaderElement*> v_elements;
     xr_vector<Shader*> v_shaders;
     // misc
+
+    map_TextureIt m_textures_it;
 public:
     CTextureDescrMngr m_textures_description;
     xr_vector<std::pair<shared_str, R_constant_setup*>> v_constant_setup;
     BOOL bDeferredLoad;
+
+    bool stepUpdateTextures();
+    void setUpdateTextures();
 
 private:
     void LS_Load();

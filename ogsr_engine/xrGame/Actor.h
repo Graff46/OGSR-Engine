@@ -747,9 +747,14 @@ private:
     float m_fDrugPsyProtectionCoeff;
     float m_fDrugRadProtectionCoeff;
 
+    IResourceManager* RC;
+    bool NeedTexturesUpd = false;
+
 public:
     IC void SetDrugRadProtection(float _prot) { m_fDrugRadProtectionCoeff = _prot; };
     IC void SetDrugPsyProtection(float _prot) { m_fDrugPsyProtectionCoeff = _prot; };
+
+    IC void startTexturesUpd() {Device.m_pRender->GetResourceManager()->setUpdateTextures(); NeedTexturesUpd = true;};
 };
 
 extern bool isActorAccelerated(u32 mstate, bool ZoomMode);

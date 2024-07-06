@@ -258,13 +258,14 @@ void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
         TTAPI->wait_for_tasks();
     }
     else
+    {
         for (auto& pair : m_textures)
         {
             if (needUnload)
                 pair.second->Unload();
             pair.second->Load();
         }
-            
+    }
 
     Msg("CResourceManager::DeferredUpload VRAM usage after:");
 
@@ -275,6 +276,28 @@ void CResourceManager::DeferredUpload(BOOL needUnload = FALSE)
 
     Msg("CResourceManager::DeferredUpload -> END");
 }
+
+bool CResourceManager::stepUpdateTextures() 
+{
+    if (m_textures_it == m_textures.end())
+        return true;
+
+    CTexture* t;
+    t = m_textures_it->second;
+
+    t->Unload();
+    t->Load();
+
+    ++m_textures_it;
+
+    return false;
+}
+
+void CResourceManager::setUpdateTextures()
+{
+    m_textures_it = m_textures.begin();
+}
+
 /*
 void	CResourceManager::DeferredUnload	()
 {

@@ -440,6 +440,8 @@ void CActor::Load(LPCSTR section)
     CurrentHeight = CameraHeight();
 
     m_news_to_show = READ_IF_EXISTS(pSettings, r_u32, section, "news_to_show", NEWS_TO_SHOW);
+
+    RC = Device.m_pRender->GetResourceManager();
 }
 
 void CActor::PHHit(SHit& H) { m_pPhysics_support->in_Hit(H, !g_Alive()); }
@@ -1205,6 +1207,9 @@ void CActor::shedule_Update(u32 DT)
     UpdateArtefactsOnBelt();
     if (!m_holder)
         m_pPhysics_support->in_shedule_Update(DT);
+
+    if (NeedTexturesUpd && RC->stepUpdateTextures())
+        NeedTexturesUpd = false;
 
     updated = true;
 };

@@ -324,6 +324,8 @@ public:
     virtual ~IResourceManager() = default;
 
     virtual xr_vector<ITexture*> FindTexture(const char* Name) const = 0;
+    virtual bool stepUpdateTextures() = 0;
+    virtual void setUpdateTextures() = 0;
 };
 
 class ShExports final

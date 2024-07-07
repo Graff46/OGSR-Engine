@@ -38,18 +38,21 @@ using namespace luabind;
 bool exit_car(CScriptGameObject* obj, const float angle) //Graff46
 {
 	CHolderCustom* holder = obj->get_current_holder();
-	bool result = false;
+	//bool result = false;
 	if (holder) {
 		CCar* car = smart_cast<CCar*>(holder);
-		if (car) {
+        /*if (car)
+        {
 			Fvector dir = Fvector().set(car->Direction());
 			dir.setHP(dir.getH() + deg2rad(angle), 0);
 			result = car->Exit(Device.vCameraPosition, dir);
 			if (result) Actor()->detach_Vehicle();
-		}
+		}*/
+
+        car->detach_NPC_Vehicle(&obj->object());
 	}
 
-	return result;
+	return true;
 }
 
 bool CanTrade(CScriptGameObject* obj, bool def = false)

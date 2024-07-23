@@ -682,6 +682,9 @@ private:
 private:
     car_memory* m_memory;
 
+private:
+    CInifile* configIni;
+
 public:
     DECLARE_SCRIPT_REGISTER_FUNCTION
 };

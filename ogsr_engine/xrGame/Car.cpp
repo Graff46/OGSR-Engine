@@ -186,6 +186,7 @@ BOOL CCar::net_Spawn(CSE_Abstract* DC)
     K->CalculateBones();
 
     CInifile* pUserData = K->LL_UserData();
+    configIni = pUserData;
 
     fill_doors_map(pUserData->r_string("car_definition", "doors"), m_doors);
 
@@ -796,13 +797,15 @@ bool CCar::is_Door(u16 id, xr_map<u16, SDoor>::iterator& i)
     {
         return false;
     }
-    else
+    /* else
     {
         if (i->second.joint) // temp for fake doors
             return true;
         else
             return false;
-    }
+    }*/
+
+    return true;
 }
 bool CCar::is_Door(u16 id)
 {
@@ -826,7 +829,7 @@ bool CCar::Enter(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos
     enter_pos.mul(0.5f);
     for (; i != e; ++i)
     {
-        if (i->second.CanEnter(pos, dir, enter_pos))
+        if (READ_IF_EXISTS(configIni, r_bool, "car_definition", "simple_door", false) || i->second.CanEnter(pos, dir, enter_pos))
             return true;
     }
     return false;
@@ -843,7 +846,6 @@ bool CCar::Exit(const Fvector& pos, const Fvector& dir)
         if (i->second.CanExit(pos, dir))
         {
             i->second.GetExitPosition(m_exit_position);
-            Msg("car_pos_exit:x:%2.f__y:%2.f__z:%2.f", m_exit_position.x, m_exit_position.y, m_exit_position.z);
             return true;
         }
     }
@@ -856,7 +858,7 @@ void CCar::ParseDefinitions()
 
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
     bone_map.insert(mk_pair(pKinematics->LL_GetBoneRoot(), physicsBone()));
-    CInifile* ini = pKinematics->LL_UserData();
+    CInifile* ini = configIni; // pKinematics->LL_UserData();
     R_ASSERT2(ini, "Car has no description !!! See ActorEditor Object - UserData");
     CExplosive::Load(ini, "explosion");
     // CExplosive::SetInitiator(ID());
@@ -977,7 +979,7 @@ void CCar::CreateSkeleton(CSE_Abstract* po)
     m_pPhysicsShell->Enable(); //Чтобы машины не висели в воздухе после спавна.
 
     ApplySpawnIniToPhysicShell(&po->spawn_ini(), m_pPhysicsShell, false);
-    ApplySpawnIniToPhysicShell(smart_cast<IKinematics*>(Visual())->LL_UserData(), m_pPhysicsShell, false);
+    ApplySpawnIniToPhysicShell(configIni, m_pPhysicsShell, false);
 }
 
 void CCar::Init()
@@ -986,7 +988,7 @@ void CCar::Init()
 
     // get reference wheel radius
     IKinematics* pKinematics = smart_cast<IKinematics*>(Visual());
-    CInifile* ini = pKinematics->LL_UserData();
+    CInifile* ini = configIni;
     R_ASSERT2(ini, "Car has no description !!! See ActorEditor Object - UserData");
     /// SWheel& ref_wheel=m_wheels_map.find(pKinematics->LL_BoneID(ini->r_string("car_definition","reference_wheel")))->second;
 
@@ -1648,8 +1650,8 @@ bool CCar::Use(const Fvector& pos, const Fvector& dir, const Fvector& foot_pos)
             collide::rq_result* I = R.r_begin() + k;
             if (is_Door((u16)I->element, i))
             {
-                bool front = i->second.IsFront(pos, dir);
-                if ((Owner() && !front) || (!Owner() && front))
+                bool front = READ_IF_EXISTS(configIni, r_bool, "car_definition", "simple_door", false) || i->second.IsFront(pos, dir);
+                if (!Owner() != !front)
                     i->second.Use();
                 if (i->second.state == SDoor::broken)
                     break;

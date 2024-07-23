@@ -35,7 +35,7 @@ IC void CCar::SWheel::applywheelCollisionParams(const dxGeomUserData* ud, bool& 
         sp.mu2 = sp.mu;
 
         sp.mu2 *= cp.mu2_factor;
-        sp.mu  *= cp.mu_factor;
+        sp.mu  *= (cp.mu_factor * 0.75);
         
         MulSprDmp(sp.soft_cfm, sp.soft_cfm, cp.spring_factor, cp.damping_factor);
     }

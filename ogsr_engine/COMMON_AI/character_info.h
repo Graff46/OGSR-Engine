@@ -121,6 +121,7 @@ public:
 
     shared_str StartDialog() const;
     const DIALOG_ID_VECTOR& ActorDialogs() const;
+    void addActorDialogs(LPCSTR dialog);
 #endif
 
 protected:

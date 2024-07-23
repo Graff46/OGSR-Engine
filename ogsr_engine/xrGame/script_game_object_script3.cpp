@@ -195,6 +195,7 @@ class_<CScriptGameObject> script_register_game_object2(class_<CScriptGameObject>
         .def("restore_weapon", &CScriptGameObject::RestoreWeapon)
 
         .def("set_start_dialog", &CScriptGameObject::SetStartDialog)
+        .def("set_actor_dialog", &CScriptGameObject::SetActorDialog)
         .def("get_start_dialog", &CScriptGameObject::GetStartDialog)
         .def("restore_default_start_dialog", &CScriptGameObject::RestoreDefaultStartDialog)
 

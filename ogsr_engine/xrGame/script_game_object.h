@@ -337,6 +337,7 @@ public:
     void ChangeGoodwill(int delta_goodwill, CScriptGameObject* pWhoToSet);
 
     void SetStartDialog(LPCSTR dialog_id);
+    void SetActorDialog(LPCSTR dialog_id);
     const char* GetStartDialog();
     void RestoreDefaultStartDialog();
 

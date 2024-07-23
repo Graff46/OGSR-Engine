@@ -311,6 +311,15 @@ void CScriptGameObject::SetStartDialog(LPCSTR dialog_id)
     pDialogManager->SetStartDialog(dialog_id);
 }
 
+void CScriptGameObject::SetActorDialog(LPCSTR dialog_id)
+{
+    CGameObject* npc = &object();
+    if (!npc)
+        return;
+
+    npc->cast_inventory_owner()->CharacterInfo().addActorDialogs(dialog_id);
+}
+
 const char* CScriptGameObject::GetStartDialog()
 {
     CAI_PhraseDialogManager* pDialogManager = smart_cast<CAI_PhraseDialogManager*>(&object());

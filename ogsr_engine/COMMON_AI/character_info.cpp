@@ -140,6 +140,16 @@ const DIALOG_ID_VECTOR& CCharacterInfo::ActorDialogs() const
     return m_SpecificCharacter.data()->m_ActorDialogs;
 }
 
+void CCharacterInfo::addActorDialogs(LPCSTR dialog)
+{
+    R_ASSERT(m_SpecificCharacterId.size());
+
+    DIALOG_ID_VECTOR* dv = &m_SpecificCharacter.data()->m_ActorDialogs;
+
+    if (std::find(dv->begin(), dv->end(), dialog) == dv->end())
+        dv->push_back(dialog);
+}
+
 void CCharacterInfo::load(IReader& stream) { stream.r_stringZ(m_StartDialog); }
 
 void CCharacterInfo::save(NET_Packet& stream) { stream.w_stringZ(m_StartDialog); }

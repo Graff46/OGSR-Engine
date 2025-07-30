@@ -1,5 +1,3 @@
-#ifndef dx103DFluidVolume_included
-#define dx103DFluidVolume_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
@@ -14,9 +12,11 @@ public:
     virtual ~dx103DFluidVolume();
 
     virtual void Load(LPCSTR N, IReader* data, u32 dwFlags);
-    virtual void Render(float LOD); // LOD - Level Of Detail  [0.0f - min, 1.0f - max], Ignored ?
+    virtual void Render(CBackend& cmd_list, float lod, bool use_fast_geo); // LOD - Level Of Detail  [0.0f - min, 1.0f - max], Ignored ?
     virtual void Copy(dxRender_Visual* pFrom);
     virtual void Release();
+
+    shared_str getProfileName() { return m_FluidData.dbg_name; }
 
 private:
     //	For debug purpose only
@@ -26,5 +26,3 @@ private:
 };
 
 #endif //	dx103DFluidVolume_included
-
-#endif

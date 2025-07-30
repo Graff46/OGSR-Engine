@@ -1,5 +1,3 @@
-#ifndef dx103DFluidData_included
-#define dx103DFluidData_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
@@ -66,6 +64,8 @@ public:
     const xr_vector<dx103DFluidEmitters::CEmitter>& GetEmittersList() const { return m_Emitters; }
     const Settings& GetSettings() const { return m_Settings; }
 
+    shared_str dbg_name;
+
     //	Allow real-time config reload
 #ifdef DEBUG
     void ReparseProfile(const xr_string& Profile);
@@ -95,5 +95,3 @@ private:
 };
 
 #endif //	dx103DFluidData_included
-
-#endif

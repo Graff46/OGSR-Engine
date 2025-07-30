@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "hudmanager.h"
 #include "WeaponMagazined.h"
+#include "weaponBM16.h"
 #include "entity.h"
 #include "actor.h"
 #include "torch.h"
@@ -215,6 +216,7 @@ void CWeaponMagazined::Load(LPCSTR section)
         }
     }
 
+    m_bFlameParticlesHideInZoom = READ_IF_EXISTS(pSettings, r_bool, section, "flame_particles_hide_in_zoom", false);
 }
 
 void CWeaponMagazined::FireStart()
@@ -419,8 +421,6 @@ void CWeaponMagazined::ReloadMagazine()
     if (IsMisfire() && !IsGrenadeMode())
     {
         SwitchMisfire(false);
-        if (GetAmmoElapsed() > 0)
-            SetAmmoElapsed(GetAmmoElapsed() - 1);
         return;
     }
 
@@ -569,8 +569,6 @@ void CWeaponMagazined::OnStateSwitch(u32 S, u32 oldState)
     case eFire2: switch2_Fire2(); break;
     case eMisfire: {
         PlayAnimCheckMisfire();
-        PlaySound(sndEmptyClick, get_LastFP());
-        SetPending(TRUE);
     }
     break;
     case eMagEmpty: {
@@ -589,7 +587,6 @@ void CWeaponMagazined::OnStateSwitch(u32 S, u32 oldState)
     case eHidden: switch2_Hidden(); break;
     case eDeviceSwitch:
         PlayAnimDeviceSwitch();
-        SetPending(TRUE);
         break;
     }
 }
@@ -647,12 +644,12 @@ void CWeaponMagazined::UpdateCL()
                 fTime = 0;
             break;
         case eFire:
-            if (iAmmoElapsed > 0)
+            if (!IsMisfire() && iAmmoElapsed > 0)
                 state_Fire(dt);
 
             if (fTime <= 0)
             {
-                if (iAmmoElapsed == 0)
+                if (!IsMisfire() && GetAmmoElapsed() == 0)
                     OnMagazineEmpty();
                 StopShooting();
             }
@@ -674,7 +671,6 @@ void CWeaponMagazined::UpdateCL()
         m_binoc_vision->Update();
 
     UpdateSounds();
-    TimeLockAnimation();
 }
 
 void CWeaponMagazined::UpdateSounds()
@@ -757,13 +753,6 @@ void CWeaponMagazined::state_Fire(float dt)
     //	Msg("%d && %d && (%d || %d) && (%d || %d)", !m_magazine.empty(), fTime<=0, IsWorking(), m_bFireSingleShot, m_iQueueSize < 0, m_iShotNum < m_iQueueSize);
     while (!m_magazine.empty() && fTime <= 0 && (IsWorking() || m_bFireSingleShot) && (m_iQueueSize < 0 || m_iShotNum < m_iQueueSize))
     {
-        if (CheckForMisfire())
-        {
-            OnEmptyClick();
-            StopShooting();
-            return;
-        }
-
         m_bFireSingleShot = false;
 
         VERIFY(fTimeToFire > 0.f);
@@ -779,7 +768,11 @@ void CWeaponMagazined::state_Fire(float dt)
 
         ++m_iShotNum;
 
+        CheckForMisfire();
         OnShot();
+
+        if (smart_cast<CWeaponBM16*>(this) && IsMisfire())
+            return;
 
         if (m_iShotNum > m_iShootEffectorStart)
             FireTrace(p1, d);
@@ -816,11 +809,16 @@ void CWeaponMagazined::OnShot()
     OnShellDrop(get_LastSP(), vel);
 
     // Огонь из ствола
-    StartFlameParticles();
+    if (ShouldPlayFlameParticles())
+    {
+        StartFlameParticles();
+        ForceUpdateFireParticles();
+    }
 
     //дым из ствола
-    ForceUpdateFireParticles();
     StartSmokeParticles(get_LastFP(), vel);
+
+    update_visual_bullet_textures();
 }
 
 void CWeaponMagazined::OnEmptyClick()
@@ -844,7 +842,11 @@ void CWeaponMagazined::OnAnimationEnd(u32 state)
         break; // End of reload animation
     case eHiding: SwitchState(eHidden); break; // End of Hide
     case eIdle: switch2_Idle(); break; // Keep showing idle
-    case eShowing:
+    case eShowing: {
+        update_visual_bullet_textures(true);
+        SwitchState(eIdle);
+        break;
+    }
     case eMisfire:
     case eDeviceSwitch:
     case eFire:
@@ -1001,7 +1003,7 @@ bool CWeaponMagazined::Action(s32 cmd, u32 flags)
     switch (cmd)
     {
     case kWPN_RELOAD: {
-        if (!Core.Features.test(xrCore::Feature::lock_reload_in_sprint) || (!ParentIsActor() || !(g_actor->get_state() & mcSprint)))
+        if (!psActorFlags.test(AF_LOCK_RELOAD) || (!ParentIsActor() || !(g_actor->get_state() & mcSprint)))
             if (flags & CMD_START)
                 if (iAmmoElapsed < iMagazineSize || (IsMisfire() && !IsGrenadeMode()))
                     Reload();
@@ -1052,8 +1054,9 @@ bool CWeaponMagazined::Action(s32 cmd, u32 flags)
     }
     break;
     case kNIGHT_VISION: {
-        auto pActorNv = smart_cast<CActor*>(H_Parent())->inventory().ItemFromSlot(IS_OGSR_GA ? NIGHT_VISION_SLOT : TORCH_SLOT);
-        if ((flags & CMD_START) && pActorNv && GetState() == eIdle)
+        auto pActor = smart_cast<CActor*>(H_Parent());
+        auto pActorNv = pActor->inventory().ItemFromSlot(IS_OGSR_GA ? NIGHT_VISION_SLOT : TORCH_SLOT);
+        if ((flags & CMD_START) && pActorNv && GetState() == eIdle && !pActor->IsZoomAimingMode())
         {
             NightVisionSwitch = true;
             DeviceSwitch();
@@ -1211,10 +1214,9 @@ void CWeaponMagazined::InitZoomParams(LPCSTR section, bool useTexture)
     clamp(m_fScopeInertionFactor, m_fControlInertionFactor, m_fScopeInertionFactor);
 
     m_fScopeZoomFactor = pSettings->r_float(section, "scope_zoom_factor");
-    m_fSecondVPZoomFactor = READ_IF_EXISTS(pSettings, r_float, section, "scope_lense_fov_factor", 0.0f);
 
     m_fZoomHudFov = READ_IF_EXISTS(pSettings, r_float, section, "scope_zoom_hud_fov", 0.0f);
-    m_fSecondVPHudFov = READ_IF_EXISTS(pSettings, r_float, section, "scope_lense_hud_fov", 0.0f);
+    m_f3dssHudFov = READ_IF_EXISTS(pSettings, r_float, section, "scope_lense_hud_fov", 0.0f);
 
     if (m_UIScope)
         xr_delete(m_UIScope);
@@ -1250,7 +1252,7 @@ void CWeaponMagazined::InitAddons()
             InitZoomParams(*m_sScopeName, !m_bIgnoreScopeTexture);
 
             m_fZoomHudFov = READ_IF_EXISTS(pSettings, r_float, cNameSect().c_str(), "scope_zoom_hud_fov", m_fZoomHudFov);
-            m_fSecondVPHudFov = READ_IF_EXISTS(pSettings, r_float, cNameSect().c_str(), "scope_lense_hud_fov", m_fSecondVPHudFov);
+            m_f3dssHudFov = READ_IF_EXISTS(pSettings, r_float, cNameSect().c_str(), "scope_lense_hud_fov", m_f3dssHudFov);
         }
         else if (m_eScopeStatus == ALife::eAddonPermanent)
         {
@@ -1273,23 +1275,14 @@ void CWeaponMagazined::InitAddons()
         }
         else
         {
-            m_fSecondVPZoomFactor = 0.0f;
             m_fZoomHudFov = 0.0f;
-            m_fSecondVPHudFov = 0.0f;
+            m_f3dssHudFov = 0.0f;
             m_fScopeInertionFactor = m_fControlInertionFactor;
         }
     }
 
     if (m_bScopeDynamicZoom)
     {
-        if (SecondVPEnabled())
-        {
-            float delta, min_zoom_factor;
-            GetZoomData(m_fSecondVPZoomFactor, delta, min_zoom_factor);
-
-            m_fRTZoomFactor = min_zoom_factor;
-        }
-        else
         {
             if (Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system))
             {
@@ -1387,7 +1380,7 @@ void CWeaponMagazined::PlayAnimHide()
 void CWeaponMagazined::PlayAnimReload()
 {
     if (IsMisfire())
-        PlayHUDMotion({iAmmoElapsed == 1 ? "anm_reload_jammed_last" : "anm_reload_jammed", "anm_reload_empty", "anim_reload", "anm_reload"}, true, GetState());
+        PlayHUDMotion({iAmmoElapsed == 1 ? "anm_reload_jammed_last" : "anm_reload_jammed", "anm_reload_jammed", "anm_reload_empty", "anim_reload", "anm_reload"}, true, GetState());
     else if (IsPartlyReloading())
         PlayHUDMotion({"anim_reload_partly", "anm_reload_partly", "anim_reload", "anm_reload"}, true, GetState());
     else
@@ -1467,7 +1460,8 @@ void CWeaponMagazined::PlayAnimIdle()
 void CWeaponMagazined::PlayAnimShoot()
 {
     string128 guns_shoot_anm;
-    xr_strconcat(guns_shoot_anm, "anm_shoot", (IsZoomed() && !IsRotatingToZoom()) ? (IsScopeAttached() ? "_aim_scope" : "_aim") : "", iAmmoElapsed == 1 ? "_last" : "",
+    xr_strconcat(guns_shoot_anm, "anm_shoot", (IsZoomed() && !IsRotatingToZoom()) ? (IsScopeAttached() ? "_aim_scope" : "_aim") : "",
+                 IsMisfire() ? "_jammed" : (GetAmmoElapsed() == 1 ? "_last" : ""),
                  IsSilencerAttached() ? "_sil" : "");
 
     PlayHUDMotion({guns_shoot_anm, "anim_shoot", "anm_shots"}, false, GetState());
@@ -1490,9 +1484,15 @@ void CWeaponMagazined::PlayAnimCheckMisfire()
     string128 guns_fakeshoot_anm;
     xr_strconcat(guns_fakeshoot_anm, "anm_fakeshoot", IsMisfire() ? "_jammed" : "", IsGrenadeLauncherAttached() ? (!IsGrenadeMode() ? "_w_gl" : "_g") : "");
     if (AnimationExist(guns_fakeshoot_anm))
+    {
         PlayHUDMotion(guns_fakeshoot_anm, true, GetState());
+        
+        SetPending(TRUE);
+    }
     else
+    {
         SwitchState(eIdle);
+    }
 }
 
 void CWeaponMagazined::PlayAnimDeviceSwitch()
@@ -1507,7 +1507,11 @@ void CWeaponMagazined::PlayAnimDeviceSwitch()
                                                                                                                             "",
                  (IsGrenadeLauncherAttached()) ? (!IsGrenadeMode() ? "_w_gl" : "_g") : "");
     if (AnimationExist(guns_device_anm))
+    {
         PlayHUDMotion(guns_device_anm, true, GetState());
+
+        SetPending(TRUE);
+    }
     else
     {
         DeviceUpdate();
@@ -1780,4 +1784,12 @@ bool CWeaponMagazined::ScopeRespawn(PIItem pIItem)
         }
     }
     return false;
+}
+
+bool CWeaponMagazined::ShouldPlayFlameParticles()
+{
+    if (m_bFlameParticlesHideInZoom && IsZoomed() && !IsRotatingToZoom() && Is3dssEnabled())
+        return false;
+
+    return true;
 }

@@ -6,8 +6,21 @@
 
 dx10ConstantBuffer::~dx10ConstantBuffer()
 {
-    DEV->_DeleteConstantBuffer(this);
+    if ((dwFlags & xr_resource_flagged::RF_REGISTERED))
+    {
+        CResourceManager* inst = DEV;
+
+        bool removed = false;
+        for (u32 id = 0; id < R__NUM_CONTEXTS; ++id)
+        {
+            removed = removed || inst->_DeleteConstantBuffer(id, this);
+        }
+        if (!removed)
+            Msg("! ERROR: Failed to find compiled dx10ConstantBuffer.");
+    }
+
     //	Flush();
+
     _RELEASE(m_pBuffer);
     xr_free(m_pBufferData);
 }
@@ -18,7 +31,7 @@ dx10ConstantBuffer::dx10ConstantBuffer(ID3DShaderReflectionConstantBuffer* pTabl
 
     CHK_DX(pTable->GetDesc(&Desc));
 
-    m_strBufferName._set(Desc.Name);
+    m_strBufferName = Desc.Name;
     m_eBufferType = Desc.Type;
     m_uiBufferSize = Desc.Size;
 
@@ -48,11 +61,16 @@ dx10ConstantBuffer::dx10ConstantBuffer(ID3DShaderReflectionConstantBuffer* pTabl
     VERIFY(m_pBuffer);
     m_pBufferData = xr_malloc(Desc.Size);
     VERIFY(m_pBufferData);
+
+    if (m_pBuffer)
+    {
+        DXUT_SetDebugName(m_pBuffer, Desc.Name);
+    }
 }
 
-bool dx10ConstantBuffer::Similar(dx10ConstantBuffer& _in)
+bool dx10ConstantBuffer::Similar(const dx10ConstantBuffer& _in) const
 {
-    if (m_strBufferName._get() != _in.m_strBufferName._get())
+    if (!m_strBufferName.equal(_in.m_strBufferName))
         return false;
 
     if (m_eBufferType != _in.m_eBufferType)
@@ -69,7 +87,7 @@ bool dx10ConstantBuffer::Similar(dx10ConstantBuffer& _in)
 
     VERIFY(m_MembersNames.size() == _in.m_MembersNames.size());
 
-    int iMemberNum = m_MembersNames.size();
+    const int iMemberNum = m_MembersNames.size();
     for (int i = 0; i < iMemberNum; ++i)
     {
         if (m_MembersNames[i].c_str() != _in.m_MembersNames[i].c_str())
@@ -79,26 +97,35 @@ bool dx10ConstantBuffer::Similar(dx10ConstantBuffer& _in)
     return true;
 }
 
-void dx10ConstantBuffer::Flush()
+void dx10ConstantBuffer::Flush(const u32 context_id)
 {
     if (m_bChanged)
     {
         void* pData;
-#ifdef USE_DX11
+
         D3D11_MAPPED_SUBRESOURCE pSubRes;
-        CHK_DX(HW.pContext->Map(m_pBuffer, 0, D3D_MAP_WRITE_DISCARD, 0, &pSubRes));
+        CHK_DX(HW.get_context(context_id)->Map(m_pBuffer, 0, D3D_MAP_WRITE_DISCARD, 0, &pSubRes));
         pData = pSubRes.pData;
-#else
-        CHK_DX(m_pBuffer->Map(D3D_MAP_WRITE_DISCARD, 0, &pData));
-#endif
         VERIFY(pData);
         VERIFY(m_pBufferData);
         CopyMemory(pData, m_pBufferData, m_uiBufferSize);
-#ifdef USE_DX11
-        HW.pContext->Unmap(m_pBuffer, 0);
-#else
-        m_pBuffer->Unmap();
-#endif
+        HW.get_context(context_id)->Unmap(m_pBuffer, 0);
         m_bChanged = false;
+    }
+    //else
+    //{
+    //    Msg("skip buffer set [%s]", m_strBufferName.c_str());
+    //}
+}
+
+void dx10ConstantBuffer::dbg_dump() const
+{
+    Msg("Buffer: %s", m_strBufferName.c_str());
+    Msg("    Type: %d", m_eBufferType);
+    Msg("    Size: %d", m_uiBufferSize);
+    Msg("    Members: %d", m_MembersNames.size());
+    for (u32 i = 0; i < m_MembersNames.size(); ++i)
+    {
+        Msg("        %s", m_MembersNames[i].c_str());
     }
 }

@@ -8,9 +8,18 @@
 
 namespace
 {
-const xr_token simulation_type_token[] = {{"Fog", dx103DFluidData::ST_FOG}, {"Fire", dx103DFluidData::ST_FIRE}, {0, 0}};
+const xr_token simulation_type_token[] = {
+    {"Fog", dx103DFluidData::ST_FOG},
+    {"Fire", dx103DFluidData::ST_FIRE},
 
-const xr_token emitter_type_token[] = {{"SimpleGaussian", dx103DFluidEmitters::ET_SimpleGausian}, {"SimpleDraught", dx103DFluidEmitters::ET_SimpleDraught}, {0, 0}};
+    {nullptr, 0}};
+
+const xr_token emitter_type_token[] = {
+    {"SimpleGaussian", dx103DFluidEmitters::ET_SimpleGausian},
+    {"SimpleDraught", dx103DFluidEmitters::ET_SimpleDraught},
+
+    {nullptr, 0}};
+
 } // namespace
 
 DXGI_FORMAT dx103DFluidData::m_VPRenderTargetFormats[VP_NUM_TARGETS] = {
@@ -73,9 +82,8 @@ void dx103DFluidData::CreateRTTextureAndViews(int rtIndex, D3D_TEXTURE3D_DESC Te
 
     CHK_DX(HW.pDevice->CreateRenderTargetView(m_pRTTextures[rtIndex], &DescRT, &m_pRenderTargetViews[rtIndex]));
 
-    float color[4] = {0, 0, 0, 0};
-
-    HW.pContext->ClearRenderTargetView(m_pRenderTargetViews[rtIndex], color);
+    // Clear to zero
+    RCache.ClearRT(m_pRenderTargetViews[rtIndex], {});
 }
 
 void dx103DFluidData::DestroyRTTextureAndViews(int rtIndex)
@@ -95,7 +103,7 @@ void dx103DFluidData::Load(IReader* data)
     data->r(&m_Transform, sizeof(m_Transform));
 
     //	Read obstacles
-    u32 uiObstCnt = data->r_u32();
+    const u32 uiObstCnt = data->r_u32();
     m_Obstacles.reserve(uiObstCnt);
     for (u32 i = 0; i < uiObstCnt; ++i)
     {
@@ -110,7 +118,9 @@ void dx103DFluidData::Load(IReader* data)
 void dx103DFluidData::ParseProfile(const xr_string& Profile)
 {
     string_path fn;
-    FS.update_path(fn, "$game_config$", Profile.c_str());
+    FS.update_path(fn, fsgame::game_configs, Profile.c_str());
+
+    dbg_name = Profile.c_str();
 
     CInifile ini(fn, TRUE, TRUE, FALSE);
 

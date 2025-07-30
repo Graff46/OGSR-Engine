@@ -133,6 +133,7 @@ BOOL CArtefact::net_Spawn(CSE_Abstract* DC)
     VERIFY(m_pTrailLight == NULL);
     m_pTrailLight = ::Render->light_create();
     m_pTrailLight->set_shadow(true);
+    m_pTrailLight->set_moveable(true);
 
     StartLights();
     /////////////////////////////////////////
@@ -142,7 +143,7 @@ BOOL CArtefact::net_Spawn(CSE_Abstract* DC)
     if (K)
         K->PlayCycle("idle");
 
-    o_fastmode = FALSE; // start initially with fast-mode enabled
+    o_fastmode = true; // start initially with fast-mode enabled
     o_render_frame = 0;
     SetState(eHidden);
 
@@ -180,8 +181,11 @@ void CArtefact::OnH_B_Independent(bool just_before_destroy)
     VERIFY(!ph_world->Processing());
     inherited::OnH_B_Independent(just_before_destroy);
 
-    StartLights();
-    SwitchAfParticles(true);
+    if (!just_before_destroy)
+    {
+        StartLights();
+        SwitchAfParticles(true);
+    }
 }
 
 // called only in "fast-mode"
@@ -479,6 +483,7 @@ SArtefactActivation::SArtefactActivation(CArtefact* af, u32 owner_id)
     m_af = af;
     Load();
     m_light = ::Render->light_create();
+    m_light->set_moveable(true);
     m_light->set_shadow(true);
     m_owner_id = owner_id;
 }
@@ -609,7 +614,7 @@ void SArtefactActivation::SpawnAnomaly()
 
     Fvector pos;
     m_af->Center(pos);
-    u32 lvid = m_af->UsedAI_Locations() ? m_af->ai_location().level_vertex_id() : ai().level_graph().vertex(pos);
+    u32 lvid = m_af->UsedAI_Locations() ? m_af->ai_location().level_vertex_id() : ai().level_graph().nearest_vertex_id(pos);
     CSE_Abstract* object = Level().spawn_item(zone_sect, pos, lvid, 0xffff, true);
     CSE_ALifeAnomalousZone* AlifeZone = smart_cast<CSE_ALifeAnomalousZone*>(object);
     VERIFY(AlifeZone);

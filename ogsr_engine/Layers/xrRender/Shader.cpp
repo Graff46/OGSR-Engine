@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#pragma hdrstop
+
 
 #include "Shader.h"
 #include "ResourceManager.h"
@@ -12,15 +12,24 @@
 
 //
 STextureList::~STextureList() { DEV->_DeleteTextureList(this); }
+
 SMatrixList::~SMatrixList() { DEV->_DeleteMatrixList(this); }
+
 SConstantList::~SConstantList() { DEV->_DeleteConstantList(this); }
+
 SPass::~SPass() { DEV->_DeletePass(this); }
+
 ShaderElement::~ShaderElement() { DEV->_DeleteElement(this); }
+
 SGeometry::~SGeometry() { DEV->DeleteGeom(this); }
+
 Shader::~Shader() { DEV->Delete(this); }
 
 //////////////////////////////////////////////////////////////////////////
-void resptrcode_shader::create(LPCSTR s_shader, LPCSTR s_textures, LPCSTR s_constants, LPCSTR s_matrices) { _set(DEV->Create(s_shader, s_textures, s_constants, s_matrices)); }
+void resptrcode_shader::create(LPCSTR s_shader, LPCSTR s_textures, LPCSTR s_constants, LPCSTR s_matrices)
+{
+    _set(DEV->Create(s_shader, s_textures, s_constants, s_matrices));
+}
 void resptrcode_shader::create(IBlender* B, LPCSTR s_shader, LPCSTR s_textures, LPCSTR s_constants, LPCSTR s_matrices)
 {
     _set(DEV->Create(B, s_shader, s_textures, s_constants, s_matrices));
@@ -28,12 +37,12 @@ void resptrcode_shader::create(IBlender* B, LPCSTR s_shader, LPCSTR s_textures, 
 
 //////////////////////////////////////////////////////////////////////////
 void resptrcode_geom::create(u32 FVF, ID3DVertexBuffer* vb, ID3DIndexBuffer* ib) { _set(DEV->CreateGeom(FVF, vb, ib)); }
-void resptrcode_geom::create(D3DVERTEXELEMENT9* decl, ID3DVertexBuffer* vb, ID3DIndexBuffer* ib) { _set(DEV->CreateGeom(decl, vb, ib)); }
+void resptrcode_geom::create(const D3DVERTEXELEMENT9* decl, ID3DVertexBuffer* vb, ID3DIndexBuffer* ib) { _set(DEV->CreateGeom(decl, vb, ib)); }
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
-BOOL SPass::equal(const SPass& other)
+BOOL SPass::equal(const SPass& other) const
 {
     if (state != other.state)
         return FALSE;
@@ -41,21 +50,16 @@ BOOL SPass::equal(const SPass& other)
         return FALSE;
     if (vs != other.vs)
         return FALSE;
-#if defined(USE_DX10) || defined(USE_DX11)
     if (gs != other.gs)
         return FALSE;
-#ifdef USE_DX11
     if (hs != other.hs)
         return FALSE;
     if (ds != other.ds)
         return FALSE;
     if (cs != other.cs)
         return FALSE;
-#endif
-#endif //	USE_DX10
     if (constants != other.constants)
         return FALSE; // is this nessesary??? (ps+vs already combines)
-
     if (T != other.T)
         return FALSE;
     if (C != other.C)
@@ -71,6 +75,7 @@ ShaderElement::ShaderElement()
     flags.bEmissive = FALSE;
     flags.bDistort = FALSE;
     flags.bWmark = FALSE;
+    flags.iScopeLense = FALSE;
 }
 
 BOOL ShaderElement::equal(ShaderElement& S)
@@ -82,6 +87,8 @@ BOOL ShaderElement::equal(ShaderElement& S)
     if (flags.bEmissive != S.flags.bEmissive)
         return FALSE;
     if (flags.bWmark != S.flags.bWmark)
+        return FALSE;
+    if (flags.iScopeLense != S.flags.iScopeLense)
         return FALSE;
     if (flags.bDistort != S.flags.bDistort)
         return FALSE;
@@ -95,9 +102,9 @@ BOOL ShaderElement::equal(ShaderElement& S)
 
 BOOL ShaderElement::equal(ShaderElement* S)
 {
-    if (0 == S && 0 == this)
+    if (nullptr == S && nullptr == this)
         return TRUE; //-V704
-    if (0 == S || 0 == this)
+    if (nullptr == S || nullptr == this)
         return FALSE; //-V704
     return equal(*S);
 }
@@ -111,7 +118,7 @@ void STextureList::clear()
     for (auto& it : *this)
         it.second.destroy();
 
-    __super::clear();
+    inherited_vec::clear();
 }
 
 u32 STextureList::find_texture_stage(const shared_str& TexName) const
@@ -119,8 +126,8 @@ u32 STextureList::find_texture_stage(const shared_str& TexName) const
     u32 dwTextureStage = 0;
 
     STextureList::const_iterator _it = this->begin();
-    STextureList::const_iterator _end = this->end();
-    for (; _it != _end; _it++)
+    const STextureList::const_iterator _end = this->end();
+    for (; _it != _end; ++_it)
     {
         const std::pair<u32, ref_texture>& loader = *_it;
 

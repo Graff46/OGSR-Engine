@@ -30,7 +30,7 @@
 #include "phvalidevalues.h"
 #include "PHActivationShape.h"
 #include "game_base_space.h"
-#include "profiler.h"
+
 #include "..\Include/xrRender/Kinematics.h"
 #include "../xr_3da/IGame_Persistent.h"
 
@@ -72,6 +72,7 @@ void CExplosive::LightCreate()
 {
     m_pLight = ::Render->light_create();
     m_pLight->set_shadow(true);
+    m_pLight->set_moveable(true);
 }
 
 void CExplosive::LightDestroy() { m_pLight.destroy(); }

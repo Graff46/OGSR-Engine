@@ -4,7 +4,7 @@
 #include "..\xr_3da\XR_IOConsole.h"
 #include "../xr_3da/gamemtllib.h"
 #include "../Include/xrRender/Kinematics.h"
-#include "profiler.h"
+
 #include "MainMenu.h"
 #include "UICursor.h"
 #include "game_base_space.h"
@@ -167,6 +167,11 @@ void CGamePersistent::Disconnect()
     __super::Disconnect();
     // stop all played emitters
     ::Sound->stop_emitters();
+
+    // validate and clean up spatial dbs
+    g_SpatialSpace->clear();
+    g_SpatialSpacePhysic->clear();
+
     m_game_params.m_e_game_type = GAME_ANY;
 }
 
@@ -184,8 +189,6 @@ void CGamePersistent::UpdateGameType()
     __super::UpdateGameType();
     m_game_params.m_e_game_type = GAME_SINGLE;
 
-#pragma todo( \
-    "KRodin: надо подумать, надо ли тут вылетать вообще. Не может ли возникнуть каких-нибудь проблем, если парсер налажал. Он же влияет не только на m_game_type. На данный момент парсер может налажать, если встретит скобочки () в имени сейва.")
     ASSERT_FMT_DBG(!xr_strcmp(m_game_params.m_game_type, "single"), "!!failed to parse the name of the save, rename it and try to load again.");
 }
 
@@ -203,10 +206,7 @@ void CGamePersistent::WeathersUpdate()
     {
         if (g_pGameLevel)
         {
-            CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
-            BOOL bIndoor = TRUE;
-            if (actor)
-                bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.04f; //--#SM+#-- [0.05f слишком завышен был]
+            const bool bIndoor = g_pGamePersistent->IsActorInHideout();
 
             int data_set = (Random.randF() < (1.f - Environment().CurrentEnv->weight)) ? 0 : 1;
 
@@ -274,7 +274,7 @@ void CGamePersistent::WeathersUpdate()
                             }
                 */
                 // start effect
-                if ((FALSE == bIndoor) && (0 == ambient_particles) && Device.dwTimeGlobal > ambient_effect_next_time)
+                if (!bIndoor && !ambient_particles && Device.dwTimeGlobal > ambient_effect_next_time)
                 {
                     CEnvAmbient::SEffect* eff = env_amb->get_rnd_effect();
                     if (eff)
@@ -291,7 +291,7 @@ void CGamePersistent::WeathersUpdate()
                         ambient_particles = CParticlesObject::Create(eff->particles.c_str(), FALSE, false);
                         Fvector pos;
                         pos.add(Device.vCameraPosition, eff->offset);
-                        ambient_particles->play_at_pos(pos);
+                        ambient_particles->PlayAtPos(pos);
                         if (eff->sound._handle())
                             eff->sound.play_at_pos(0, pos);
 
@@ -384,10 +384,7 @@ void CGamePersistent::WeathersUpdate()
     {
         if (g_pGameLevel)
         {
-            CActor* actor = smart_cast<CActor*>(Level().CurrentViewEntity());
-            BOOL bIndoor = TRUE;
-            if (actor)
-                bIndoor = actor->renderable_ROS()->get_luminocity_hemi() < 0.04f; //--#SM+#-- [0.05f слишком завышен был]
+            const bool bIndoor = g_pGamePersistent->IsActorInHideout();
 
             int data_set = (Random.randF() < (1.f - Environment().CurrentEnv->weight)) ? 0 : 1;
 
@@ -417,7 +414,7 @@ void CGamePersistent::WeathersUpdate()
                 }
 
                 // start effect
-                if ((FALSE == bIndoor) && (0 == ambient_particles) && Device.dwTimeGlobal > ambient_effect_next_time)
+                if (!bIndoor && !ambient_particles && Device.dwTimeGlobal > ambient_effect_next_time)
                 {
                     CEnvAmbient::SEffect* eff = env_amb->get_rnd_effect();
                     if (eff)
@@ -428,7 +425,7 @@ void CGamePersistent::WeathersUpdate()
                         ambient_particles = CParticlesObject::Create(eff->particles.c_str(), FALSE, false);
                         Fvector pos;
                         pos.add(Device.vCameraPosition, eff->offset);
-                        ambient_particles->play_at_pos(pos);
+                        ambient_particles->PlayAtPos(pos);
                         if (eff->sound._handle())
                             eff->sound.play_at_pos(0, pos);
                     }
@@ -726,8 +723,6 @@ void CGamePersistent::SetTip()
 {
     pApp->LoadTitleInt();
 }
-
-bool CGamePersistent::CanBePaused() { return (g_pGamePersistent->GameType() == GAME_SINGLE); }
 
 bool CGamePersistent::OnKeyboardPress(int dik)
 {

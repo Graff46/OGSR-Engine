@@ -121,7 +121,7 @@ void CGameTaskManager::SetTaskState(CGameTask* t, u16 objective_num, ETaskState 
     CMapLocation* ml = o->LinkedMapLocation();
     bool bActive = ActiveObjective() == o;
 
-    if ((state == eTaskStateFail || state == eTaskStateCompleted) && ml)
+    if ((state == eTaskStateFail || state == eTaskStateCompleted || (state == eTaskStateSkiped)) && ml)
     {
         Level().MapManager().RemoveMapLocation(o->map_location, o->object_id);
         o->map_location = NULL;
@@ -166,7 +166,7 @@ void CGameTaskManager::SetTaskState(CGameTask* t, u16 objective_num, ETaskState 
         }
     }
 
-    if (isRoot && eTaskStateCompleted == state || eTaskStateFail == state)
+    if (isRoot && eTaskStateCompleted == state || eTaskStateFail == state || eTaskStateSkiped == state)
         t->m_FinishTime = Level().GetGameTime();
 
     CUIGameSP* pGameSP = smart_cast<CUIGameSP*>(HUD().GetUI()->UIGame());
@@ -189,15 +189,24 @@ void CGameTaskManager::SetTaskState(const TASK_ID& id, u16 objective_num, ETaskS
 
 void CGameTaskManager::UpdateTasks()
 {
-    if (GameTasks().empty())
+    auto& tasks = GameTasks();
+
+    if (tasks.empty())
         return;
 
     auto act_task = ActiveTask();
     bool need_update_active_task = !act_task || act_task->Objective(0).TaskState() != eTaskStateInProgress;
 
-    for (auto I = GameTasks().begin(), E = GameTasks().end(); I != E; ++I)
+    size_t processed{};
+    auto iter = tasks.rbegin();
+    while (iter != tasks.rend()) //Реверсивный перебор тасков из-за того что походу внутри SetTaskState таски могут удалиться, из-за этого обычный итератор тут крашится.
     {
-        auto t = I->game_task;
+        const auto size = tasks.size();
+
+        auto& task = *(iter++);
+        //
+
+        auto* t = task.game_task;
         for (u16 i = 0; i < t->m_Objectives.size(); ++i)
         {
             auto& obj = t->Objective(i);
@@ -210,19 +219,30 @@ void CGameTaskManager::UpdateTasks()
             }
 
             ETaskState state = obj.UpdateState();
-            if (state == eTaskStateFail || state == eTaskStateCompleted)
+            if (state == eTaskStateFail || state == eTaskStateCompleted || state == eTaskStateSkiped)
             {
                 SetTaskState(t, i, state);
                 // Тут проверяем заново, потому что в функции выше активный таск может обновиться
                 act_task = ActiveTask();
                 need_update_active_task = !act_task || act_task->Objective(0).TaskState() != eTaskStateInProgress;
             }
-            //Тут ставим активным только первый objective если он один либо второй, чтоб тут случайно не назначился тот который скрыт опцией show_objectives_ondemand.
+            // Тут ставим активным только первый objective если он один либо второй, чтоб тут случайно не назначился тот который скрыт опцией show_objectives_ondemand.
             else if (need_update_active_task && ((i == 0 && t->m_Objectives.size() == 1) || (i == 1 && t->Objective(0).TaskState() == eTaskStateInProgress)))
             {
                 SetActiveTask(t->m_ID, i);
                 need_update_active_task = false;
             }
+        }
+
+        //
+        if (size != tasks.size())
+        {
+            iter = tasks.rbegin();
+            std::advance(iter, processed);
+        }
+        else
+        {
+            processed++;
         }
     }
 

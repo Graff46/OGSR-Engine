@@ -35,49 +35,31 @@ void stats_manager::increment_stats(u32 size, enum_stats_buffer_type type, _D3DP
 
 void stats_manager::increment_stats_rtarget(ID3DTexture2D* buff)
 {
-    _D3DPOOL pool = D3DPOOL_MANAGED;
-#if defined(USE_DX10) || defined(USE_DX11)
+    const _D3DPOOL pool = D3DPOOL_MANAGED;
     D3D_TEXTURE2D_DESC desc;
     buff->GetDesc(&desc);
-#else
-    D3DSURFACE_DESC desc;
-    buff->GetLevelDesc(0, &desc);
-    pool = desc.Pool;
-#endif
 
-    u32 size = desc.Height * desc.Width * get_format_pixel_size(desc.Format);
+    const u32 size = desc.Height * desc.Width * get_format_pixel_size(desc.Format);
     increment_stats(size, enum_stats_buffer_type_rtarget, pool, buff);
 }
 
 void stats_manager::increment_stats_vb(ID3DVertexBuffer* buff)
 {
-#if defined(USE_DX10) || defined(USE_DX11)
     D3D_BUFFER_DESC desc;
     buff->GetDesc(&desc);
     increment_stats(desc.ByteWidth, enum_stats_buffer_type_vertex, D3DPOOL_MANAGED, buff);
-#else
-    D3DVERTEXBUFFER_DESC desc;
-    buff->GetDesc(&desc);
-    increment_stats(desc.Size, enum_stats_buffer_type_vertex, desc.Pool, buff);
-#endif
 }
 
 void stats_manager::increment_stats_ib(ID3DIndexBuffer* buff)
 {
-#if defined(USE_DX10) || defined(USE_DX11)
     D3D_BUFFER_DESC desc;
     buff->GetDesc(&desc);
     increment_stats(desc.ByteWidth, enum_stats_buffer_type_index, D3DPOOL_MANAGED, buff);
-#else
-    D3DINDEXBUFFER_DESC desc;
-    buff->GetDesc(&desc);
-    increment_stats(desc.Size, enum_stats_buffer_type_index, desc.Pool, buff);
-#endif
 }
 
 void stats_manager::decrement_stats_rtarget(ID3DTexture2D* buff)
 {
-    if (buff == NULL)
+    if (buff == nullptr)
         return;
 
     buff->AddRef();
@@ -85,23 +67,17 @@ void stats_manager::decrement_stats_rtarget(ID3DTexture2D* buff)
     if ((refcnt = buff->Release()) > 1)
         return;
 
-    _D3DPOOL pool = D3DPOOL_MANAGED;
-#if defined(USE_DX10) || defined(USE_DX11)
+    const _D3DPOOL pool = D3DPOOL_MANAGED;
     D3D_TEXTURE2D_DESC desc;
     buff->GetDesc(&desc);
-#else
-    D3DSURFACE_DESC desc;
-    buff->GetLevelDesc(0, &desc);
-    pool = desc.Pool;
-#endif
 
-    u32 size = desc.Height * desc.Width * get_format_pixel_size(desc.Format);
+    const u32 size = desc.Height * desc.Width * get_format_pixel_size(desc.Format);
     decrement_stats(size, enum_stats_buffer_type_rtarget, pool, buff);
 }
 
 void stats_manager::decrement_stats_vb(ID3DVertexBuffer* buff)
 {
-    if (buff == NULL)
+    if (buff == nullptr)
         return;
 
     buff->AddRef();
@@ -109,20 +85,14 @@ void stats_manager::decrement_stats_vb(ID3DVertexBuffer* buff)
     if ((refcnt = buff->Release()) > 1)
         return;
 
-#if defined(USE_DX10) || defined(USE_DX11)
     D3D_BUFFER_DESC desc;
     buff->GetDesc(&desc);
     decrement_stats(desc.ByteWidth, enum_stats_buffer_type_vertex, D3DPOOL_MANAGED, buff);
-#else
-    D3DVERTEXBUFFER_DESC desc;
-    buff->GetDesc(&desc);
-    decrement_stats(desc.Size, enum_stats_buffer_type_vertex, desc.Pool, buff);
-#endif
 }
 
 void stats_manager::decrement_stats_ib(ID3DIndexBuffer* buff)
 {
-    if (buff == NULL)
+    if (buff == nullptr)
         return;
 
     buff->AddRef();
@@ -130,15 +100,9 @@ void stats_manager::decrement_stats_ib(ID3DIndexBuffer* buff)
     if ((refcnt = buff->Release()) > 1)
         return;
 
-#if defined(USE_DX10) || defined(USE_DX11)
     D3D_BUFFER_DESC desc;
     buff->GetDesc(&desc);
     decrement_stats(desc.ByteWidth, enum_stats_buffer_type_index, D3DPOOL_MANAGED, buff);
-#else
-    D3DINDEXBUFFER_DESC desc;
-    buff->GetDesc(&desc);
-    decrement_stats(desc.Size, enum_stats_buffer_type_index, desc.Pool, buff);
-#endif
 }
 
 void stats_manager::decrement_stats(u32 size, enum_stats_buffer_type type, _D3DPOOL location)
@@ -150,7 +114,7 @@ void stats_manager::decrement_stats(u32 size, enum_stats_buffer_type type, _D3DP
 
 void stats_manager::decrement_stats(u32 size, enum_stats_buffer_type type, _D3DPOOL location, void* buff_ptr)
 {
-    if (buff_ptr == 0)
+    if (buff_ptr == nullptr)
         return;
 
 #ifdef DEBUG
@@ -183,50 +147,6 @@ void stats_manager::decrement_stats(u32 size, enum_stats_buffer_type type, _D3DP
 //#endif
 //}
 
-u32 get_format_pixel_size(D3DFORMAT format)
-{
-    switch (format)
-    {
-    case D3DFMT_A32B32G32R32F: {
-        return 16;
-    }
-
-    case D3DFMT_A16B16G16R16:
-    case D3DFMT_A16B16G16R16F:
-    case D3DFMT_G32R32F: {
-        return 8;
-    }
-    case D3DFMT_A8R8G8B8:
-    case D3DFMT_X8R8G8B8:
-    case D3DFMT_A2B10G10R10:
-    case D3DFMT_A8B8G8R8:
-    case D3DFMT_X8B8G8R8:
-    case D3DFMT_G16R16:
-    case D3DFMT_A2R10G10B10:
-    case D3DFMT_D32:
-    case D3DFMT_D24S8:
-    case D3DFMT_D24X8:
-    case D3DFMT_D24X4S4:
-    case D3DFMT_G16R16F:
-    case D3DFMT_R32F: {
-        return 4;
-    }
-
-    case D3DFMT_R5G6B5:
-    case D3DFMT_X1R5G5B5:
-    case D3DFMT_A1R5G5B5:
-    case D3DFMT_D16_LOCKABLE:
-    case D3DFMT_D15S1:
-    case D3DFMT_D16:
-    case D3DFMT_R16F: {
-        return 2;
-    }
-
-    default: return 0;
-    }
-}
-
-#if defined(USE_DX10) || defined(USE_DX11)
 u32 get_format_pixel_size(DXGI_FORMAT format)
 {
     if (format >= DXGI_FORMAT_R32G32B32A32_TYPELESS && format <= DXGI_FORMAT_R32G32B32A32_SINT)
@@ -245,4 +165,3 @@ u32 get_format_pixel_size(DXGI_FORMAT format)
         // Do not consider extraordinary formats.
         return 0;
 }
-#endif

@@ -1,5 +1,3 @@
-#ifndef dx103DFluidRenderer_included
-#define dx103DFluidRenderer_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
@@ -27,7 +25,7 @@ public:
 
     void SetScreenSize(int width, int height);
 
-    void Draw(const dx103DFluidData& FluidData);
+    void Draw(CBackend& cmd_list, const dx103DFluidData& FluidData);
 
     static LPCSTR* GetRTNames() { return m_pRTNames; }
     static LPCSTR* GetResourceRTNames() { return m_pResourceRTNames; }
@@ -67,11 +65,13 @@ private:
     void CalculateRenderTextureSize(int screenWidth, int screenHeight);
     void CreateRayDataResources(int width, int height);
 
-    void ComputeRayData();
-    void ComputeEdgeTexture();
+    void PrepareCBuffer(CBackend& cmd_list, const dx103DFluidData& FluidData, u32 RTWidth, u32 RTHeight) const;
 
-    void DrawScreenQuad();
-    void DrawBox();
+    void ComputeRayData(CBackend& cmd_list, const dx103DFluidData& FluidData);
+    void ComputeEdgeTexture(CBackend& cmd_list, const dx103DFluidData& FluidData);
+
+    void DrawScreenQuad(CBackend& cmd_list);
+    void DrawBox(CBackend& cmd_list);
 
     void CalculateLighting(const dx103DFluidData& FluidData, FogLighting& LightData);
 
@@ -84,10 +84,9 @@ private:
     int m_iRenderTextureWidth;
     int m_iRenderTextureHeight;
 
-    D3DXMATRIXA16 m_gridMatrix;
-    // Fmatrix		m_gridMatrix;
+    DirectX::XMMATRIX m_gridMatrix{};
 
-    D3DFORMAT RTFormats[RRT_NumRT];
+    DXGI_FORMAT RTFormats[RRT_NumRT];
     ref_rt RT[RRT_NumRT];
     static LPCSTR m_pRTNames[RRT_NumRT];
     static LPCSTR m_pResourceRTNames[RRT_NumRT];
@@ -112,5 +111,3 @@ private:
 };
 
 #endif //	dx103DFluidRenderer_included
-
-#endif

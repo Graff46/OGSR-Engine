@@ -46,6 +46,7 @@
 #include "map_hint.h"
 #include "UIColorAnimatorWrapper.h"
 #include "../game_news.h"
+#include "../xr_3da/xr_input.h"
 
 using namespace InventoryUtilities;
 
@@ -103,7 +104,6 @@ CUIMainIngameWnd::CUIMainIngameWnd()
     m_pItem = NULL;
     UIZoneMap = xr_new<CUIZoneMap>();
     m_pPickUpItem = NULL;
-    m_artefactPanel = xr_new<CUIArtefactPanel>();
 
     warn_icon_list[ewiWeaponJammed] = &UIWeaponJammedIcon;
     warn_icon_list[ewiRadiation] = &UIRadiaitionIcon;
@@ -121,7 +121,8 @@ CUIMainIngameWnd::~CUIMainIngameWnd()
 {
     DestroyFlashingIcons();
     xr_delete(UIZoneMap);
-    xr_delete(m_artefactPanel);
+    if (m_artefactPanel)
+        xr_delete(m_artefactPanel);
     HUD_SOUND::DestroySound(m_contactSnd);
     xr_delete(g_MissileForceShape);
 }
@@ -173,7 +174,7 @@ void CUIMainIngameWnd::Init()
     UIZoneMap->SetScale(DEFAULT_MAP_SCALE);
 
     xml_init.InitStatic(uiXml, "static_pda_online", 0, &UIPdaOnline);
-    UIZoneMap->Background().AttachChild(&UIPdaOnline);
+    UIZoneMap->Background()->AttachChild(&UIPdaOnline);
 
     //Полоса прогресса здоровья
     UIStaticHealth.AttachChild(&UIHealthBar);
@@ -264,15 +265,12 @@ void CUIMainIngameWnd::Init()
     AttachChild(&UIMotionIcon);
     UIMotionIcon.Init();
 
-    m_artefactPanel->InitFromXML(uiXml, "artefact_panel", 0);
-    this->AttachChild(m_artefactPanel);
-
-    //AttachChild(&UIStaticDiskIO);
-    //UIStaticDiskIO.SetWndRect(1000, 750, 16, 16);
-    //UIStaticDiskIO.GetUIStaticItem().SetRect(0, 0, 16, 16);
-    //UIStaticDiskIO.InitTexture("ui\\ui_disk_io");
-    //UIStaticDiskIO.SetOriginalRect(0, 0, 32, 32);
-    //UIStaticDiskIO.SetStretchTexture(TRUE);
+    if (uiXml.NavigateToNode("artefact_panel"))
+    {
+        m_artefactPanel = xr_new<CUIArtefactPanel>();
+        m_artefactPanel->InitFromXML(uiXml, "artefact_panel", 0);
+        this->AttachChild(m_artefactPanel);
+    }
 
     HUD_SOUND::LoadSound("maingame_ui", "snd_new_contact", m_contactSnd, SOUND_TYPE_IDLE);
 }
@@ -281,21 +279,6 @@ float UIStaticDiskIO_start_time = 0.0f;
 
 void CUIMainIngameWnd::Draw()
 {
-    // show IO icon
-    //bool IOActive = (FS.dwOpenCounter > 0);
-    //if (IOActive)
-    //    UIStaticDiskIO_start_time = Device.fTimeGlobal;
-
-    //if ((UIStaticDiskIO_start_time + 1.0f) < Device.fTimeGlobal)
-    //    UIStaticDiskIO.Show(false);
-    //else
-    //{
-    //    u32 alpha = clampr(iFloor(255.f * (1.f - (Device.fTimeGlobal - UIStaticDiskIO_start_time) / 1.f)), 0, 255);
-    //    UIStaticDiskIO.Show(true);
-    //    UIStaticDiskIO.SetColor(color_rgba(255, 255, 255, alpha));
-    //}
-    //FS.dwOpenCounter = 0;
-
     if (!m_pActor)
         return;
 
@@ -455,7 +438,7 @@ void CUIMainIngameWnd::Update()
 
 bool CUIMainIngameWnd::OnKeyboardPress(int dik)
 {
-    const bool shift = Level().IR_GetKeyState(DIK_LSHIFT) || Level().IR_GetKeyState(DIK_RSHIFT);
+    const bool shift = pInput->iGetAsyncKeyState(DIK_LSHIFT) || pInput->iGetAsyncKeyState(DIK_RSHIFT);
     const auto bind = get_binded_action(dik);
 
     if (bind == kHIDEHUD)
@@ -727,26 +710,25 @@ void CUIMainIngameWnd::UpdatePickUpItem()
     UIPickUpItemIcon.SetColor(color_rgba(255, 255, 255, 192));
     if (auto wpn = m_pPickUpItem->cast_weapon())
     {
-        auto cell_item = xr_new<CUIWeaponCellItem>(wpn);
+        CUIWeaponCellItem cell_item{wpn};
 
         if (wpn->SilencerAttachable() && wpn->IsSilencerAttached())
         {
-            auto sil = init_addon(cell_item, *wpn->GetSilencerName(), scale, UI()->get_current_kx(), eAddonType::eSilencer);
+            auto sil = init_addon(&cell_item, *wpn->GetSilencerName(), scale, UI()->get_current_kx(), eAddonType::eSilencer);
             UIPickUpItemIcon.AttachChild(sil);
         }
 
         if (wpn->ScopeAttachable() && wpn->IsScopeAttached())
         {
-            auto scope = init_addon(cell_item, *wpn->GetScopeName(), scale, UI()->get_current_kx(), eAddonType::eScope);
+            auto scope = init_addon(&cell_item, *wpn->GetScopeName(), scale, UI()->get_current_kx(), eAddonType::eScope);
             UIPickUpItemIcon.AttachChild(scope);
         }
 
         if (wpn->GrenadeLauncherAttachable() && wpn->IsGrenadeLauncherAttached())
         {
-            auto launcher = init_addon(cell_item, *wpn->GetGrenadeLauncherName(), scale, UI()->get_current_kx(), eAddonType::eLauncher);
+            auto launcher = init_addon(&cell_item, *wpn->GetGrenadeLauncherName(), scale, UI()->get_current_kx(), eAddonType::eLauncher);
             UIPickUpItemIcon.AttachChild(launcher);
         }
-        delete_data(cell_item);
     }
 
     // Real Wolf: Колбек для скриптового добавления своих иконок. 10.08.2014.
@@ -815,17 +797,17 @@ void GetStaticRaw(CUIMainIngameWnd* wnd, lua_State* L)
     CUIWindow* child = wnd->FindChild(name, 2);
     if (!child)
     {
-        CUIStatic* src = &wnd->GetUIZoneMap()->Background();
+        CUIStatic* src = wnd->GetUIZoneMap()->Background();
         child = src->FindChild(name, 5);
 
         if (!child)
         {
-            src = &wnd->GetUIZoneMap()->ClipFrame();
+            src = wnd->GetUIZoneMap()->ClipFrame();
             child = src->FindChild(name, 5);
         }
         if (!child)
         {
-            src = &wnd->GetUIZoneMap()->Compass();
+            src = wnd->GetUIZoneMap()->Compass();
             child = src->FindChild(name, 5);
         }
     }
@@ -845,7 +827,7 @@ void GetStaticRaw(CUIMainIngameWnd* wnd, lua_State* L)
 
 using namespace luabind;
 
-#pragma optimize("s", on)
+
 void CUIMainIngameWnd::script_register(lua_State* L)
 {
     module(L)[

@@ -48,12 +48,10 @@ void CAttachmentOwner::net_Destroy()
     R_ASSERT(attached_objects().empty());
 }
 
-void CAttachmentOwner::renderable_Render()
+void CAttachmentOwner::renderable_Render(u32 context_id, IRenderable* root)
 {
-    xr_vector<CAttachableItem*>::iterator I = m_attached_objects.begin();
-    xr_vector<CAttachableItem*>::iterator E = m_attached_objects.end();
-    for (; I != E; ++I)
-        (*I)->renderable_Render();
+    for (auto* obj : m_attached_objects)
+        obj->renderable_Render(context_id, root);
 }
 
 void __stdcall AttachmentCallback(IKinematics* tpKinematics)
@@ -68,8 +66,7 @@ void __stdcall AttachmentCallback(IKinematics* tpKinematics)
 
     for (const auto* it : attachment_owner->attached_objects())
     {
-        Fmatrix bone_mtx;
-        kinematics->Bone_GetAnimPos(bone_mtx, it->bone_id(), u8(-1), false);
+        Fmatrix bone_mtx = kinematics->LL_GetBoneInstance(it->bone_id()).mTransform;
         it->item().object().XFORM().mul_43(bone_mtx, it->offset());
         it->item().object().XFORM().mulA_43(game_object->XFORM());
     }
@@ -95,7 +92,11 @@ void CAttachmentOwner::attach(CInventoryItem* inventory_item)
         VERIFY(game_object && game_object->Visual());
         if (m_attached_objects.empty())
             game_object->add_visual_callback(AttachmentCallback);
-        attachable_item->set_bone_id(smart_cast<IKinematics*>(game_object->Visual())->LL_BoneID(attachable_item->bone_name()));
+        const u16 bone_id = smart_cast<IKinematics*>(game_object->Visual())->LL_BoneID(attachable_item->bone_name());
+        ASSERT_FMT(bone_id != BI_NONE, "!![%s] attach_bone_name [%s] in section [%s] not found in game object [%s] with visual [%s]", __FUNCTION__,
+                   attachable_item->bone_name().c_str(), smart_cast<CGameObject*>(inventory_item)->cNameSect().c_str(), game_object->cNameSect().c_str(),
+                   game_object->Visual()->getDebugName().c_str());
+        attachable_item->set_bone_id(bone_id);
         m_attached_objects.push_back(smart_cast<CAttachableItem*>(inventory_item));
 
         inventory_item->object().setVisible(true);

@@ -54,7 +54,7 @@ void CSoundRender_Source::LoadWave(LPCSTR pName)
 
     // Load file into memory and parse WAV-format
     OggVorbis_File ovf;
-    ov_callbacks ovc = {ov_read_func, ov_seek_func, ov_close_func, ov_tell_func};
+    constexpr ov_callbacks ovc = {ov_read_func, ov_seek_func, ov_close_func, ov_tell_func};
     IReader* wave = FS.r_open(pname.c_str());
     R_ASSERT3(wave && wave->length(), "Can't open wave file:", pname.c_str());
     ov_open_callbacks(wave, &ovf, NULL, 0, ovc);
@@ -62,18 +62,17 @@ void CSoundRender_Source::LoadWave(LPCSTR pName)
     vorbis_info* ovi = ov_info(&ovf, -1);
     // verify
     R_ASSERT3(ovi, "Invalid source info:", pName);
-    R_ASSERT3(ovi->rate == 44100, "Invalid source rate:", pName);
 
 #ifdef DEBUG
     if (ovi->channels == 2)
     {
         Msg("stereo sound source [%s]", pName);
     }
-#endif // #ifdef DEBUG
+#endif
 
     ZeroMemory(&m_wformat, sizeof(WAVEFORMATEX));
 
-    m_wformat.nSamplesPerSec = (ovi->rate); // 44100;
+    m_wformat.nSamplesPerSec = (ovi->rate);
     m_wformat.wFormatTag = WAVE_FORMAT_PCM;
     m_wformat.nChannels = u16(ovi->channels);
     m_wformat.wBitsPerSample = 16;

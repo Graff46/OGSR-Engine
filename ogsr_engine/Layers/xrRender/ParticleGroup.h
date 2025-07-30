@@ -1,6 +1,4 @@
-//---------------------------------------------------------------------------
-#ifndef ParticleGroupH
-#define ParticleGroupH
+#pragma once
 
 #include "../xrRender/dxParticleCustom.h"
 
@@ -12,8 +10,8 @@ class ECORE_API CPGDef
 {
 public:
     shared_str m_Name;
-    Flags32 m_Flags;
-    float m_fTimeLimit;
+    Flags32 m_Flags{};
+    float m_fTimeLimit{};
     struct SEffect
     {
         enum
@@ -25,19 +23,14 @@ public:
             flOnBirthChild = (1 << 5),
             flOnDeadChild = (1 << 6),
         };
-        Flags32 m_Flags;
+        Flags32 m_Flags{};
         shared_str m_EffectName;
         shared_str m_OnPlayChildName;
         shared_str m_OnBirthChildName;
         shared_str m_OnDeadChildName;
-        float m_Time0;
-        float m_Time1;
-        SEffect()
-        {
-            m_Flags.zero(); /*set(flEnabled)*/
-            m_Time0 = 0;
-            m_Time1 = 0;
-        }
+        float m_Time0{};
+        float m_Time1{};
+        //SEffect() { m_Flags.zero(); /*set(flEnabled)*/ }
 
     };
     DEFINE_VECTOR(SEffect*, EffectVec, EffectIt);
@@ -46,7 +39,9 @@ public:
 public:
     CPGDef();
     ~CPGDef();
+
     void SetName(LPCSTR name);
+    IC LPCSTR Name() const { return *m_Name; }
 
     void Save(IWriter& F);
     BOOL Load(IReader& F);
@@ -60,7 +55,7 @@ class ECORE_API CParticleGroup : public dxParticleCustom
 {
     const CPGDef* m_Def{};
     float m_CurrentTime{};
-    Fvector m_InitialPosition;
+    Fvector m_InitialPosition{};
 
 public:
     DEFINE_VECTOR(dxRender_Visual*, VisualVec, VisualVecIt);
@@ -96,7 +91,7 @@ public:
 
         u32 ParticlesCount();
         BOOL IsPlaying();
-        void Play();
+        void Play() const;
         void Stop(BOOL def_stop);
     };
     DEFINE_VECTOR(SItem, SItemVec, SItemVecIt)
@@ -113,6 +108,7 @@ public:
 public:
     CParticleGroup();
     virtual ~CParticleGroup();
+
     virtual void OnFrame(u32 dt);
 
     virtual void Copy(dxRender_Visual* pFrom) { FATAL("Can't duplicate particle system - NOT IMPLEMENTED"); }
@@ -124,11 +120,12 @@ public:
 
     BOOL Compile(CPGDef* def);
 
-    const CPGDef* GetDefinition() { return m_Def; }
+    const CPGDef* GetDefinition() const { return m_Def; }
 
     virtual void Play();
     virtual void Stop(BOOL bDefferedStop = TRUE);
     virtual BOOL IsPlaying() { return m_RT_Flags.is(flRT_Playing); }
+    virtual BOOL IsDeferredStopped() { return m_RT_Flags.is(flRT_DefferedStop); }
 
     virtual void SetHudMode(BOOL b);
     virtual BOOL GetHudMode();
@@ -146,10 +143,12 @@ public:
     }
 
     virtual u32 ParticlesCount();
+
+    virtual void Depart();
 };
 
 } // namespace PS
-//----------------------------------------------------
+
 #define PGD_VERSION 0x0003
 #define PGD_CHUNK_VERSION 0x0001
 #define PGD_CHUNK_NAME 0x0002
@@ -157,6 +156,3 @@ public:
 #define PGD_CHUNK_EFFECTS 0x0004 // obsolete
 #define PGD_CHUNK_TIME_LIMIT 0x0005
 #define PGD_CHUNK_EFFECTS2 0x0007
-
-//---------------------------------------------------------------------------
-#endif

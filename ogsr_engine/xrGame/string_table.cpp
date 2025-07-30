@@ -3,9 +3,11 @@
 
 #include "ui/xrUIXmlParser.h"
 #include "xr_level_controller.h"
+#include "MainMenu.h"
 
-STRING_TABLE_DATA* CStringTable::pData = NULL;
-BOOL CStringTable::m_bWriteErrorsToLog = FALSE;
+STRING_TABLE_DATA* CStringTable::pData{};
+BOOL CStringTable::WriteErrorsToLog{};
+extern const xr_token* GetLanguagesToken();
 
 CStringTable::CStringTable() { Init(); }
 
@@ -15,13 +17,13 @@ shared_str CStringTable::GetLanguage() { return pData->m_sLanguage; }
 
 void CStringTable::Init()
 {
-    if (NULL != pData)
+    if (pData)
         return;
 
     pData = xr_new<STRING_TABLE_DATA>();
 
     //имя языка, если не задано (NULL), то первый <text> в <string> в XML
-    pData->m_sLanguage = pSettings->r_string("string_table", "language");
+    SetLanguage();
 
     LPCSTR S = pSettings->r_string("string_table", "files");
     if (S && S[0])
@@ -62,12 +64,10 @@ void CStringTable::Load(LPCSTR xml_file)
     {
         LPCSTR string_name = uiXml.ReadAttrib(uiXml.GetRoot(), "string", i, "id", NULL);
 
-        VERIFY3(pData->m_StringTable.find(string_name) == pData->m_StringTable.end(), "duplicate string table id", string_name);
+        if (WriteErrorsToLog && pData->m_StringTable.contains(string_name))
+            Msg("!![%s] duplicate string table id: [%s]", __FUNCTION__, string_name);
 
         LPCSTR string_text = uiXml.Read(uiXml.GetRoot(), "string:text", i, NULL);
-
-        if (m_bWriteErrorsToLog && string_text)
-            Msg("[string table] '%s' no translation in '%s'", string_name, *(pData->m_sLanguage));
 
         VERIFY3(string_text, "string table entry does not has a text", string_name);
 
@@ -76,6 +76,23 @@ void CStringTable::Load(LPCSTR xml_file)
         pData->m_StringTable[string_name] = str_val;
     }
 }
+
+void CStringTable::ReloadLanguage()
+{
+    if (!strcmp(GetLanguagesToken()->name, pData->m_sLanguage.c_str()))
+        return;
+
+    Destroy();
+    Init();
+
+    if (g_pGamePersistent && MainMenu() && MainMenu()->IsActive())
+    {
+        MainMenu()->Activate(FALSE);
+        MainMenu()->Activate(TRUE);
+    }
+}
+
+void CStringTable::SetLanguage() { pData->m_sLanguage = GetLanguagesToken()->name; }
 
 void CStringTable::ReparseKeyBindings()
 {
@@ -141,8 +158,8 @@ STRING_VALUE CStringTable::translate(const STRING_ID& str_id) const
 
     if (!res)
     {
-        if (m_bWriteErrorsToLog && *str_id != NULL && xr_strlen(*str_id) > 0)
-            Msg("[string table] '%s' has no entry", *str_id);
+        if (WriteErrorsToLog && *str_id != nullptr && xr_strlen(*str_id) > 0)
+            Msg("!![%s] [%s] has no entry!", __FUNCTION__, *str_id);
         return str_id;
     }
 

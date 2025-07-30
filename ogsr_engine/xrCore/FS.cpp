@@ -80,9 +80,9 @@ void CMemoryWriter::w(const void* ptr, u32 count)
         while (mem_size <= (position + count))
             mem_size *= 2;
         if (0 == data)
-            data = (BYTE*)Memory.mem_alloc(mem_size);
+            data = (BYTE*)xr_malloc(mem_size);
         else
-            data = (BYTE*)Memory.mem_realloc(data, mem_size);
+            data = (BYTE*)xr_realloc(data, mem_size);
     }
     CopyMemory(data + position, ptr, count);
     position += count;
@@ -93,7 +93,7 @@ void CMemoryWriter::w(const void* ptr, u32 count)
 void CMemoryWriter::reserve(const size_t count)
 {
     mem_size = count;
-    data = (BYTE*)Memory.mem_alloc(mem_size);
+    data = (BYTE*)xr_malloc(mem_size);
 }
 
 bool CMemoryWriter::save_to(LPCSTR fn)
@@ -134,7 +134,7 @@ u32 IWriter::chunk_size() // returns size of currently opened chunk, 0 otherwise
 void IWriter::w_compressed(void* ptr, u32 count, const bool encrypt, const bool is_ww)
 {
     BYTE* dest = 0;
-    unsigned dest_sz = 0;
+    size_t dest_sz = 0;
     _compressLZ(&dest, &dest_sz, ptr, count);
 
     if (encrypt)
@@ -192,7 +192,7 @@ IReader* IReader::open_chunk(u32 ID)
         if (bCompressed)
         {
             BYTE* dest;
-            unsigned dest_sz;
+            size_t dest_sz;
             _decompressLZ(&dest, &dest_sz, pointer(), dwSize);
             return xr_new<CTempReader>(dest, dest_sz, tell() + dwSize);
         }
@@ -243,7 +243,7 @@ IReader* IReader::open_chunk_iterator(u32& ID, IReader* _prev)
     {
         // compressed
         u8* dest;
-        unsigned dest_sz;
+        size_t dest_sz;
         _decompressLZ(&dest, &dest_sz, pointer(), _size);
         return xr_new<CTempReader>(dest, dest_sz, tell() + _size);
     }
@@ -338,7 +338,7 @@ void IReader::r_stringZ(char* dest, u32 tgt_sz)
     {
         sz++;
 
-        R_ASSERT2(sz < (tgt_sz - 1), "Dest string less than needed.");
+        ASSERT_FMT(sz < (tgt_sz - 1), "!![%s] Dest string less than needed for: [%s]", __FUNCTION__, src);
 
         *dest++ = src[Pos++];
     }
@@ -401,6 +401,7 @@ void IReader::skip_stringZ()
 //---------------------------------------------------
 // temp stream
 CTempReader::~CTempReader() { xr_free(data); };
+
 //---------------------------------------------------
 // pack stream
 CPackReader::~CPackReader()

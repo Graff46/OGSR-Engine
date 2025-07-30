@@ -77,7 +77,7 @@ protected: //чтоб нельзя было вызвать на прямую
     enum
     {
         fl_pending = (1 << 0),
-        fl_renderhud = (1 << 1),
+        // = (1 << 1),
         fl_inertion_enable = (1 << 2),
         fl_inertion_allow = (1 << 3),
         fl_bobbing_allow = (1 << 4),
@@ -91,10 +91,10 @@ protected: //чтоб нельзя было вызвать на прямую
     u32 m_dwMotionEndTm;
     u32 m_startedMotionState;
 
-    bool m_bStopAtEndAnimIsRunning;
+    bool m_bStopAtEndAnimIsRunning{};
     bool SprintType{};
     bool BobbingEnable{};
-    u32 m_dwStateTime;
+    u32 m_dwStateTime{};
 
 public:
     virtual void Load(LPCSTR section);
@@ -155,7 +155,7 @@ public:
     virtual bool NeedBlendAnm();
 
     virtual void UpdateCL();
-    virtual void renderable_Render();
+    virtual void renderable_Render(u32 context_id, IRenderable* root);
 
     virtual void Hide(bool = false) {}
     virtual void Show(bool = false) {}
@@ -178,10 +178,10 @@ public:
     BOOL GetHUDmode();
     IC void SetPending(BOOL H) { m_huditem_flags.set(fl_pending, H); }
     IC BOOL IsPending() const { return !!m_huditem_flags.test(fl_pending); }
-    IC void RenderHud(BOOL B) { m_huditem_flags.set(fl_renderhud, B); }
-    IC BOOL RenderHud() { return m_huditem_flags.test(fl_renderhud); }
 
-    virtual void render_hud_mode(){};
+    void PlayBlendAnm(LPCSTR name, float speed = 1.f, float power = 1.f, bool stop_old = true);
+
+    virtual void render_hud_mode(u32 context_id, IRenderable* root){};
     virtual bool need_renderable() { return true; };
     virtual void render_item_3d_ui() {}
     virtual bool render_item_3d_ui_query() { return false; }
@@ -217,7 +217,7 @@ public:
         return (*m_item);
     }
 
-    virtual void on_renderable_Render() = 0;
+    virtual void on_renderable_Render(u32 context_id, IRenderable* root) = 0;
 
 public:
     class CWeaponBobbing
@@ -290,6 +290,8 @@ protected:
     virtual Fvector GetDirectionForCollision() { return Device.vCameraDirection; }
     float m_fZoomRotationFactor{}; //от 0 до 1, показывает насколько процентов мы перемещаем HUD
     float m_fZoomRotateTime{}; //время приближения
+    //bool is_second_zoom_offset_enabled{};
+    //bool AimAlt{};
     u32 skip_updated_frame{};
     bool HudInertionAllowed() const { return m_huditem_flags.test(fl_inertion_allow); }
     void AllowHudInertion(BOOL B) { m_huditem_flags.set(fl_inertion_allow, B); }
@@ -309,10 +311,9 @@ private:
     Fvector m_nearwall_target_hud_offset{}, m_nearwall_target_hud_rotate{};
     float saved_rq_range{};
     Fvector m_nearwall_last_pos{}, m_nearwall_last_rot{};
-    u32 m_nearwall_last_call{};
 
-    float m_fLR_MovingFactor{}, m_fLookout_MovingFactor{}, m_fAimLookout_MovingFactor{}, m_fJump_MovingFactor{}, m_fFall_MovingFactor{};
-    Fvector m_strafe_offset[3][2]{}, m_lookout_offset[3][2]{}, m_jump_offset[3][2]{}, m_fall_offset[3][2]{};
+    Fvector m_strafe_offset[3][2]{}, m_lookout_offset[3][2]{}, m_jump_offset[3][2]{}, m_fall_offset[2][2]{}, m_landing_offset[2][2]{}, m_move_offset[3]{}, m_walk_offset[3]{};
+    Fvector current_difference[2]{}, current_strafe[2]{}, current_lookout[2]{}, current_jump[2]{}, current_move[2]{}, current_walk[2]{};
 
     float m_base_fov{};
 
@@ -336,7 +337,7 @@ private:
     Fvector inert_st_last_dir{};
     void UpdateInertion(Fmatrix& trans);
     float GetInertionFactor() const { return 1.f; } //--#SM+#--
-    float GetInertionPowerFactor() const { return 1.f; } //--#SM+#--
+    float GetInertionPowerFactor() const { return 0.5f; } //--#SM+#--
     bool HudInertionEnabled() const { return m_huditem_flags.test(fl_inertion_enable); }
     void EnableHudInertion(BOOL B) { m_huditem_flags.set(fl_inertion_enable, B); }
 };

@@ -1,8 +1,6 @@
-#ifndef dxFontRender_included
-#define dxFontRender_included
 #pragma once
 
-#include "..\..\Include\xrRender\FontRender.h"
+#include "../../Include/xrRender/FontRender.h"
 
 class dxFontRender : public IFontRender
 {
@@ -16,6 +14,6 @@ public:
 private:
     ref_shader pShader;
     ref_geom pGeom;
-};
 
-#endif //	FontRender_included
+    void RenderFragment(CGameFont& owner, u32& i, bool shadow_mode, float dX, float dY, u32 length, u32 last);
+};

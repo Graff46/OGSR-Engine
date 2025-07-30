@@ -1,5 +1,3 @@
-#ifndef dx103DFluidEmitters_included
-#define dx103DFluidEmitters_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
@@ -52,15 +50,15 @@ public:
     dx103DFluidEmitters(int gridWidth, int gridHeight, int gridDepth, dx103DFluidGrid* pGrid);
     ~dx103DFluidEmitters();
 
-    void RenderDensity(const dx103DFluidData& FluidData);
-    void RenderVelocity(const dx103DFluidData& FluidData);
+    void RenderDensity(CBackend& cmd_list, const dx103DFluidData& FluidData);
+    void RenderVelocity(CBackend& cmd_list, const dx103DFluidData& FluidData);
 
 private:
     void InitShaders();
     void DestroyShaders();
 
-    void ApplyDensity(const CEmitter& Emitter);
-    void ApplyVelocity(const CEmitter& Emitter);
+    void ApplyDensity(CBackend& cmd_list, const CEmitter& Emitter);
+    void ApplyVelocity(CBackend& cmd_list, const CEmitter& Emitter);
 
 private:
     Fvector3 m_vGridDim;
@@ -71,5 +69,3 @@ private:
 };
 
 #endif //	dx103DFluidEmitters_included
-
-#endif

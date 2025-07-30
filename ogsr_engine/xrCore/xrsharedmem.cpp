@@ -8,7 +8,7 @@ smem_value* smem_container::dock(u32 dwSize, void* ptr)
 
     if (bDisable)
     {
-        smem_value* result = (smem_value*)Memory.mem_alloc(sizeof(smem_value) + dwSize);
+        smem_value* result = (smem_value*)xr_malloc(sizeof(smem_value) + dwSize);
         result->dwReference = 0;
         result->dwSize = dwSize;
         result->dwCRC = u32(-1);
@@ -53,7 +53,7 @@ smem_value* smem_container::dock(u32 dwSize, void* ptr)
     // if not found - create new entry
     if (0 == result)
     {
-        result = (smem_value*)Memory.mem_alloc(sizeof(smem_value) + dwSize);
+        result = (smem_value*)xr_malloc(sizeof(smem_value) + dwSize);
         result->dwReference = 0;
         result->dwCRC = dwCRC;
         result->dwSize = dwSize;
@@ -82,12 +82,15 @@ void smem_container::clean()
 
 void smem_container::dump()
 {
+    string_path fname;
+    FS.update_path(fname, fsgame::app_data_root, "$smem_container_dump$.txt");
+
     cs.Enter();
     cdb::iterator it = container.begin();
     cdb::iterator end = container.end();
-    FILE* F = fopen("x:\\$smem_dump$.txt", "w");
-    for (; it != end; it++)
-        fprintf(F, "%4u : crc[%6x], %u bytes\n", (*it)->dwReference, (*it)->dwCRC, (*it)->dwSize);
+    FILE* F = fopen(fname, "w");
+    for (; it != end; ++it)
+        fprintf(F, "%4u : crc[%6x], %u bytes\n", (*it)->dwReference.load(), (*it)->dwCRC, (*it)->dwSize);
     fclose(F);
     cs.Leave();
 }

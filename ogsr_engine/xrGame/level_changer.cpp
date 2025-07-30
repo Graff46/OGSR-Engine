@@ -20,6 +20,9 @@
 #include "HudManager.h"
 #include "UIGameSP.h"
 
+#include "patrol_path.h"
+#include "patrol_path_storage.h"
+
 xr_vector<CLevelChanger*> g_lchangers;
 
 CLevelChanger::~CLevelChanger() {}
@@ -55,7 +58,7 @@ BOOL CLevelChanger::net_Spawn(CSE_Abstract* DC)
     if (ai().get_level_graph())
     {
         //. this information should be computed in xrAI
-        ai_location().level_vertex(ai().level_graph().vertex(u32(-1), Position()));
+        ai_location().level_vertex(ai().level_graph().vertex_id(u32(-1), Position()));
         ai_location().game_vertex(ai().cross_table().vertex(ai_location().level_vertex_id()).game_vertex_id());
     }
 
@@ -100,8 +103,9 @@ void CLevelChanger::shedule_Update(u32 dt)
 
     update_actor_invitation();
 }
-#include "patrol_path.h"
-#include "patrol_path_storage.h"
+
+extern bool g_block_all_except_movement;
+
 void CLevelChanger::feel_touch_new(CObject* tpObject)
 {
     CActor* l_tpActor = smart_cast<CActor*>(tpObject);
@@ -109,9 +113,9 @@ void CLevelChanger::feel_touch_new(CObject* tpObject)
     if (!l_tpActor->g_Alive())
         return;
 
-    if (m_SilentMode)
+    if (m_SilentMode || g_block_all_except_movement)
     {
-        if (m_SilentMode == 2)
+        if (m_SilentMode == 2 || g_block_all_except_movement)
         {
             Fvector p, r;
             if (get_reject_pos(p, r))
@@ -271,6 +275,6 @@ void CLevelChanger::OnRender()
 
         HUD().Font().pFontMedium->SetColor(Color);
         HUD().Font().pFontMedium->OutSet(x, y -= delta_height);
-        HUD().Font().pFontMedium->OutNext(Name());
+        HUD().Font().pFontMedium->OutNext("%s id=%d", Name(), ID());
     }
 }

@@ -86,7 +86,7 @@ protected:
     bool m_bDrawCursor;
 
     Text m_text;
-    std::vector<bool> m_text_mask;
+    xr_vector<bool> m_text_mask;
 
     ETextAlignment m_eTextAlign;
     EVTextAlignment m_eVTextAlign;
@@ -131,6 +131,6 @@ public:
     virtual void SetTextPosY(float y) { m_textPos.y = y; }
 
 protected:
-    Fvector2 m_textPos;
+    Fvector2 m_textPos{};
     CUILines m_lines;
 };

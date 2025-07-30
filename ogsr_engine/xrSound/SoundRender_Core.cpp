@@ -10,8 +10,9 @@
 #include <eax.h>
 #pragma warning(pop)
 
+BOOL bSenvironmentXrExport{};
 int psSoundTargets = 256; // 512; //--#SM+#-- //32;
-Flags32 psSoundFlags = {ss_Hardware};
+Flags32 psSoundFlags = {/*ss_Hardware*/};
 float psSoundOcclusionScale = 0.5f;
 float psSoundLinearFadeFactor = 0.4f; //--#SM+#--
 float psSoundCull = 0.01f;
@@ -34,9 +35,10 @@ static LPALEFFECTI alEffecti;
 static LPALDELETEEFFECTS alDeleteEffects;
 static LPALISEFFECT alIsEffect;
 static LPALGENEFFECTS alGenEffects;
-LPALDELETEAUXILIARYEFFECTSLOTS alDeleteAuxiliaryEffectSlots;
-LPALGENAUXILIARYEFFECTSLOTS alGenAuxiliaryEffectSlots;
-LPALAUXILIARYEFFECTSLOTI alAuxiliaryEffectSloti;
+static LPALISAUXILIARYEFFECTSLOT alIsAuxiliaryEffectSlot;
+static LPALDELETEAUXILIARYEFFECTSLOTS alDeleteAuxiliaryEffectSlots;
+static LPALGENAUXILIARYEFFECTSLOTS alGenAuxiliaryEffectSlots;
+static LPALAUXILIARYEFFECTSLOTI alAuxiliaryEffectSloti;
 //////////////////////////////////////////////////
 
 CSoundRender_Core::CSoundRender_Core()
@@ -52,7 +54,7 @@ CSoundRender_Core::CSoundRender_Core()
     s_targets_pu = 0;
     s_emitters_u = 0;
     e_current.set_identity();
-    e_target.set_identity();
+    e_target = get_environment_def();
     bListenerMoved = FALSE;
     bReady = FALSE;
     bLocked = FALSE;
@@ -66,15 +68,20 @@ CSoundRender_Core::CSoundRender_Core()
     slot = 0;
 }
 
+void CSoundRender_Core::release_efx_objects() const
+{
+    if (alIsEffect(effect))
+        alDeleteEffects(1, &effect);
+
+    if (alIsAuxiliaryEffectSlot(slot))
+        alDeleteAuxiliaryEffectSlots(1, &slot);
+}
+
 CSoundRender_Core::~CSoundRender_Core()
 {
-    if (bEFX)
+    // if (bEFX)
     {
-        if (effect)
-            alDeleteEffects(1, &effect);
-
-        if (slot)
-            alDeleteAuxiliaryEffectSlots(1, &slot);
+        //release_efx_objects();
     }
 
     xr_delete(geom_ENV);
@@ -88,19 +95,14 @@ void CSoundRender_Core::_initialize(int stage)
     // load environment
     env_load();
 
-    bPresent = TRUE;
-
     // Cache
     cache_bytes_per_line = (sdef_target_block / 8) * 276400 / 1000;
     cache.initialize(psSoundCacheSizeMB * 1024, cache_bytes_per_line);
-
-    bReady = TRUE;
 }
 
 extern xr_vector<u8> g_target_temp_data;
 void CSoundRender_Core::_clear()
 {
-    bReady = FALSE;
     cache.destroy();
     env_unload();
 
@@ -134,17 +136,36 @@ int CSoundRender_Core::pause_emitters(bool val)
     return m_iPauseCounter;
 }
 
+#define SNDENV_FILENAME_XR "senvironment.xr"
+#define SNDENV_FILENAME_LTX "senvironment.ltx"
+
 void CSoundRender_Core::env_load()
 {
     // Load environment
     string_path fn;
-    if (FS.exist(fn, "$game_data$", SNDENV_FILENAME))
+    if (FS.exist(fn, "$game_data$", SNDENV_FILENAME_LTX))
     {
-        Msg("Loading of [%s]", SNDENV_FILENAME);
+        Msg("Loading of [%s]", SNDENV_FILENAME_LTX);
 
-        s_environment = xr_new<SoundEnvironment_LIB>();
+        if (!s_environment)
+            s_environment = xr_new<SoundEnvironment_LIB>();
+
+        CInifile inifile{fn, 1, 1, 0};
+
+        s_environment->LoadIni(&inifile);
+    }
+    else if (FS.exist(fn, "$game_data$", SNDENV_FILENAME_XR))
+    {
+        Msg("Loading of [%s]", SNDENV_FILENAME_XR);
+
+        if (!s_environment)
+            s_environment = xr_new<SoundEnvironment_LIB>();
+
         s_environment->Load(fn);
+    }
 
+    if (s_environment)
+    {
         for (u32 chunk = 0; chunk < s_environment->Library().size(); chunk++)
         {
             shared_str name = s_environment->Library()[chunk]->name;
@@ -162,16 +183,35 @@ void CSoundRender_Core::env_unload()
 {
     // Unload
     if (s_environment)
+    {
+        if (bSenvironmentXrExport)
+        {
+            env_save_all();
+        }
+
         s_environment->Unload();
+    }
+
     xr_delete(s_environment);
 
     // Unload geometry
+}
+
+void CSoundRender_Core::env_save_all() const
+{
+    string_path fn;
+    FS.update_path(fn, "$game_data$", SNDENV_FILENAME_LTX);
+
+    CInifile inifile{fn, 0, 1, 1};
+
+    s_environment->SaveIni(&inifile);
 }
 
 void CSoundRender_Core::_restart()
 {
     cache.destroy();
     cache.initialize(psSoundCacheSizeMB * 1024, cache_bytes_per_line);
+
     env_apply();
 }
 
@@ -266,10 +306,11 @@ void CSoundRender_Core::set_geometry_env(IReader* I)
     xr_free(_data);
 }
 
-void CSoundRender_Core::create(ref_sound& S, const char* fName, esound_type sound_type, int game_type)
+void CSoundRender_Core::create(ref_sound& S, LPCSTR fName, esound_type sound_type, int game_type)
 {
     if (!bPresent)
         return;
+
     S._p = xr_new<ref_sound_data>(fName, sound_type, game_type);
 }
 
@@ -306,6 +347,7 @@ void CSoundRender_Core::clone(ref_sound& S, const ref_sound& from, esound_type s
 {
     if (!bPresent)
         return;
+
     S._p = xr_new<ref_sound_data>();
     S._p->handle = from._p->handle;
     S._p->dwBytesTotal = from._p->dwBytesTotal;
@@ -413,32 +455,37 @@ void CSoundRender_Core::_destroy_data(ref_sound_data& S)
     S.handle = NULL;
 }
 
-CSoundRender_Environment* CSoundRender_Core::get_environment(const Fvector& P)
+CSoundRender_Environment* CSoundRender_Core::get_environment_def()
 {
     static CSoundRender_Environment identity;
+    identity.set_identity();
+    return &identity;
+}
 
+CSoundRender_Environment* CSoundRender_Core::get_environment(const Fvector& P)
+{
     if (geom_ENV)
     {
         Fvector dir = {0, -1, 0};
 
         // хитрый способ для проверки звуковых зон в 2х направлениях от камеры. но что то он хуже работает. часто не та зона выбираеться. пока убрал
 
-        //CDB::COLLIDER geom_DB1;
-        //geom_DB1.ray_query(CDB::OPT_ONLYNEAREST, geom_ENV, P, dir, 1000.f);
+        // CDB::COLLIDER geom_DB1;
+        // geom_DB1.ray_query(CDB::OPT_ONLYNEAREST, geom_ENV, P, dir, 1000.f);
 
-        //CDB::COLLIDER geom_DB2;
-        //geom_DB2.ray_query(CDB::OPT_ONLYNEAREST, geom_ENV, P, Fvector(dir).invert(), 1000.f);
+        // CDB::COLLIDER geom_DB2;
+        // geom_DB2.ray_query(CDB::OPT_ONLYNEAREST, geom_ENV, P, Fvector(dir).invert(), 1000.f);
 
         geom_DB.ray_query(CDB::OPT_ONLYNEAREST, geom_ENV, P, dir, 1000.f);
 
-        //if (geom_DB1.r_count() && geom_DB2.r_count())
+        // if (geom_DB1.r_count() && geom_DB2.r_count())
         if (geom_DB.r_count())
         {
-            //CDB::RESULT* r = geom_DB1.r_begin();
-            //CDB::RESULT* r2 = geom_DB2.r_begin();
+            // CDB::RESULT* r = geom_DB1.r_begin();
+            // CDB::RESULT* r2 = geom_DB2.r_begin();
 
-            //if (r2->range < r->range)
-            //    r = r2;
+            // if (r2->range < r->range)
+            //     r = r2;
 
             CDB::RESULT* r = geom_DB.r_begin();
 
@@ -464,8 +511,7 @@ CSoundRender_Environment* CSoundRender_Core::get_environment(const Fvector& P)
         }
     }
 
-    identity.set_identity();
-    return &identity;
+    return get_environment_def();
 }
 
 void CSoundRender_Core::env_apply()
@@ -495,6 +541,7 @@ void CSoundRender_Core::InitAlEFXAPI()
     LOAD_PROC(alEffecti, LPALEFFECTI);
     LOAD_PROC(alAuxiliaryEffectSloti, LPALAUXILIARYEFFECTSLOTI);
     LOAD_PROC(alGenAuxiliaryEffectSlots, LPALGENAUXILIARYEFFECTSLOTS);
+    LOAD_PROC(alIsAuxiliaryEffectSlot, LPALISAUXILIARYEFFECTSLOT);
     LOAD_PROC(alEffectf, LPALEFFECTF);
 }
 
@@ -570,7 +617,7 @@ bool CSoundRender_Core::i_efx_commit_setting()
     ALenum err = alGetError();
     if (err != AL_NO_ERROR)
     {
-        Msg("!![%s] OpenAL EFX error: [%s]", __FUNCTION__, alGetString(err));
+        Msg("!![%s] OpenAL EFX commit error: [%s]. EFX will be disabled.", __FUNCTION__, alGetString(err));
         return false;
     }
 
@@ -592,8 +639,8 @@ void CSoundRender_Core::i_eax_listener_set(CSound_environment* _E)
     ep.flReflectionsDelay = E->ReflectionsDelay; // initial reflection delay time
     ep.lReverb = iFloor(E->Reverb); // late reverberation level relative to room effect
     ep.flReverbDelay = E->ReverbDelay; // late reverberation delay time relative to initial reflection
-    ep.dwEnvironment = EAXLISTENER_DEFAULTENVIRONMENT; // sets all listener properties
-    ep.flEnvironmentSize = E->EnvironmentSize; // environment size in meters
+    //ep.dwEnvironment = EAXLISTENER_DEFAULTENVIRONMENT; // sets all listener properties
+    //ep.flEnvironmentSize = E->EnvironmentSize; // environment size in meters
     ep.flEnvironmentDiffusion = E->EnvironmentDiffusion; // environment diffusion
     ep.flAirAbsorptionHF = E->AirAbsorptionHF; // change in level per meter at 5 kHz
     ep.dwFlags = EAXLISTENER_DEFAULTFLAGS; // modifies the behavior of properties

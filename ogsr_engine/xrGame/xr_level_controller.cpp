@@ -344,7 +344,11 @@ _keyboard* keyname_to_ptr(LPCSTR _name)
 
 bool is_binded(EGameActions _action_id, int _dik)
 {
+    if (_action_id == kNOTBINDED)
+        return false;
+
     _binding* pbinding = &g_key_bindings.at(_action_id);
+
     if (pbinding->m_keyboard[0] && pbinding->m_keyboard[0]->dik == _dik)
         return true;
 
@@ -612,7 +616,7 @@ bool ConsoleBindCmds::execute(int dik)
     if (it == m_bindConsoleCmds.end())
         return false;
 
-    Console->Execute(it->second.cmd.c_str());
+    Console->ExecuteCommand(it->second.cmd.c_str(), false, false);
     return true;
 }
 

@@ -55,8 +55,8 @@ public:
     virtual void UpdateCL();
     virtual void shedule_Update(u32 dt);
 
-    virtual void renderable_Render();
-    virtual void render_hud_mode() override;
+    virtual void renderable_Render(u32 context_id, IRenderable* root) override;
+    virtual void render_hud_mode(u32 context_id, IRenderable* root) override;
     virtual void OnDrawUI();
     virtual bool need_renderable();
 
@@ -238,8 +238,6 @@ protected:
     float m_fScopeZoomFactor;
     //когда режим приближения включен
     bool m_bZoomMode;
-    //коэффициент увеличения во втором вьюпорте при зуме
-    float m_fSecondVPZoomFactor;
     //прятать перекрестие в режиме прицеливания
     bool m_bHideCrosshairInZoom;
     //разрешить инерцию оружия в режиме прицеливания
@@ -249,7 +247,7 @@ protected:
     //Целевой HUD FOV при зуме
     float m_fZoomHudFov;
     //Целевой HUD FOV для линзы
-    float m_fSecondVPHudFov;
+    float m_f3dssHudFov;
 
     bool m_bUseScopeZoom = false;
     bool m_bUseScopeGrenadeZoom = false;
@@ -282,6 +280,7 @@ public:
 
     IC float GetZoomFactor() const { return m_fZoomFactor; }
     virtual float CurrentZoomFactor();
+
     //показывает, что оружие находится в соостоянии поворота для приближенного прицеливания
     bool IsRotatingToZoom() const { return (m_fZoomRotationFactor < 1.f); }
     bool IsRotatingFromZoom() const { return m_fZoomRotationFactor > 0.f; }
@@ -417,11 +416,10 @@ public:
     float camStepAngleHorz;
 
     float dof_transition_time{};
-    float dof_zoom_effect{};
-    float dof_reload_effect{};
+    static float dof_zoom_effect, dof_reload_effect;
     Fvector4 dof_params_zoom{};
     Fvector4 dof_params_reload{};
-    void UpdateDof(float& type, Fvector4 params_type, bool desire);
+    void UpdateDof(float& type, const Fvector4& params_type, const bool desire);
 
 protected:
     //фактор увеличения дисперсии при максимальной изношености
@@ -454,6 +452,8 @@ protected:
 
     //Давать ли доиграть анимацию выстрела после выстрела (надо для анимаций с вылетающими гильзами)
     bool dont_interrupt_shot_anm{};
+    //Является ли это оружие оружием из Gunslinger Mod
+    bool is_gunslinger_weapon{};
 
     //////////////////////////////////////////////////////////////////////////
     // партиклы
@@ -550,18 +550,15 @@ public:
     virtual bool use_crosshair() const { return true; }
     bool show_crosshair();
     bool show_indicators();
-    virtual BOOL ParentMayHaveAimBullet();
-    virtual BOOL ParentIsActor();
+    virtual bool ParentIsActor() const override;
 
 private:
     float m_hit_probability[egdCount];
 
 public:
     const float& hit_probability() const;
-    void UpdateSecondVP();
     float GetZRotatingFactor() const { return m_fZoomRotationFactor; } //--#SM+#--
-    float GetSecondVPFov() const; //--#SM+#--
-    bool SecondVPEnabled() const;
+    bool Is3dssEnabled() const;
     float GetHudFov() override;
 
     virtual void OnBulletHit();
@@ -573,6 +570,9 @@ public:
         UpdateFlashlight();
         inherited::processing_deactivate();
     }
+
+    virtual void on_a_hud_attach() override;
+    virtual void on_b_hud_detach() override;
 
     Fvector laserdot_attach_offset{}, laser_pos{};
 
@@ -685,4 +685,12 @@ public:
 
     void UpdateVisualBullets();
     void HUD_VisualBulletUpdate(bool force = false, int force_idx = -1);
+
+private:
+    xr_string current_bullet_texture;
+    xr_vector<xr_string> bullet_textures_in_model;
+    string_unordered_map<xr_string, xr_string> bullet_textures_for_ammos;
+
+public:
+    void update_visual_bullet_textures(const bool forced = false);
 };

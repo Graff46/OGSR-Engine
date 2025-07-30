@@ -78,14 +78,14 @@ constexpr float snapto(float value, float snap) noexcept
     return float(iFloor((value + (snap * 0.5f)) / snap)) * snap;
 };
 
+#include "_random.h"
+
 // pre-definitions
 template <class T>
 struct _quaternion;
 
 #pragma pack(push)
 #pragma pack(1)
-
-#include "_random.h"
 
 #include "_color.h"
 #include "_vector3d.h"
@@ -100,7 +100,6 @@ struct _quaternion;
 #include "_obb.h"
 #include "_sphere.h"
 #include "_cylinder.h"
-#include "_random.h"
 #include "_compressed_normal.h"
 #include "_plane.h"
 #include "_plane2.h"
@@ -242,6 +241,25 @@ IC float angle_inertion_var(float src, float tgt, float min_speed, float max_spe
     float dCH = clampr(dH, -clmp, clmp);
     src -= dH - dCH;
     return src;
+}
+
+// linear interpolation
+#define _lerp std::lerp
+
+#define _lerpc(_val_a, _val_b, _factor) std::lerp(_val_a, _val_b, std::clamp(_factor, 0.0f, 1.0f))
+
+// inertion
+constexpr float inertion(const float _val_cur, const float _val_trgt, const float _friction)
+{
+    const float friction_i = 1.f - _friction;
+    return _val_cur * _friction + _val_trgt * friction_i;
+}
+
+template <class T>
+constexpr T smoothstep(const T min, const T max, T res, const T min_range = 0, const T max_range = 1)
+{
+    res = clampr((res - min) / (max - min), min_range, max_range);
+    return res * res * (3 - 2 * res);
 }
 
 template <class T>

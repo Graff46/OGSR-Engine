@@ -11,7 +11,7 @@
 
 using namespace luabind;
 
-#pragma optimize("s", on)
+
 void CScriptParticles::script_register(lua_State* L)
 {
     module(L)[class_<CScriptParticles>("particles_object")
@@ -25,11 +25,18 @@ void CScriptParticles::script_register(lua_State* L)
                   .def("looped", &CScriptParticles::IsLooped)
 
                   .def("move_to", &CScriptParticles::MoveTo)
+                  .def("set_position", &CScriptParticles::XFORMMoveTo)
+                  .def("set_direction", &CScriptParticles::SetDirection)
+                  .def("set_orientation", &CScriptParticles::SetOrientation)
+
+                  .def("last_position", &CScriptParticles::LastPosition)
 
                   .def("load_path", &CScriptParticles::LoadPath)
                   .def("start_path", &CScriptParticles::StartPath)
                   .def("stop_path", &CScriptParticles::StopPath)
                   .def("pause_path", &CScriptParticles::PausePath)
+
+                  // same values, left for compat with anomaly exports ?
                   .def("life_time", &CScriptParticles::LifeTime)
                   .def("length", &CScriptParticles::Length)];
 }

@@ -6,6 +6,7 @@
 #include "inventory.h"
 #include "level.h"
 #include "actor.h"
+#include "../xr_3da/x_ray.h"
 
 CWeaponShotgun::CWeaponShotgun(void) : CWeaponCustomPistol("TOZ34")
 {
@@ -21,6 +22,8 @@ CWeaponShotgun::~CWeaponShotgun(void)
     HUD_SOUND::DestroySound(sndShotBoth);
     HUD_SOUND::DestroySound(m_sndOpen);
     HUD_SOUND::DestroySound(m_sndAddCartridge);
+    HUD_SOUND::DestroySound(m_sndAddCartridgeSecond);
+    HUD_SOUND::DestroySound(m_sndAddCartridgeStart);
     HUD_SOUND::DestroySound(m_sndAddCartridgeEmpty);
     HUD_SOUND::DestroySound(m_sndClose);
     HUD_SOUND::DestroySound(m_sndCloseEmpty);
@@ -46,8 +49,12 @@ void CWeaponShotgun::Load(LPCSTR section)
     {
         HUD_SOUND::LoadSound(section, "snd_open_weapon", m_sndOpen, m_eSoundOpen);
         HUD_SOUND::LoadSound(section, "snd_add_cartridge", m_sndAddCartridge, m_eSoundAddCartridge);
+        if (pSettings->line_exist(section, "snd_add_cartridge_second"))
+            HUD_SOUND::LoadSound(section, "snd_add_cartridge_second", m_sndAddCartridgeSecond, m_eSoundAddCartridge);
         if (pSettings->line_exist(section, "snd_add_cartridge_empty"))
             HUD_SOUND::LoadSound(section, "snd_add_cartridge_empty", m_sndAddCartridgeEmpty, m_eSoundAddCartridge);
+        if (pSettings->line_exist(section, "snd_add_cartridge_start"))
+            HUD_SOUND::LoadSound(section, "snd_add_cartridge_start", m_sndAddCartridgeStart, m_eSoundAddCartridge);
         HUD_SOUND::LoadSound(section, "snd_close_weapon", m_sndClose, m_eSoundClose);
         if (pSettings->line_exist(section, "snd_close_weapon_empty"))
             HUD_SOUND::LoadSound(section, "snd_close_weapon_empty", m_sndCloseEmpty, m_eSoundClose);
@@ -62,8 +69,8 @@ void CWeaponShotgun::OnShot()
 {
     inherited::OnShot();
 
-    if (/*!m_sndBreechJammed.sounds.empty() ||*/ !m_sndBreech.sounds.empty())
-        PlaySound(/*(IsMisfire() && !m_sndBreechJammed.sounds.empty()) ? m_sndBreechJammed :*/ m_sndBreech, get_LastFP());
+    if (!m_sndBreech.sounds.empty())
+        PlaySound((IsMisfire() && !m_sndBreechJammed.sounds.empty()) ? m_sndBreechJammed : m_sndBreech, get_LastFP());
 }
 
 void CWeaponShotgun::Fire2Start()
@@ -115,24 +122,26 @@ void CWeaponShotgun::OnShotBoth()
     AddShotEffector();
 
     // анимация дуплета
-    PlayHUDMotion({"anim_shoot_both", "anm_shots_both"}, false, GetState());
+    PlayHUDMotion({"anim_shoot_both", "anm_shots_both"}, IS_OGSR_GA, GetState());
 
     // Shell Drop
     Fvector vel;
     PHGetLinearVell(vel);
     OnShellDrop(get_LastSP(), vel);
 
-    //огонь из 2х стволов
-    StartFlameParticles();
-    StartFlameParticles2();
+    if (ShouldPlayFlameParticles())
+    {
+        StartFlameParticles();
+        ForceUpdateFireParticles();
+    }
 
     //дым из 2х стволов
     if (ParentIsActor())
     {
         CParticlesObject* pSmokeParticles = NULL;
-        CShootingObject::StartParticles(pSmokeParticles, *m_sSmokeParticlesCurrent, get_LastFP(), zero_vel, true);
+        CShootingObject::StartParticles(pSmokeParticles, *m_sSmokeParticlesCurrent, get_LastFP(), {}, true);
         pSmokeParticles = NULL;
-        CShootingObject::StartParticles(pSmokeParticles, *m_sSmokeParticlesCurrent, get_LastFP2(), zero_vel, true);
+        CShootingObject::StartParticles(pSmokeParticles, *m_sSmokeParticlesCurrent, get_LastFP2(), {}, true);
     }
 }
 
@@ -226,8 +235,12 @@ void CWeaponShotgun::UpdateSounds()
         m_sndOpen.set_position(get_LastFP());
     if (m_sndAddCartridge.playing())
         m_sndAddCartridge.set_position(get_LastFP());
+    if (m_sndAddCartridgeSecond.playing())
+        m_sndAddCartridgeSecond.set_position(get_LastFP());
     if (m_sndAddCartridgeEmpty.playing())
         m_sndAddCartridgeEmpty.set_position(get_LastFP());
+    if (m_sndAddCartridgeStart.playing())
+        m_sndAddCartridgeStart.set_position(get_LastFP());
     if (m_sndClose.playing())
         m_sndClose.set_position(get_LastFP());
     if (m_sndCloseEmpty.playing())
@@ -315,8 +328,6 @@ void CWeaponShotgun::OnAnimationEnd(u32 state)
         if (IsMisfire())
         {
             SwitchMisfire(false);
-            if (iAmmoElapsed > 0) //
-                SetAmmoElapsed(iAmmoElapsed - 1); //
         }
         m_sub_state = eSubstateReloadBegin;
         SwitchState(eIdle);
@@ -330,7 +341,6 @@ void CWeaponShotgun::OnAnimationEnd(u32 state)
         else
         {
             m_sub_state = IsMisfire() ? eSubstateReloadEnd : eSubstateReloadInProcess;
-            is_reload_empty = iAmmoElapsed == 0;
             SwitchState(eReload);
         }
         break;
@@ -366,7 +376,8 @@ void CWeaponShotgun::TriStateReload()
 {
     if (HaveCartridgeInInventory(1) || IsMisfire())
     {
-        m_sub_state = eSubstateReloadBegin;
+        StartCartridge = true;
+        m_sub_state = is_gunslinger_weapon && !IsMisfire() ? eSubstateReloadInProcess : eSubstateReloadBegin;
         SwitchState(eReload);
     }
 }
@@ -388,7 +399,7 @@ void CWeaponShotgun::OnStateSwitch(u32 S, u32 oldState)
         {
             if (IsMisfire())
             {
-                const char* Anm = iAmmoElapsed == 1 ? "anm_reload_jammed_last" : "anm_reload_jammed";
+                const char* Anm = (iAmmoElapsed == 1 && AnimationExist("anm_reload_jammed_last")) ? "anm_reload_jammed_last" : "anm_reload_jammed";
                 has_anm_reload_jammed = AnimationExist(Anm);
                 if (has_anm_reload_jammed)
                 {
@@ -403,10 +414,14 @@ void CWeaponShotgun::OnStateSwitch(u32 S, u32 oldState)
                 }
             }
             PlaySound(m_sndOpen, get_LastFP());
-            if (ParentIsActor())
+            if (GetAmmoElapsed() < 1 && AnimationExist("anm_open_empty"))
+            {
+                PlayHUDMotion({"anm_open_empty"}, true, GetState());
+            }
+            else
+            {
                 PlayHUDMotion({"anim_open_weapon", "anm_open"}, true, GetState());
-            else //Временно заткнул баг с неперезарядкой винчестера у нпс, надо фиксить анимацию, но это будет сделано позже, потом этот код убрать!
-                PlayHUDMotion({"anim_add_cartridge", "anm_add_cartridge"}, true, GetState());
+            }
             SetPending(TRUE);
         }
         break;
@@ -414,15 +429,31 @@ void CWeaponShotgun::OnStateSwitch(u32 S, u32 oldState)
     case eSubstateReloadInProcess: {
         if (HaveCartridgeInInventory(1))
         {
-            PlaySound(iAmmoElapsed == 0 && !m_sndAddCartridgeEmpty.sounds.empty() ? m_sndAddCartridgeEmpty : m_sndAddCartridge, get_LastFP());
-            PlayHUDMotion({iAmmoElapsed == 0 ? "anm_add_cartridge_empty" : "nullptr", "anim_add_cartridge", "anm_add_cartridge"}, true, GetState());
+            if (GetAmmoElapsed() < 1)
+            {
+                PlaySound(!m_sndAddCartridgeEmpty.sounds.empty() ? m_sndAddCartridgeEmpty : m_sndAddCartridge, get_LastFP());
+                PlayHUDMotion({"anm_add_cartridge_empty", "anim_add_cartridge", "anm_add_cartridge"}, false, GetState());
+                StartCartridge = false;
+            }
+            else if (SecondCartridge)
+            {
+                PlaySound(!m_sndAddCartridgeSecond.sounds.empty() ? m_sndAddCartridgeSecond : m_sndAddCartridge, get_LastFP());
+                PlayHUDMotion({"anm_add_cartridge_second", "anim_add_cartridge", "anm_add_cartridge"}, false, GetState());
+            }
+            else
+            {
+                PlaySound(StartCartridge && !m_sndAddCartridgeStart.sounds.empty() ? m_sndAddCartridgeStart : m_sndAddCartridge, get_LastFP());
+                PlayHUDMotion({StartCartridge ? "anm_add_cartridge_start" : "anm_add_cartridge", "anim_add_cartridge", "anm_add_cartridge"}, false, GetState());
+                StartCartridge = false;
+            }
             SetPending(TRUE);
+            SecondCartridge = GetAmmoElapsed() < 1;
         }
         break;
     }
     case eSubstateReloadEnd: {
-        PlayHUDMotion({IsMisfire() ? "anm_close_jammed" : (is_reload_empty ? "anm_close_empty" : "nullptr"), "anim_close_weapon", "anm_close"}, true, GetState());
-        PlaySound(((IsMisfire() || is_reload_empty) && !m_sndCloseEmpty.sounds.empty()) ? m_sndCloseEmpty : m_sndClose, get_LastFP());
+        PlayHUDMotion({IsMisfire() ? "anm_close_jammed" : (SecondCartridge ? "anm_close_empty" : "nullptr"), "anim_close_weapon", "anm_close"}, true, GetState());
+        PlaySound(((IsMisfire() || SecondCartridge) && !m_sndCloseEmpty.sounds.empty()) ? m_sndCloseEmpty : m_sndClose, get_LastFP());
         SetPending(TRUE);
         break;
     }
@@ -552,6 +583,8 @@ void CWeaponShotgun::StopHUDSounds()
 {
     HUD_SOUND::StopSound(m_sndOpen);
     HUD_SOUND::StopSound(m_sndAddCartridge);
+    HUD_SOUND::StopSound(m_sndAddCartridgeSecond);
+    HUD_SOUND::StopSound(m_sndAddCartridgeStart);
     HUD_SOUND::StopSound(m_sndAddCartridgeEmpty);
     HUD_SOUND::StopSound(m_sndClose);
     HUD_SOUND::StopSound(m_sndCloseEmpty);

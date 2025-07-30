@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
-#pragma hdrstop
+
 
 #include "blender_Model_EbB.h"
 
@@ -16,7 +16,6 @@ CBlender_Model_EbB::CBlender_Model_EbB()
     description.CLS = B_MODEL_EbB;
     description.version = 0x1;
     xr_strcpy(oT2_Name, "$null");
-    xr_strcpy(oT2_xform, "$null");
     oBlend.value = FALSE;
 }
 
@@ -24,19 +23,21 @@ CBlender_Model_EbB::~CBlender_Model_EbB() {}
 
 void CBlender_Model_EbB::Save(IWriter& fs)
 {
-    description.version = 0x1;
-    IBlender::Save(fs);
+    //description.version = 0x1;
+    IBlenderXr::Save(fs);
     xrPWRITE_MARKER(fs, "Environment map");
     xrPWRITE_PROP(fs, "Name", xrPID_TEXTURE, oT2_Name);
+    string64 oT2_xform; // xform for secondary texture
     xrPWRITE_PROP(fs, "Transform", xrPID_MATRIX, oT2_xform);
     xrPWRITE_PROP(fs, "Alpha-Blend", xrPID_BOOL, oBlend);
 }
 
 void CBlender_Model_EbB::Load(IReader& fs, u16 version)
 {
-    IBlender::Load(fs, version);
+    IBlenderXr::Load(fs, version);
     xrPREAD_MARKER(fs);
     xrPREAD_PROP(fs, xrPID_TEXTURE, oT2_Name);
+    string64 oT2_xform; // xform for secondary texture
     xrPREAD_PROP(fs, xrPID_MATRIX, oT2_xform);
     if (version >= 0x1)
     {
@@ -44,8 +45,26 @@ void CBlender_Model_EbB::Load(IReader& fs, u16 version)
     }
 }
 
+void CBlender_Model_EbB::SaveIni(CInifile* ini_file, LPCSTR section)
+{
+    IBlenderXr::SaveIni(ini_file, section);
+
+    ini_file->w_string(section, "detail_name", oT2_Name);
+
+    WriteBool(ini_file, section, "alpha_blend", oBlend);
+}
+
+void CBlender_Model_EbB::LoadIni(CInifile* ini_file, LPCSTR section)
+{
+    IBlenderXr::LoadIni(ini_file, section);
+
+    strcpy_s(oT2_Name, ini_file->r_string(section, "detail_name"));
+
+    ReadBool(ini_file, section, "alpha_blend", oBlend);
+}
 
 #include "uber_deffer.h"
+
 void CBlender_Model_EbB::Compile(CBlender_Compile& C)
 {
     IBlender::Compile(C);
@@ -53,8 +72,8 @@ void CBlender_Model_EbB::Compile(CBlender_Compile& C)
     if (oBlend.value)
     {
         // forward
-        LPCSTR vsname = 0;
-        LPCSTR psname = 0;
+        LPCSTR vsname = nullptr;
+        LPCSTR psname = nullptr;
         switch (C.iElement)
         {
         case 0:
@@ -81,26 +100,24 @@ void CBlender_Model_EbB::Compile(CBlender_Compile& C)
             if (C.HudElement)
             {
                 //Msg("--[%s] Detected hud element: [%s]", __FUNCTION__, C.L_textures[0].c_str());
-                uber_deffer(C, true, "model_hud", "base_hud", false, 0, true);
+                uber_deffer(C, true, "model_hud", "base_hud", false, nullptr, true);
                 C.r_dx10Texture("s_hud_rain", "fx\\hud_rain");
             }
             else
             {
-                uber_deffer(C, true, "model", "base", false, 0, true);
+                uber_deffer(C, true, "model", "base", false, nullptr, true);
             }
             C.r_Stencil(TRUE, D3DCMP_ALWAYS, 0xff, 0x7f, D3DSTENCILOP_KEEP, D3DSTENCILOP_REPLACE, D3DSTENCILOP_KEEP);
             C.r_StencilRef(0x01);
             C.r_End();
             break;
         case SE_R2_NORMAL_LQ: // deffer
-            uber_deffer(C, false, "model", "base", false, 0, true);
+            uber_deffer(C, false, "model", "base", false, nullptr, true);
             C.r_Stencil(TRUE, D3DCMP_ALWAYS, 0xff, 0x7f, D3DSTENCILOP_KEEP, D3DSTENCILOP_REPLACE, D3DSTENCILOP_KEEP);
             C.r_StencilRef(0x01);
             C.r_End();
             break;
         case SE_R2_SHADOW: // smap
-            // if (RImplementation.o.HW_smap)	C.r_Pass	("shadow_direct_model","dumb",	FALSE,TRUE,TRUE,FALSE);
-            // else							C.r_Pass	("shadow_direct_model","shadow_direct_base",FALSE);
             C.r_Pass("shadow_direct_model", "dumb", FALSE, TRUE, TRUE, FALSE);
             // C.r_Sampler		("s_base",C.L_textures[0]);
             C.r_dx10Texture("s_base", C.L_textures[0]);

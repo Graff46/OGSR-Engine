@@ -1,5 +1,3 @@
-#ifndef dx103DFluidManager_included
-#define dx103DFluidManager_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
@@ -36,15 +34,15 @@ public:
     //		Manager setup
     void Initialize(int width, int height, int depth);
     void Destroy();
-    void SetScreenSize(int width, int height)
+    void SetScreenSize(int width, int height) const
     {
         if (m_bInited)
             m_pRenderer->SetScreenSize(width, height);
     }
 
     //		Interface for fluid volume
-    void Update(dx103DFluidData& FluidData, float timestep);
-    void RenderFluid(dx103DFluidData& FluidData);
+    void Update(CBackend& cmd_list, dx103DFluidData& FluidData, float timestep);
+    void RenderFluid(CBackend& cmd_list, dx103DFluidData& FluidData);
 
     //		Interface for blenders
     int GetTextureWidth() const { return m_iTextureWidth; }
@@ -93,22 +91,22 @@ private:
     void CreateRTTextureAndViews(int rtIndex, D3D_TEXTURE3D_DESC TexDesc);
     void DestroyRTTextureAndViews(int rtIndex);
 
-    void Reset();
+    void Reset() const;
 
     //		Simlulation data initialisation
-    void AttachFluidData(dx103DFluidData& FluidData);
-    void DetachAndSwapFluidData(dx103DFluidData& FluidData);
+    void AttachFluidData(CBackend& cmd_list, dx103DFluidData& FluidData);
+    void DetachAndSwapFluidData(CBackend& cmd_list, dx103DFluidData& FluidData);
 
     //	Simulation code
-    void AdvectColorBFECC(float timestep, bool bTeperature);
-    void AdvectColor(float timestep, bool bTeperature);
-    void AdvectVelocity(float timestep, float fGravity);
-    void ApplyVorticityConfinement(float timestep);
-    void ApplyExternalForces(const dx103DFluidData& FluidData, float timestep);
-    void ComputeVelocityDivergence(float timestep);
-    void ComputePressure(float timestep);
-    void ProjectVelocity(float timestep);
-    void UpdateObstacles(const dx103DFluidData& FluidData, float timestep);
+    void AdvectColorBFECC(CBackend& cmd_list, float timestep, bool bTeperature);
+    void AdvectColor(CBackend& cmd_list, float timestep, bool bTeperature);
+    void AdvectVelocity(CBackend& cmd_list, float timestep, float fGravity);
+    void ApplyVorticityConfinement(CBackend& cmd_list, float timestep);
+    void ApplyExternalForces(CBackend& cmd_list, const dx103DFluidData& FluidData, float timestep) const;
+    void ComputeVelocityDivergence(CBackend& cmd_list, float timestep);
+    void ComputePressure(CBackend& cmd_list, float timestep);
+    void ProjectVelocity(CBackend& cmd_list, float timestep);
+    void UpdateObstacles(CBackend& cmd_list, const dx103DFluidData& FluidData, float timestep);
 
 private:
     bool m_bInited;
@@ -155,5 +153,3 @@ private:
 extern dx103DFluidManager FluidManager;
 
 #endif //	dx103DFluidManager_included
-
-#endif

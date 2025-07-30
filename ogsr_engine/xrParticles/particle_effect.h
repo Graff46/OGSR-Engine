@@ -17,10 +17,10 @@ struct ParticleEffect
 public:
     ParticleEffect(int mp)
     {
-        owner = 0;
+        owner = nullptr;
         param = 0;
-        b_cb = 0;
-        d_cb = 0;
+        b_cb = nullptr;
+        d_cb = nullptr;
         p_count = 0;
         max_particles = mp;
         particles_allocated = max_particles;
@@ -84,7 +84,11 @@ public:
             P.size = size;
             P.rot.x = rot.x;
             P.vel = vel;
-            P.color = color;
+            float f = float(1.0) / float(255.0);
+            P.colorA = f * ((color >> 24) & 0xff);
+            P.colorR = f * ((color >> 16) & 0xff);
+            P.colorG = f * ((color >> 8) & 0xff);
+            P.colorB = f * ((color >> 0) & 0xff);
             P.age = age;
             P.frame = frame;
             P.flags.assign(flags);

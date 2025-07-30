@@ -77,8 +77,8 @@ float adj_delta_pos = 0.0005f;
 float adj_delta_rot = 0.05f;
 //-----------------------------------------------------------
 
-BOOL g_bCheckTime = FALSE;
-int net_cl_inputupdaterate = 50;
+extern BOOL g_enable_memory_debug;
+
 Flags32 g_mt_config = {mtLevelPath | mtDetailPath | mtObjectHandler | mtSoundPlayer | mtAiVision | mtBullets | mtLUA_GC | mtLevelSounds | mtALife};
 
 Flags32 dbg_net_Draw_Flags = {0};
@@ -136,11 +136,8 @@ public:
     CCC_MemStats(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = TRUE; };
     virtual void Execute(LPCSTR args)
     {
-        Memory.mem_compact();
-        size_t _process_heap = mem_usage_impl(nullptr, nullptr);
-        u32 _render = ::Render->memory_usage();
-        u32 _eco_strings = g_pStringContainer->stat_economy();
-        u32 _eco_smem = g_pSharedMemoryContainer->stat_economy();
+        //Memory.mem_compact();
+
         u32 m_base = 0, c_base = 0, m_lmaps = 0, c_lmaps = 0;
 
         //	Resource check moved to m_pRender
@@ -183,6 +180,12 @@ public:
 
         Log("--------------------------------------------------------------------------------");
 
+        const size_t _process_heap = mem_usage_impl(nullptr, nullptr);
+        const u32 _render = ::Render->memory_usage();
+        const u32 _eco_strings = g_pStringContainer->stat_economy();
+        const u32 _eco_smem = g_pSharedMemoryContainer->stat_economy();
+
+        Msg("* [ D3D ]: textures count [%d]", (c_base + c_lmaps));
         Msg("* [ D3D ]: textures[%d K]", (m_base + m_lmaps) / 1024);
         Msg("* [x-ray]: process heap[%d K], render[%d K]", _process_heap / 1024, _render / 1024);
         Msg("* [x-ray]: economy: strings[%d K], smem[%d K]", _eco_strings / 1024, _eco_smem);
@@ -212,6 +215,60 @@ public:
         }
     }
     virtual void Info(TInfo& I) { strcpy_s(I, "game difficulty"); }
+};
+
+static xr_vector<xr_token>* pLanguagesToken{};
+static u32 LanguageID{};
+const xr_token* GetLanguagesToken() { return &pLanguagesToken->at(LanguageID); }
+
+class CCC_GameLanguage : public CCC_Token
+{
+    xr_vector<xr_token> LanguagesToken;
+
+public:
+    CCC_GameLanguage(LPCSTR N) : CCC_Token(N, &LanguageID, LanguagesToken.data())
+    {
+        pLanguagesToken = &LanguagesToken;
+        const char* str = pSettings->r_string("string_table", "language");
+        for (int i{}, count = _GetItemCount(str); i < count;)
+        {
+            auto& tok = LanguagesToken.emplace_back();
+            tok.id = i;
+            string64 temp{};
+            _GetItem(str, i++, temp);
+            tok.name = xr_strdup(temp);
+        }
+        LanguagesToken.emplace_back();
+        tokens = LanguagesToken.data();
+    };
+
+    void Execute(LPCSTR args) override
+    {
+        CCC_Token::Execute(args);
+        CStringTable().ReloadLanguage();
+
+        if (IsMainMenuActive())
+            MainMenu()->SetLanguageChanged(true);
+
+        if (!g_pGameLevel)
+            return;
+
+        if (g_pGamePersistent && MainMenu() && MainMenu()->IsActive())
+        {
+            MainMenu()->Activate(FALSE);
+            MainMenu()->Activate(TRUE);
+        }
+
+        for (u16 id = 0; id < 0xffff; id++)
+        {
+            auto gameObj = Level().Objects.net_Find(id);
+            if (gameObj)
+            {
+                if (auto invItem = smart_cast<CInventoryItem*>(gameObj))
+                    invItem->ReloadNames();
+            }
+        }
+    }
 };
 
 #ifdef DEBUG
@@ -508,63 +565,39 @@ public:
 class CCC_ALifeLoadFrom : public IConsole_Command
 {
 public:
-    CCC_ALifeLoadFrom(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = true; };
-    virtual void Execute(LPCSTR args)
+    CCC_ALifeLoadFrom(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = true; }
+
+    void Execute(LPCSTR args) override
     {
-        if (!ai().get_alife())
+        if (!CSavedGameWrapper::valid_saved_game(args))
         {
-            Log("! ALife simulator has not been started yet");
+            Msg("! Cannot load saved game [%s]: not found or version mismatch or corrupted", args ? args : "nullptr");
             return;
         }
 
-        string256 saved_game;
-        saved_game[0] = 0;
-        //.		sscanf						(args,"%s",saved_game);
-        strcpy_s(saved_game, args);
-        if (!xr_strlen(saved_game))
+        if (ai().get_alife())
         {
-            Log("! Specify file name!");
-            return;
-        }
+            if (MainMenu()->IsActive())
+                MainMenu()->Activate(false);
 
-        if (!CSavedGameWrapper::saved_game_exist(saved_game))
+            Console->Hide();
+
+            ::Sound->set_master_volume(0.f);
+
+            if (Device.Paused())
+                Device.Pause(FALSE, TRUE, TRUE, "CCC_ALifeLoadFrom");
+
+            NET_Packet net_packet;
+            net_packet.w_begin(M_LOAD_GAME);
+            net_packet.w_stringZ(args);
+            Level().Send(net_packet, net_flags(TRUE));
+        }
+        else
         {
-            Msg("! Cannot find saved game %s", saved_game);
-            return;
+            string_path command;
+            xr_strconcat(command, "start server(", args, "/single/alife/load)");
+            Console->Execute(command);
         }
-
-        if (!CSavedGameWrapper::valid_saved_game(saved_game))
-        {
-            Msg("! Cannot load saved game %s, version mismatch or saved game is corrupted", saved_game);
-            return;
-        }
-        /*     moved to level_network_messages.cpp
-                CSavedGameWrapper			wrapper(args);
-                if (wrapper.level_id() == ai().level_graph().level_id()) {
-                    if (Device.Paused())
-                        Device.Pause		(FALSE, TRUE, TRUE, "CCC_ALifeLoadFrom");
-
-                    Level().remove_objects	();
-
-                    game_sv_Single			*game = smart_cast<game_sv_Single*>(Level().Server->game);
-                    R_ASSERT				(game);
-                    game->restart_simulator	(saved_game);
-
-                    return;
-                }
-        */
-        if (MainMenu()->IsActive())
-            MainMenu()->Activate(false);
-
-        Console->Hide();
-
-        if (Device.Paused())
-            Device.Pause(FALSE, TRUE, TRUE, "CCC_ALifeLoadFrom");
-
-        NET_Packet net_packet;
-        net_packet.w_begin(M_LOAD_GAME);
-        net_packet.w_stringZ(saved_game);
-        Level().Send(net_packet, net_flags(TRUE));
     }
 
     virtual void fill_tips(vecTips& tips, u32 mode) { get_files_list(tips, "$game_saves$", SAVE_EXTENSION); }
@@ -1372,12 +1405,64 @@ public:
     }
 };
 
+#ifdef USE_MEMORY_VALIDATOR
+
+class CCC_DbgMemoryDump : public IConsole_Command
+{
+public:
+    CCC_DbgMemoryDump(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = TRUE; }
+
+    virtual void Execute(LPCSTR args)
+    {
+        float thresholdInKb = 1.f;
+
+        if (strlen(args) > 0)
+        {
+            thresholdInKb = atof(args);
+        }
+
+        PointerRegistryDump(thresholdInKb);
+    }
+};
+
+class CCC_DbgMemoryClear : public IConsole_Command
+{
+public:
+    CCC_DbgMemoryClear(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = TRUE; }
+
+    virtual void Execute(LPCSTR args) { PointerRegistryClear(); }
+};
+
+class CCC_DbgMemoryInfo : public IConsole_Command
+{
+public:
+    CCC_DbgMemoryInfo(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = TRUE; }
+
+    virtual void Execute(LPCSTR args) { PointerRegistryInfo(); }
+};
+
+#endif
+
+class CCC_UI_Reload : public IConsole_Command
+{
+public:
+    CCC_UI_Reload(LPCSTR N) : IConsole_Command(N) { bEmptyArgsHandled = TRUE; };
+    virtual void Execute(LPCSTR args)
+    {
+        if (g_pGamePersistent && g_pGameLevel && Level().game)
+            HUD().OnScreenRatioChanged();
+    }
+};
+
 void CCC_RegisterCommands()
 {
     CMD1(CCC_MemStats, "stat_memory");
+    CMD1(CCC_UI_Reload, "ui_reload");
+
     // game
-    CMD3(CCC_Mask, "g_always_run", &psActorFlags, AF_ALWAYSRUN);
+    //CMD3(CCC_Mask, "g_always_run", &psActorFlags, AF_ALWAYSRUN);
     CMD1(CCC_GameDifficulty, "g_game_difficulty");
+    CMD1(CCC_GameLanguage, "g_language");
 
     CMD3(CCC_Mask, "g_dof_zoom", &psActorFlags, AF_DOF_ZOOM);
     CMD3(CCC_Mask, "g_dof_reload", &psActorFlags, AF_DOF_RELOAD);
@@ -1412,6 +1497,7 @@ void CCC_RegisterCommands()
 
     CMD3(CCC_Mask, "hud_crosshair", &psHUD_Flags, HUD_CROSSHAIR);
     CMD3(CCC_Mask, "hud_crosshair_dist", &psHUD_Flags, HUD_CROSSHAIR_DIST);
+    CMD3(CCC_Mask, "hud_info_overhead", &psHUD_Flags, HUD_INFO_OVERHEAD);
 
     if (IS_OGSR_GA)
         psHUD_FOV_def = 0.65f;
@@ -1518,10 +1604,12 @@ void CCC_RegisterCommands()
     CMD3(CCC_Mask, "g_god", &psActorFlags, AF_GODMODE);
     CMD3(CCC_Mask, "g_unlimitedammo", &psActorFlags, AF_UNLIMITEDAMMO);
     CMD3(CCC_Mask, "g_ammunition_on_belt", &psActorFlags, AF_AMMO_ON_BELT);
+
     CMD3(CCC_Mask, "g_3d_scopes", &psActorFlags, AF_3D_SCOPES);
-    CMD4(CCC_Integer, "g_3d_scopes_fps_factor", &g_3dscopes_fps_factor, 2, 5);
+
     CMD3(CCC_Mask, "g_crosshair_dbg", &psActorFlags, AF_CROSSHAIR_DBG);
     CMD3(CCC_Mask, "g_camera_collision", &psActorFlags, AF_CAM_COLLISION);
+    CMD3(CCC_Mask, "g_camera_collision_cop_mode", &psActorFlags, AF_CAM_COLLISION_COP);
 
     CMD3(CCC_Mask, "g_mouse_wheel_switch_slot", &psActorFlags, AF_MOUSE_WHEEL_SWITCH_SLOTS);
 
@@ -1541,6 +1629,7 @@ void CCC_RegisterCommands()
     CMD3(CCC_Mask, "g_vertex_dbg", &psActorFlags, AF_VERTEX_DBG);
     CMD3(CCC_Mask, "keypress_on_start", &psActorFlags, AF_KEYPRESS_ON_START);
     CMD3(CCC_Mask, "g_effects_on_demorecord", &psActorFlags, AF_EFFECTS_ON_DEMORECORD);
+    CMD3(CCC_Mask, "g_lock_reload", &psActorFlags, AF_LOCK_RELOAD);
 
     CMD4(CCC_Integer, "g_cop_death_anim", &g_bCopDeathAnim, 0, 1);
 
@@ -1594,13 +1683,12 @@ void CCC_RegisterCommands()
 
     CMD3(CCC_Mask, "dbg_draw_skeleton", &dbg_net_Draw_Flags, (1 << 11));
 
-#ifdef DEBUG
-    CMD4(CCC_Integer, "string_table_error_msg", &CStringTable::m_bWriteErrorsToLog, 0, 1);
+    CMD4(CCC_Integer, "dbg_string_table_error_msg", &CStringTable::WriteErrorsToLog, 0, 1);
 
+#ifdef DEBUG
     CMD1(CCC_DumpInfos, "dump_infos");
     CMD1(CCC_DumpMap, "dump_map");
     CMD1(CCC_DumpCreatures, "dump_creatures");
-
 #endif
 
     CMD3(CCC_Mask, "cl_dynamiccrosshair", &psHUD_Flags, HUD_CROSSHAIR_DYNAMIC);
@@ -1631,9 +1719,22 @@ void CCC_RegisterCommands()
     CMD4(CCC_Integer, "show_wnd_rect_names", &g_show_wnd_rect_text, 0, 1);
     CMD4(CCC_Integer, "g_console_show_always", &g_console_show_always, 0, 1);
 
-
     *g_last_saved_game = 0;
 
     CMD4(CCC_Float, "g_cam_height_speed", &cam_HeightInterpolationSpeed, 4.0f, 16.0f);
     CMD4(CCC_Float, "g_cam_lookout_speed", &cam_LookoutSpeed, 1.0f, 4.0f);
+
+    CMD3(CCC_Mask, "g_actor_shadow", &psActorFlags, AF_ACTOR_SHADOW);
+
+#ifdef USE_MEMORY_VALIDATOR
+    CMD4(CCC_Integer, "g_enable_memory_debug", &g_enable_memory_debug, 0, 1);
+    CMD1(CCC_DbgMemoryDump, "dbg_memory_dump");
+    CMD1(CCC_DbgMemoryInfo, "dbg_memory_info");
+    CMD1(CCC_DbgMemoryClear, "dbg_memory_clear");
+    if (!g_enable_memory_debug)
+        PointerRegistryClear();
+#endif
+
+    extern BOOL bSenvironmentXrExport;
+    CMD4(CCC_Integer, "senvironment_xr_export", &bSenvironmentXrExport, FALSE, TRUE);
 }

@@ -1,5 +1,3 @@
-#ifndef dx103DFluidGrid_included
-#define dx103DFluidGrid_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
@@ -14,10 +12,10 @@ public:
 
     void Initialize(int gridWidth, int gridHeight, int gridDepth);
 
-    void DrawSlices();
-    void DrawSlicesToScreen();
-    void DrawBoundaryQuads();
-    void DrawBoundaryLines();
+    void DrawSlices(CBackend& cmd_list);
+    void DrawSlicesToScreen(CBackend& cmd_list);
+    void DrawBoundaryQuads(CBackend& cmd_list);
+    void DrawBoundaryLines(CBackend& cmd_list);
 
 private:
     void CreateVertexBuffers();
@@ -51,5 +49,3 @@ private:
 };
 
 #endif //	dx103DFluidGrid_included
-
-#endif

@@ -224,6 +224,7 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
     m_light_render->set_type(IRender_Light::POINT);
     m_light_render->set_range(m_light_range);
     m_light_render->set_color(m_light_color);
+    m_light_render->set_moveable(true);
 
     if (g_Alive())
         processing_activate();
@@ -231,8 +232,10 @@ BOOL CHelicopter::net_Spawn(CSE_Abstract* DC)
     if (pUserData->section_exist("destroyed"))
         CPHDestroyable::Load(pUserData, "destroyed");
 #ifdef DEBUG
-    Device.seqRender.Add(this, REG_PRIORITY_LOW - 1);
+    Device.seqRender.Add(this, REG_PRIORITY_LOW);
 #endif
+
+    renderable.visual->ignore_optimization = true;
 
     return TRUE;
 }

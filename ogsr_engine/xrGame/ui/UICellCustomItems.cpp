@@ -174,14 +174,14 @@ void CUIAmmoCellItem::Update()
 
 void CUIAmmoCellItem::UpdateItemText()
 {
-    if (NULL == m_custom_draw)
     {
-        xr_vector<CUICellItem*>::iterator it = m_childs.begin();
-        xr_vector<CUICellItem*>::iterator it_e = m_childs.end();
+        u16 total{};
+        if (auto* curr_obj = object())
+            total = curr_obj->m_boxCurr;
 
-        u16 total = object()->m_boxCurr;
-        for (; it != it_e; ++it)
-            total = total + ((CUIAmmoCellItem*)(*it))->object()->m_boxCurr;
+        for (auto* child : m_childs)
+            if (auto* child_obj = smart_cast<CUIAmmoCellItem*>(child)->object())
+                total += child_obj->m_boxCurr;
 
         string32 str;
         sprintf_s(str, "%d", total);
@@ -193,16 +193,6 @@ void CUIAmmoCellItem::UpdateItemText()
         }
         else
             SetText(str);
-    }
-    else
-    {
-        if (Core.Features.test(xrCore::Feature::show_inv_item_condition))
-        {
-            m_text->SetText("");
-            m_text->Show(false);
-        }
-        else
-            SetText("");
     }
 }
 
@@ -489,20 +479,4 @@ bool CUIWeaponCellItem::EqualTo(CUICellItem* itm)
     bool b_place = ((object()->m_eItemPlace == ci->object()->m_eItemPlace));
 
     return b_addons && b_place;
-}
-
-CBuyItemCustomDrawCell::CBuyItemCustomDrawCell(LPCSTR str, CGameFont* pFont)
-{
-    m_pFont = pFont;
-    VERIFY(xr_strlen(str) < 16);
-    strcpy_s(m_string, str);
-}
-
-void CBuyItemCustomDrawCell::OnDraw(CUICellItem* cell)
-{
-    Fvector2 pos;
-    cell->GetAbsolutePos(pos);
-    UI()->ClientToScreenScaled(pos, pos.x, pos.y);
-    m_pFont->Out(pos.x, pos.y, m_string);
-    m_pFont->OnRender();
 }

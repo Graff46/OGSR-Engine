@@ -1,11 +1,10 @@
-#ifndef dx103DFluidObstacles_included
-#define dx103DFluidObstacles_included
 #pragma once
 
 #ifdef DX10_FLUID_ENABLE
 
 class dx103DFluidGrid;
 class dx103DFluidData;
+
 class IPhysicsShell;
 class IPhysicsElement;
 class IPhysicsGeometry;
@@ -16,7 +15,7 @@ public:
     dx103DFluidObstacles(int gridWidth, int gridHeight, int gridDepth, dx103DFluidGrid* pGrid);
     ~dx103DFluidObstacles();
 
-    void ProcessObstacles(const dx103DFluidData& FluidData, float timestep);
+    void ProcessObstacles(CBackend& cmd_list, const dx103DFluidData& FluidData, float timestep);
 
 private:
     enum ObstacleShader
@@ -30,16 +29,15 @@ private:
     void InitShaders();
     void DestroyShaders();
 
-    void ProcessStaticObstacles(const dx103DFluidData& FluidData, const Fmatrix& WorldToFluid);
-    void ProcessDynamicObstacles(const dx103DFluidData& FluidData, const Fmatrix& WorldToFluid, float timestep);
+    void ProcessStaticObstacles(CBackend& cmd_list, const dx103DFluidData& FluidData, const Fmatrix& WorldToFluid);
+    void ProcessDynamicObstacles(CBackend& cmd_list, const dx103DFluidData& FluidData, const Fmatrix& WorldToFluid, float timestep);
 
     //	This technique renders several objects.
-    void RenderPhysicsShell(const IPhysicsShell* pShell, const Fmatrix& WorldToFluid, float timestep);
-    void RenderPhysicsElement(const IPhysicsElement& Element, const Fmatrix& WorldToFluid, float timestep);
+    void RenderPhysicsShell(CBackend& cmd_list, IPhysicsShell* pShell, const Fmatrix& WorldToFluid, float timestep);
+    void RenderPhysicsElement(CBackend& cmd_list, IPhysicsElement& Element, const Fmatrix& WorldToFluid, float timestep);
 
-    void RenderStaticOOBB(const Fmatrix& Transform);
-    // void	RenderDynamicOOBB( const IPhysicsElement &Element, const Fmatrix &WorldToFluid, float timestep);
-    void RenderDynamicOOBB(const IPhysicsGeometry& Geometry, const Fmatrix& WorldToFluid, float timestep);
+    void RenderStaticOOBB(CBackend& cmd_list, const Fmatrix& Transform) const;
+    void RenderDynamicOOBB(CBackend& cmd_list, IPhysicsGeometry& Geometry, const Fmatrix& WorldToFluid, float timestep);
 
 private:
     Fvector3 m_vGridDim;
@@ -51,10 +49,8 @@ private:
     //	Cache vectors to avoid memory reallocations
     //	TODO: DX10: Reserve memory on object creation
     xr_vector<ISpatial*> m_lstRenderables;
-    xr_vector<const IPhysicsShell*> m_lstShells;
-    xr_vector<const IPhysicsElement*> m_lstElements;
+    xr_vector<IPhysicsShell*> m_lstShells;
+    xr_vector<IPhysicsElement*> m_lstElements;
 };
 
 #endif //	dx103DFluidObstacles_included
-
-#endif

@@ -12,10 +12,13 @@ public:
     struct XRCORE_API Sect
     {
         u32 Index{};
+
         shared_str Name{};
         shared_str ParentNames{};
+
         string_unordered_map<shared_str, shared_str> Data;
         xr_vector<Item> Ordered_Data;
+
         BOOL line_exist(LPCSTR, LPCSTR* = nullptr);
         u32 line_count();
 
@@ -43,7 +46,7 @@ protected:
 
     Sect* Current{}; // for use during load only
 
-    void Load(IReader*, LPCSTR, BOOL, const CInifile*, bool root_level);
+    void Load(IReader*, LPCSTR, BOOL, const CInifile*, bool root_level, LPCSTR current_file);
 
 public:
     bool bReadOnly;
@@ -52,7 +55,7 @@ public:
 
 public:
     CInifile(IReader*, LPCSTR = 0);
-    CInifile(LPCSTR, BOOL = TRUE, BOOL = TRUE, BOOL = TRUE);
+    CInifile(LPCSTR, BOOL ReadOnly = TRUE, BOOL bLoad = TRUE, BOOL SaveAtEnd = TRUE);
 
     virtual ~CInifile();
 
@@ -89,12 +92,15 @@ public:
     shared_str r_string_wb(const shared_str& S, LPCSTR L) { return r_string_wb(S.c_str(), L); } // убирает кавычки
 
     u8 r_u8(LPCSTR, LPCSTR);
+    u8 r_u8_hex(LPCSTR, LPCSTR);
     u8 r_u8(const shared_str& S, LPCSTR L) { return r_u8(S.c_str(), L); }
 
     u16 r_u16(LPCSTR, LPCSTR);
+    u16 r_u16_hex(LPCSTR, LPCSTR);
     u16 r_u16(const shared_str& S, LPCSTR L) { return r_u16(S.c_str(), L); }
 
     u32 r_u32(LPCSTR, LPCSTR);
+    u32 r_u32_hex(LPCSTR, LPCSTR);
     u32 r_u32(const shared_str& S, LPCSTR L) { return r_u32(S.c_str(), L); }
 
     s8 r_s8(LPCSTR, LPCSTR);
@@ -141,16 +147,24 @@ public:
     BOOL r_line(LPCSTR, int, LPCSTR*, LPCSTR*);
     BOOL r_line(const shared_str&, int, LPCSTR*, LPCSTR*);
 
+    void w_clsid(LPCSTR, LPCSTR, CLASS_ID);
     void w_string(LPCSTR, LPCSTR, LPCSTR);
+
     void w_u8(LPCSTR, LPCSTR, u8);
+    void w_u8_hex(LPCSTR, LPCSTR, u8);
     void w_u16(LPCSTR, LPCSTR, u16);
+    void w_u16_hex(LPCSTR, LPCSTR, u16);
     void w_u32(LPCSTR, LPCSTR, u32);
+    void w_u32_hex(LPCSTR, LPCSTR, u32);
+
     void w_s8(LPCSTR, LPCSTR, s8);
     void w_s16(LPCSTR, LPCSTR, s16);
     void w_s32(LPCSTR, LPCSTR, s32);
+
     void w_float(LPCSTR, LPCSTR, float);
     void w_fcolor(LPCSTR, LPCSTR, const Fcolor&);
     void w_color(LPCSTR, LPCSTR, u32);
+
     void w_ivector2(LPCSTR, LPCSTR, const Ivector2&);
     void w_ivector3(LPCSTR, LPCSTR, const Ivector3&);
     void w_ivector4(LPCSTR, LPCSTR, const Ivector4&);

@@ -53,7 +53,6 @@
 #include "../../visual_memory_manager.h"
 #include "../../enemy_manager.h"
 #include "alife_human_brain.h"
-#include "profiler.h"
 #include "../../BoneProtections.h"
 #include "../../stalker_animation_names.h"
 #include "../../stalker_decision_space.h"
@@ -392,11 +391,12 @@ BOOL CAI_Stalker::net_Spawn(CSE_Abstract* DC)
     static float expirienced_rank_dispersion = pSettings->r_float("ranks_properties", "dispersion_experienced_k");
 
     CHARACTER_RANK_VALUE rank = Rank();
-    clamp(rank, 0, 100);
-    float rank_k = float(rank) / 100.f;
+    clamp(rank, 0, 1000);
+    float rank_k = float(rank) / 1000.f;
+    clamp(rank_k, 0.f, 1.f);
     m_fRankImmunity = novice_rank_immunity + (expirienced_rank_immunity - novice_rank_immunity) * rank_k;
     m_fRankVisibility = novice_rank_visibility + (expirienced_rank_visibility - novice_rank_visibility) * rank_k;
-    m_fRankDisperison = expirienced_rank_dispersion + (expirienced_rank_dispersion - novice_rank_dispersion) * (1 - rank_k);
+    m_fRankDisperison = expirienced_rank_dispersion + (novice_rank_dispersion - expirienced_rank_dispersion) * (1 - rank_k);
 
     if (!fis_zero(SpecificCharacter().panic_threshold()))
         m_panic_threshold = SpecificCharacter().panic_threshold();
@@ -898,6 +898,7 @@ DLL_Pure* CAI_Stalker::_construct()
 
 bool CAI_Stalker::use_center_to_aim() const { return (!wounded() && (movement().body_state() != eBodyStateCrouch)); }
 
+#ifdef DEBUG
 void CAI_Stalker::UpdateCamera()
 {
     float new_range = eye_range, new_fov = eye_fov;
@@ -911,6 +912,7 @@ void CAI_Stalker::UpdateCamera()
 
     g_pGameLevel->Cameras().Update(eye_matrix.c, temp, eye_matrix.j, new_fov, .75f, new_range, 0);
 }
+#endif
 
 bool CAI_Stalker::can_attach(const CInventoryItem* inventory_item) const
 {
@@ -980,4 +982,20 @@ bool CAI_Stalker::CanPutInSlot(PIItem item, u32 slot)
         return false;
 
     return slot != OUTFIT_SLOT;
+}
+
+void CAI_Stalker::renderable_Render(u32 context_id, IRenderable* root)
+{
+    inherited::renderable_Render(context_id, root);
+
+    if (!already_dead())
+        CInventoryOwner::renderable_Render(context_id, root);
+
+#ifdef DEBUG
+    if (g_Alive())
+    {
+        if (psAI_Flags.test(aiAnimationStats))
+            animation().add_animation_stats();
+    }
+#endif // DEBUG
 }

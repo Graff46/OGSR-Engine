@@ -1,24 +1,26 @@
-#ifndef dxPixEventWrapper_included
-#define dxPixEventWrapper_included
 #pragma once
 
-#ifdef DEBUG
-
-#define PIX_EVENT(Name) dxPixEventWrapper pixEvent##Name(L#Name)
+#ifdef TRACY_ENABLE
 
 class dxPixEventWrapper
 {
+    CBackend* cmd_list;
+
 public:
-    dxPixEventWrapper(LPCWSTR wszName) { D3DPERF_BeginEvent(D3DCOLOR_RGBA(127, 0, 0, 255), wszName); }
-    ~dxPixEventWrapper() { D3DPERF_EndEvent(); }
+    dxPixEventWrapper(CBackend& cmd_list_in, const wchar_t* wszName) : cmd_list(&cmd_list_in) { cmd_list->gpu_mark_begin(wszName); }
+    ~dxPixEventWrapper() { cmd_list->gpu_mark_end(); }
 };
-#else //	DEBUG
 
-#define PIX_EVENT(Name) \
-    { \
-        ; \
-    }
+#define PIX_EVENT(Name) dxPixEventWrapper pixEvent##Name(RCache, L## #Name)
+#define PIX_EVENT_CTX(C, Name) dxPixEventWrapper pixEvent##Name(C, L## #Name)
 
-#endif //	DEBUG
+#define DXUT_SetDebugName(pObj, pstrName) pObj->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(pstrName), pstrName)
 
-#endif //	dxPixEventWrapper_included
+#else
+
+#define PIX_EVENT(Name) __noop(RCache, L## #Name)
+#define PIX_EVENT_CTX(C, Name) __noop(C, L## #Name)
+
+#define DXUT_SetDebugName(pObj, pstrName) __noop(pObj, pstrName)
+
+#endif

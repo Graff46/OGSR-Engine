@@ -56,7 +56,16 @@ T* wnd_object_cast(CUIWindow* wnd)
 #include "UIButton.h"
 using namespace luabind;
 
-#pragma optimize("s", on)
+
+
+void CUIWindow::create_ui_snd(ref_sound& S, LPCSTR fName)
+{
+    S.destroy();
+
+    if (fName && fName[0])
+        ::Sound->create(S, fName, st_Effect, sg_SourceType);
+}
+
 void CUIWindow::script_register(lua_State* L)
 {
     module(L)[def("GetARGB", &GetARGB),
@@ -168,7 +177,7 @@ void CUIWindow::script_register(lua_State* L)
                   .def_readonly("grid_width", &CIconParams::grid_width)
                   .def_readonly("grid_height", &CIconParams::grid_height)
                   .def_readonly("grid_x", &CIconParams::grid_x)
-                  .def_readonly("grid_y", &CIconParams::grid_x)
+                  .def_readonly("grid_y", &CIconParams::grid_y)
                   .property("icon_name", &CIconParams__get_name)
                   .def("original_rect", &CIconParams::original_rect)
                   .def("set_shader", (void(CIconParams::*)(CUIStatic*)) & CIconParams::set_shader),

@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#pragma hdrstop
+
 
 #include "ResourceManager.h"
 #include "R_DStreams.h"
@@ -9,20 +9,13 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-#if defined(USE_DX10) || defined(USE_DX11)
 int rsDVB_Size = 4096; // Fixed: (bytes_need<=mSize) && vl_Count
-#else
-int rsDVB_Size = 16384; // Fixed: (bytes_need<=mSize) && vl_Count
-#endif
 int rsDIB_Size = 512;
 
 void _VertexStream::Create()
 {
-    // dxRenderDeviceRender::Instance().Resources->Evict		();
-    DEV->Evict();
-
     mSize = rsDVB_Size * 1024;
-#if defined(USE_DX10) || defined(USE_DX11)
+
     D3D_BUFFER_DESC bufferDesc;
     bufferDesc.ByteWidth = mSize;
     bufferDesc.Usage = D3D_USAGE_DYNAMIC;
@@ -32,10 +25,6 @@ void _VertexStream::Create()
 
     R_CHK(HW.pDevice->CreateBuffer(&bufferDesc, 0, &pVB));
     HW.stats_manager.increment_stats_vb(pVB);
-#else //	USE_DX10
-    R_CHK(HW.pDevice->CreateVertexBuffer(mSize, D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &pVB, NULL));
-    HW.stats_manager.increment_stats_vb(pVB);
-#endif //	USE_DX10
 
     R_ASSERT(pVB);
 
@@ -54,9 +43,7 @@ void _VertexStream::Destroy()
 
 void* _VertexStream::Lock(u32 vl_Count, u32 Stride, u32& vOffset)
 {
-#ifdef USE_DX11
     D3D11_MAPPED_SUBRESOURCE MappedSubRes;
-#endif
 
 #ifdef DEBUG
     PGO(Msg("PGO:VB_LOCK:%d", vl_Count));
@@ -67,15 +54,17 @@ void* _VertexStream::Lock(u32 vl_Count, u32 Stride, u32& vOffset)
     R_ASSERT(vl_Count, "Missing or invalid texture! vl_Count=0.");
 
     // Ensure there is enough space in the VB for this data
-    u32 bytes_need = vl_Count * Stride;
+    const u32 bytes_need = vl_Count * Stride;
     ASSERT_FMT(bytes_need <= mSize, "bytes_need = [%u], mSize = [%u]", bytes_need, mSize);
 
     // Vertex-local info
-    u32 vl_mSize = mSize / Stride;
-    u32 vl_mPosition = mPosition / Stride + 1;
+    const u32 vl_mSize = mSize / Stride;
+    const u32 vl_mPosition = mPosition / Stride + 1;
+
+    // ASSERT_FMT(Device.OnMainThread(), "!![%s] NOT ON MAIN THREAD! THREAD ID: [%u]", __FUNCTION__, _Thrd_id());
 
     // Check if there is need to flush and perform lock
-    BYTE* pData = 0;
+    BYTE* pData = nullptr;
     if ((vl_Count + vl_mPosition) >= vl_mSize)
     {
         // FLUSH-LOCK
@@ -83,20 +72,10 @@ void* _VertexStream::Lock(u32 vl_Count, u32 Stride, u32& vOffset)
         vOffset = 0;
         mDiscardID++;
 
-#if defined(USE_DX11)
-        HW.pContext->Map(pVB, 0, D3D_MAP_WRITE_DISCARD, 0, &MappedSubRes);
+        HW.get_context(CHW::IMM_CTX_ID)->Map(pVB, 0, D3D_MAP_WRITE_DISCARD, 0, &MappedSubRes);
         pData = (BYTE*)MappedSubRes.pData;
         pData += vOffset;
-#elif defined(USE_DX10)
-        pVB->Map(D3D_MAP_WRITE_DISCARD, 0, (void**)&pData);
-        pData += vOffset;
-#else //	USE_DX10
-        HRESULT res = pVB->Lock(mPosition, bytes_need, (void**)&pData, LOCKFLAGS_FLUSH);
 
-        if (res != D3D_OK)
-            Msg(" pVB->Lock - failed: res = %d,mPosition = %d, bytes_need = %d, &pData = %x, LOCKFLAGS_FLUSH", res, mPosition, bytes_need, (void**)&pData);
-
-#endif //	USE_DX10
     }
     else
     {
@@ -104,20 +83,10 @@ void* _VertexStream::Lock(u32 vl_Count, u32 Stride, u32& vOffset)
         mPosition = vl_mPosition * Stride;
         vOffset = vl_mPosition;
 
-#if defined(USE_DX11)
-        HW.pContext->Map(pVB, 0, D3D_MAP_WRITE_NO_OVERWRITE, 0, &MappedSubRes);
+        HW.get_context(CHW::IMM_CTX_ID)->Map(pVB, 0, D3D_MAP_WRITE_NO_OVERWRITE, 0, &MappedSubRes);
         pData = (BYTE*)MappedSubRes.pData;
         pData += vOffset * Stride;
-#elif defined(USE_DX10)
-        pVB->Map(D3D_MAP_WRITE_NO_OVERWRITE, 0, (void**)&pData);
-        pData += vOffset * Stride;
-#else //	USE_DX10
-        HRESULT res = pVB->Lock(mPosition, bytes_need, (void**)&pData, LOCKFLAGS_APPEND);
 
-        if (res != D3D_OK)
-            Msg(" pVB->Lock - failed: res = %d,mPosition = %d, bytes_need = %d, &pData = %x, LOCKFLAGS_APPEND", res, mPosition, bytes_need, (void**)&pData);
-
-#endif //	USE_DX10
     }
     VERIFY(pData);
 
@@ -135,13 +104,9 @@ void _VertexStream::Unlock(u32 Count, u32 Stride)
 
     VERIFY(pVB);
 
-#if defined(USE_DX11)
-    HW.pContext->Unmap(pVB, 0);
-#elif defined(USE_DX10)
-    pVB->Unmap();
-#else //	USE_DX10
-    pVB->Unlock();
-#endif //	USE_DX10
+    // ASSERT_FMT(Device.OnMainThread(), "!![%s] NOT ON MAIN THREAD! THREAD ID: [%u]", __FUNCTION__, _Thrd_id());
+
+    HW.get_context(CHW::IMM_CTX_ID)->Unmap(pVB, 0);
 }
 
 void _VertexStream::reset_begin()
@@ -159,7 +124,7 @@ _VertexStream::_VertexStream() { _clear(); };
 
 void _VertexStream::_clear()
 {
-    pVB = NULL;
+    pVB = nullptr;
     mSize = 0;
     mPosition = 0;
     mDiscardID = 0;
@@ -171,12 +136,8 @@ void _VertexStream::_clear()
 //////////////////////////////////////////////////////////////////////////
 void _IndexStream::Create()
 {
-    // dxRenderDeviceRender::Instance().Resources->Evict		();
-    DEV->Evict();
-
     mSize = rsDIB_Size * 1024;
 
-#if defined(USE_DX10) || defined(USE_DX11)
     D3D_BUFFER_DESC bufferDesc;
     bufferDesc.ByteWidth = mSize;
     bufferDesc.Usage = D3D_USAGE_DYNAMIC;
@@ -186,10 +147,7 @@ void _IndexStream::Create()
 
     R_CHK(HW.pDevice->CreateBuffer(&bufferDesc, 0, &pIB));
     HW.stats_manager.increment_stats_ib(pIB);
-#else //	USE_DX10
-    R_CHK(HW.pDevice->CreateIndexBuffer(mSize, D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &pIB, NULL));
-    HW.stats_manager.increment_stats_ib(pIB);
-#endif //	USE_DX10
+
     R_ASSERT(pIB);
 
     mPosition = 0;
@@ -207,12 +165,10 @@ void _IndexStream::Destroy()
 
 u16* _IndexStream::Lock(u32 Count, u32& vOffset)
 {
-#ifdef USE_DX11
     D3D11_MAPPED_SUBRESOURCE MappedSubRes;
-#endif
     PGO(Msg("PGO:IB_LOCK:%d", Count));
     vOffset = 0;
-    BYTE* pLockedData = 0;
+    BYTE* pLockedData = nullptr;
 
     // Ensure there is enough space in the VB for this data
     R_ASSERT((2 * Count <= mSize) && Count);
@@ -227,19 +183,14 @@ u16* _IndexStream::Lock(u32 Count, u32& vOffset)
         dwFlags = LOCKFLAGS_FLUSH; // discard it's contens
         mDiscardID++;
     }
-#if defined(USE_DX11)
-    D3D_MAP MapMode = (dwFlags == LOCKFLAGS_APPEND) ? D3D_MAP_WRITE_NO_OVERWRITE : D3D_MAP_WRITE_DISCARD;
-    HW.pContext->Map(pIB, 0, MapMode, 0, &MappedSubRes);
+
+    // ASSERT_FMT(Device.OnMainThread(), "!![%s] NOT ON MAIN THREAD! THREAD ID: [%u]", __FUNCTION__, _Thrd_id());
+
+    const D3D_MAP MapMode = (dwFlags == LOCKFLAGS_APPEND) ? D3D_MAP_WRITE_NO_OVERWRITE : D3D_MAP_WRITE_DISCARD;
+    HW.get_context(CHW::IMM_CTX_ID)->Map(pIB, 0, MapMode, 0, &MappedSubRes);
     pLockedData = (BYTE*)MappedSubRes.pData;
     pLockedData += mPosition * 2;
-#elif defined(USE_DX10)
-    D3D_MAP MapMode = (dwFlags == LOCKFLAGS_APPEND) ? D3D_MAP_WRITE_NO_OVERWRITE : D3D_MAP_WRITE_DISCARD;
-    pIB->Map(MapMode, 0, (void**)&pLockedData);
-    pLockedData += mPosition * 2;
 
-#else //	USE_DX10
-    pIB->Lock(mPosition * 2, Count * 2, (void**)&pLockedData, dwFlags);
-#endif //	USE_DX10
     VERIFY(pLockedData);
 
     vOffset = mPosition;
@@ -252,13 +203,10 @@ void _IndexStream::Unlock(u32 RealCount)
     PGO(Msg("PGO:IB_UNLOCK:%d", RealCount));
     mPosition += RealCount;
     VERIFY(pIB);
-#if defined(USE_DX11)
-    HW.pContext->Unmap(pIB, 0);
-#elif defined(USE_DX10)
-    pIB->Unmap();
-#else //	USE_DX10
-    pIB->Unlock();
-#endif //	USE_DX10
+
+    // ASSERT_FMT(Device.OnMainThread(), "!![%s] NOT ON MAIN THREAD! THREAD ID: [%u]", __FUNCTION__, _Thrd_id());
+
+    HW.get_context(CHW::IMM_CTX_ID)->Unmap(pIB, 0);
 }
 
 void _IndexStream::reset_begin()

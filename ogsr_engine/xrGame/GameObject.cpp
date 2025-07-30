@@ -197,6 +197,10 @@ void CGameObject::OnEvent(NET_Packet& P, u16 type)
             Msg("GE_DESTROY arrived, but H_Parent() exist. object[%d][%s] parent[%d][%s] [%d]", ID(), cName().c_str(), H_Parent()->ID(), H_Parent()->cName().c_str(),
                 Device.dwFrame);
         }
+        if (!Level().is_removing_objects())
+        {
+            ASSERT_FMT(ID() != 0, "![%s] cannot destory actor!", __FUNCTION__);
+        }
         setDestroy(TRUE);
     }
     break;
@@ -599,22 +603,12 @@ void CGameObject::validate_ai_locations(bool decrement_reference)
     Center(center);
     center.x = Position().x;
     center.z = Position().z;
-    u32 l_dwNewLevelVertexID = ai().level_graph().vertex(ai_location().level_vertex_id(), center);
+    u32 l_dwNewLevelVertexID = ai().level_graph().vertex_id(ai_location().level_vertex_id(), center);
 
 #ifdef DEBUG
 //	Msg								("%6d Searching for node for object %s (%.5f seconds)",Device.dwTimeGlobal,*cName(),timer.GetElapsed_sec());
 #endif
     VERIFY(ai().level_graph().valid_vertex_id(l_dwNewLevelVertexID));
-
-#if 0
-	if (decrement_reference && (ai_location().level_vertex_id() != l_dwNewLevelVertexID)) {
-		Fvector						new_position = ai().level_graph().vertex_position(l_dwNewLevelVertexID);
-		if (Position().y - new_position.y >= 1.5f) {
-			u32						new_vertex_id = ai().level_graph().vertex(ai_location().level_vertex_id(),center);
-			new_vertex_id			= new_vertex_id;
-		}
-	}
-#endif
 
     if (decrement_reference && (ai_location().level_vertex_id() == l_dwNewLevelVertexID))
         return;
@@ -631,9 +625,9 @@ void CGameObject::validate_ai_locations(bool decrement_reference)
 void CGameObject::spatial_move()
 {
     if (H_Parent())
-        setup_parent_ai_locations();
+        setup_parent_ai_locations(true);
     else if (Visual())
-        validate_ai_locations();
+        validate_ai_locations(true);
 
     inherited::spatial_move();
 }
@@ -643,36 +637,37 @@ void CGameObject::dbg_DrawSkeleton()
     CCF_Skeleton* Skeleton = smart_cast<CCF_Skeleton*>(collidable.model);
     if (!Skeleton)
         return;
+
     Skeleton->_dbg_refresh();
 
-    const CCF_Skeleton::ElementVec& Elements = Skeleton->_GetElements();
-    for (CCF_Skeleton::ElementVec::const_iterator I = Elements.begin(); I != Elements.end(); I++)
+    for (const auto& Element : Skeleton->_GetElements())
     {
-        if (!I->valid())
+        if (!Element.valid())
             continue;
-        switch (I->type)
+
+        switch (Element.type)
         {
         case SBoneShape::stBox: {
             Fmatrix M;
-            M.invert(I->b_IM);
-            Fvector h_size = I->b_hsize;
+            M.invert(Element.b_IM);
+            Fvector h_size = Element.b_hsize;
             Level().debug_renderer().draw_obb(M, h_size, color_rgba(0, 255, 0, 255));
         }
         break;
         case SBoneShape::stCylinder: {
             Fmatrix M;
-            M.c.set(I->c_cylinder.m_center);
-            M.k.set(I->c_cylinder.m_direction);
+            M.c.set(Element.c_cylinder.m_center);
+            M.k.set(Element.c_cylinder.m_direction);
             Fvector h_size;
-            h_size.set(I->c_cylinder.m_radius, I->c_cylinder.m_radius, I->c_cylinder.m_height * 0.5f);
+            h_size.set(Element.c_cylinder.m_radius, Element.c_cylinder.m_radius, Element.c_cylinder.m_height * 0.5f);
             Fvector::generate_orthonormal_basis(M.k, M.j, M.i);
-            Level().debug_renderer().draw_obb(M, h_size, color_rgba(0, 127, 255, 255));
+            Level().debug_renderer().draw_obb(M, h_size, color_rgba(255, 127, 0, 255));
         }
         break;
         case SBoneShape::stSphere: {
             Fmatrix l_ball;
-            l_ball.scale(I->s_sphere.R, I->s_sphere.R, I->s_sphere.R);
-            l_ball.translate_add(I->s_sphere.P);
+            l_ball.scale(Element.s_sphere.R, Element.s_sphere.R, Element.s_sphere.R);
+            l_ball.translate_add(Element.s_sphere.P);
             Level().debug_renderer().draw_ellipse(l_ball, color_rgba(0, 255, 0, 255));
         }
         break;
@@ -680,11 +675,10 @@ void CGameObject::dbg_DrawSkeleton()
     };
 }
 
-void CGameObject::renderable_Render()
+void CGameObject::renderable_Render(u32 context_id, IRenderable* root)
 {
-    inherited::renderable_Render();
-    ::Render->set_Transform(&XFORM());
-    ::Render->add_Visual(Visual());
+    inherited::renderable_Render(context_id, root);
+    ::Render->add_Visual(context_id, root, Visual(), XFORM());
     Visual()->getVisData().hom_frame = Device.dwFrame;
 }
 
@@ -816,12 +810,9 @@ void CGameObject::DestroyObject()
     if (getDestroy())
         return;
 
-    if (Local())
-    {
-        NET_Packet P;
-        u_EventGen(P, GE_DESTROY, ID());
-        u_EventSend(P);
-    }
+    NET_Packet P;
+    u_EventGen(P, GE_DESTROY, ID());
+    u_EventSend(P);
 }
 
 void CGameObject::shedule_Update(u32 dt)

@@ -183,7 +183,8 @@ void CInventoryOwner::load(IReader& input_packet)
     }
 
     CharacterInfo().load(input_packet);
-    load_data(m_game_name, input_packet);
+    xr_string tmp;
+    load_data(tmp/*m_game_name*/, input_packet); // не будем грузить из клиента имя НПЦ. 
     load_data(m_money, input_packet);
 }
 
@@ -274,12 +275,12 @@ void CInventoryOwner::StopTalk()
 
 bool CInventoryOwner::IsTalking() { return m_bTalking; }
 
-void CInventoryOwner::renderable_Render()
+void CInventoryOwner::renderable_Render(u32 context_id, IRenderable* root)
 {
     if (inventory().ActiveItem())
-        inventory().ActiveItem()->renderable_Render();
+        inventory().ActiveItem()->renderable_Render(context_id, root);
 
-    CAttachmentOwner::renderable_Render();
+    CAttachmentOwner::renderable_Render(context_id, root);
 }
 
 void CInventoryOwner::OnItemTake(CInventoryItem* inventory_item)

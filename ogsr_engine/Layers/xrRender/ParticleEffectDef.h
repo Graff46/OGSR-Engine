@@ -1,6 +1,4 @@
-//---------------------------------------------------------------------------
-#ifndef ParticleEffectDefH
-#define ParticleEffectDefH
+#pragma once
 
 #include "Shader.h"
 
@@ -24,11 +22,11 @@ typedef void (*DestroyCallback)(CParticleEffect* E, PAPI::Particle& P);
 class PFunction;
 struct SFrame
 {
-    Fvector2 m_fTexSize;
-    Fvector2 reserved;
-    int m_iFrameDimX;
-    int m_iFrameCount;
-    float m_fSpeed;
+    Fvector2 m_fTexSize{};
+    Fvector2 reserved{};
+    int m_iFrameDimX{};
+    int m_iFrameCount{};
+    float m_fSpeed{};
 
     void InitDefault()
     {
@@ -37,7 +35,7 @@ struct SFrame
         m_iFrameCount = 16;
         m_fSpeed = 24.f;
     }
-    IC void CalculateTC(int frame, Fvector2& lt, Fvector2& rb)
+    IC void CalculateTC(int frame, Fvector2& lt, Fvector2& rb) const
     {
         lt.x = (frame % m_iFrameDimX) * m_fTexSize.x;
         lt.y = (frame / m_iFrameDimX) * m_fTexSize.y;
@@ -72,36 +70,40 @@ public:
         dfCullCCW = (1 << 23),
     };
     shared_str m_Name;
-    Flags32 m_Flags;
+    Flags32 m_Flags{};
     // texture
     shared_str m_ShaderName;
     shared_str m_TextureName;
     ref_shader m_CachedShader;
-    SFrame m_Frame;
+    SFrame m_Frame{};
     // compiled actions
     CMemoryWriter m_Actions;
     // def
-    float m_fTimeLimit; // time limit
-    int m_MaxParticles; // max particle count
-    Fvector m_VelocityScale; // velocity scale
-    Fvector m_APDefaultRotation; // align to path
+    u32 m_uStep{}; // update rate of this effect in ms
+    float m_fStep{}; // update rate of this effect in s
+    float m_fTimeLimit{}; // time limit
+    int m_MaxParticles{}; // max particle count
+    Fvector m_VelocityScale{}; // velocity scale
+    Fvector m_APDefaultRotation{}; // align to path
     // collision
-    float m_fCollideOneMinusFriction;
-    float m_fCollideResilience;
-    float m_fCollideSqrCutoff;
+    float m_fCollideOneMinusFriction{};
+    float m_fCollideResilience{};
+    float m_fCollideSqrCutoff{};
 
     bool m_copFormat{};
 
-public:
-    BOOL SaveActionList(IWriter& F);
-    BOOL LoadActionList(IReader& F);
+    DEFINE_VECTOR(EParticleAction*, EPAVec, EPAVecIt);
+    EPAVec m_EActionList;
+
     // execute
     void ExecuteAnimate(PAPI::Particle* particles, u32 p_cnt, float dt);
     void ExecuteCollision(PAPI::Particle* particles, u32 p_cnt, float dt, CParticleEffect* owner, CollisionCallback cb);
 
-public:
     CPEDef();
     ~CPEDef();
+
+    u32 GetUStep() const;
+    float GetFStep();
 
     void SetName(LPCSTR name);
     IC LPCSTR Name() const { return *m_Name; }
@@ -113,7 +115,11 @@ public:
 
     void Save2(CInifile& ini);
     BOOL Load2(CInifile& ini);
+
+
+    void Compile(EPAVec& v);
 };
+
 }; // namespace PS
 #define PED_VERSION 0x0001
 #define PED_CHUNK_VERSION 0x0001
@@ -130,5 +136,3 @@ public:
 #define PED_CHUNK_VEL_SCALE 0x0022
 #define PED_CHUNK_EDATA 0x0024
 #define PED_CHUNK_ALIGN_TO_PATH 0x0025
-//---------------------------------------------------------------------------
-#endif

@@ -1,9 +1,8 @@
 #pragma once
-#ifndef CPHMOVEMENT_CONTROL_H
-#define CPHMOVEMENT_CONTROL_H
 
 #include "PHCharacter.h"
 #include "MathUtils.h"
+
 namespace ALife
 {
 enum EHitType;
@@ -35,6 +34,7 @@ public:
     void PHCaptureObject(CPhysicsShellHolder* object, u16 element, LPCSTR = nullptr, bool = false);
     CPHCapture* PHCapture() { return m_capture; }
     CPHCharacter* PHCharacter() { return m_character; }
+    IPhysicsElement* IElement() const;
     void PHReleaseObject();
     Fvector PHCaptureGetNearestElemPos(const CPhysicsShellHolder* object);
     Fmatrix PHCaptureGetNearestElemTransform(CPhysicsShellHolder* object);
@@ -134,7 +134,6 @@ private:
     int m_start_index;
 
     float m_path_distance;
-    u16 m_material;
 
     float fLastMotionMag;
 
@@ -368,11 +367,10 @@ public:
         return m_character->CollisionDamageInfo();
     }
     void GetDesiredPos(Fvector& dpos) { m_character->GetDesiredPosition(dpos); }
-    bool CharacterExist() { return (m_character && m_character->b_exist); }
+    bool CharacterExist() const { return (m_character && m_character->b_exist); }
     CPHMovementControl(CObject* parent);
     ~CPHMovementControl(void);
 
 private:
     void UpdateCollisionDamage();
 };
-#endif

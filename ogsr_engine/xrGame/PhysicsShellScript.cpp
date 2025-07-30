@@ -10,7 +10,27 @@ Fmatrix global_transform(CPhysicsElement* E)
     return m;
 }
 
-#pragma optimize("s", on)
+void freeze(CPhysicsShell* self)
+{
+    u16 max_elements = self->get_ElementsNumber();
+    for (u16 i = 0; i < max_elements; ++i)
+    {
+        self->get_ElementByStoreOrder(i)->Fix();
+    }
+    self->SetIgnoreStatic();
+}
+
+void unfreeze(CPhysicsShell* self)
+{
+    u16 max_elements = self->get_ElementsNumber();
+    for (u16 i = 0; i < max_elements; ++i)
+    {
+        self->get_ElementByStoreOrder(i)->ReleaseFixed();
+    }
+    self->SetStatic();
+}
+
+
 void CPhysicsShell::script_register(lua_State* L)
 {
     module(L)[class_<CPhysicsShell>("physics_shell")
@@ -31,7 +51,19 @@ void CPhysicsShell::script_register(lua_State* L)
                   .def("get_angular_vel", &CPhysicsShell::get_AngularVel)
                   .def("set_ignore_dynamic", &CPhysicsShell::SetIgnoreDynamic)
                   .def("set_ignore_ragdoll", &CPhysicsShell::SetIgnoreRagDoll)
-                  .def("set_ignore_static", &CPhysicsShell::SetIgnoreStatic)];
+
+                  .def("set_ignore_static", &CPhysicsShell::SetIgnoreStatic)
+
+                  // for anomaly mods
+                  .def("freeze", &freeze)
+                  .def("unfreeze", &unfreeze)
+
+                  .def("DisableCollision", &CPhysicsShell::DisableCollision)
+                  .def("EnableCollision", &CPhysicsShell::EnableCollision)
+                  .def("Disable", &CPhysicsShell::Disable)
+                  .def("Enable", &CPhysicsShell::Enable)
+                  .def("CollideAll", &CPhysicsShell::CollideAll)
+    ];
 }
 
 void CPhysicsElement::script_register(lua_State* L)

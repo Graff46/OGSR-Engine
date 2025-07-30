@@ -127,6 +127,9 @@ bool actor_can_take(CScriptGameObject* O)
     if (obj->getDestroy())
         return false;
 
+    if (!obj->getVisible())
+        return false;
+
     CInventoryItem* pIItem = smart_cast<CInventoryItem*>(obj);
     if (0 == pIItem)
         return false;
@@ -155,7 +158,7 @@ u32 obj_level_id(CScriptGameObject* O) { return get_level_id(O->object().ai_loca
 
 LPCSTR obj_level_name(CScriptGameObject* O) { return get_level_name_by_id(obj_level_id(O)); }
 
-#pragma optimize("s", on)
+
 using namespace luabind;
 
 class_<CScriptGameObject> script_register_game_object3(class_<CScriptGameObject>&& instance)
@@ -182,8 +185,11 @@ class_<CScriptGameObject> script_register_game_object3(class_<CScriptGameObject>
         .def("get_torch", &script_game_object_cast<CTorch>)
         .def("get_weapon", &script_game_object_cast<CWeapon>)
         .def("get_weapon_m", &script_game_object_cast<CWeaponMagazined>)
+        .def("get_weapon_magazined", &script_game_object_cast<CWeaponMagazined>)
         .def("get_weapon_mwg", &script_game_object_cast<CWeaponMagazinedWGrenade>)
+        .def("get_weapon_gl", &script_game_object_cast<CWeaponMagazinedWGrenade>)
         .def("get_weapon_sg", &script_game_object_cast<CWeaponShotgun>)
+        .def("get_weapon_shotgun", &script_game_object_cast<CWeaponShotgun>)
 
         .def("ph_capture_object", (void(CScriptGameObject::*)(CScriptGameObject*))(&CScriptGameObject::PHCaptureObject))
         .def("ph_capture_object", (void(CScriptGameObject::*)(CScriptGameObject*, LPCSTR))(&CScriptGameObject::PHCaptureObject))

@@ -14,6 +14,7 @@
 #include "client_spawn_manager.h"
 #include "seniority_hierarchy_holder.h"
 #include "script_vars_storage.h"
+#include "LevelDebugScript.h"
 
 constexpr int max_objects_size = 2 * 1024;
 constexpr int max_objects_size_in_save = 6 * 1024;
@@ -25,14 +26,23 @@ void CLevel::remove_objects()
     m_is_removing_objects = true;
     BOOL b_stored = psDeviceFlags.test(rsDisableObjectsAsCrows);
 
+    u32 m_base, c_base, m_lmaps, c_lmaps;
+    Device.m_pRender->ResourcesGetMemoryUsage(m_base, c_base, m_lmaps, c_lmaps);
+
+    Msg("~ ObjectResources unload...");
+    Msg("~ ObjectResources - base: %d, %d K", c_base, m_base / 1024);
+    Msg("~ ObjectResources - lmap: %d, %d K", c_lmaps, m_lmaps / 1024);
+
     Game().reset_ui();
 
     {
         VERIFY(Server);
-        Server->SLS_Clear();
+        Server->SLS_Clear(); // generate GE_DESTROY for all game objects
     }
 
     snd_Events.clear();
+
+    // process destroy queue 
     for (int i = 0; i < 6; ++i)
     {
         // ugly hack for checks that update is twice on frame
@@ -90,6 +100,25 @@ void CLevel::remove_objects()
 
     shader_exports.set_dof_params(0.f, 0.f, 0.f, 0.f);
 
+    //u32 m_base, c_base, m_lmaps, c_lmaps;
+    Device.m_pRender->ResourcesGetMemoryUsage(m_base, c_base, m_lmaps, c_lmaps);
+
+    Msg("~ ObjectResources unload completed!");
+    Msg("~ ObjectResources - base: %d, %d K", c_base, m_base / 1024);
+    Msg("~ ObjectResources - lmap: %d, %d K", c_lmaps, m_lmaps / 1024);
+
+    ai().script_engine().collect_all_garbage();
+
+    for (auto& i : m_debug_render_queue)
+    {
+        xr_delete(i.second);
+    }
+
+    m_debug_render_queue.clear();
+
+    // clean up scheduler queues
+    Engine.Sheduler.Destroy();
+
     m_is_removing_objects = false;
 }
 
@@ -118,6 +147,8 @@ void CLevel::net_Stop()
     ai().script_engine().collect_all_garbage();
 
     Remove_all_statics();
+
+    Memory.mem_compact();
 
 #ifdef DEBUG
     show_animation_stats();
@@ -178,17 +209,12 @@ void CLevel::net_Update()
 {
     if (game_configured)
     {
-        // If we have enought bandwidth - replicate client data on to server
-        Device.Statistic->netClient2.Begin();
         ClientSend();
-        Device.Statistic->netClient2.End();
     }
-    // If server - perform server-update
+
     if (Server)
     {
-        Device.Statistic->netServer.Begin();
         Server->Update();
-        Device.Statistic->netServer.End();
     }
 }
 

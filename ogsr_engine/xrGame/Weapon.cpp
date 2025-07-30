@@ -96,9 +96,6 @@ void CWeapon::UpdateXForm()
     {
         dwXF_Frame = Device.dwFrame;
 
-        if (0 == H_Parent())
-            return;
-
         // Get access to entity and its visual
         CEntityAlive* E = smart_cast<CEntityAlive*>(H_Parent());
 
@@ -112,7 +109,6 @@ void CWeapon::UpdateXForm()
         if (parent->attached(this))
             return;
 
-        R_ASSERT(E);
         IKinematics* V = smart_cast<IKinematics*>(E->Visual());
         VERIFY(V);
 
@@ -128,12 +124,19 @@ void CWeapon::UpdateXForm()
         if (boneL == BI_NONE || boneR == BI_NONE)
             return;
 
-        // от mortan:
-        // https://www.gameru.net/forum/index.php?s=&showtopic=23443&view=findpost&p=1677678
-        V->CalculateBones_Invalidate();
-        V->CalculateBones(true); // V->CalculateBones	();
-        Fmatrix& mL = V->LL_GetTransform(u16(boneL));
-        Fmatrix& mR = V->LL_GetTransform(u16(boneR));
+        if (auto pActor = smart_cast<CActor*>(H_Parent()); pActor && pActor->cam_Active() != pActor->cam_FirstEye())
+        {
+            // https://www.gameru.net/forum/index.php?s=&showtopic=23443&view=findpost&p=1677678
+            V->CalculateBones_Invalidate();
+            V->CalculateBones(true);
+        }
+        else
+        {
+            V->CalculateBones();
+        }
+
+        const Fmatrix& mL = V->LL_GetTransform(u16(boneL));
+        const Fmatrix& mR = V->LL_GetTransform(u16(boneR));
         // Calculate
         Fmatrix mRes;
         Fvector R, D, N;
@@ -474,9 +477,8 @@ void CWeapon::Load(LPCSTR section)
         hud_hidden_bones = hidden_bones;
 
     //Можно и из конфига прицела читать и наоборот! Пока так.
-    m_fSecondVPZoomFactor = 0.0f;
     m_fZoomHudFov = 0.0f;
-    m_fSecondVPHudFov = 0.0f;
+    m_f3dssHudFov = 0.0f;
     m_fScopeInertionFactor = m_fControlInertionFactor;
 
     InitAddons();
@@ -530,7 +532,7 @@ void CWeapon::Load(LPCSTR section)
                                                READ_IF_EXISTS(pSettings, r_float, section, "laserdot_world_attach_offset_y", 0.0f),
                                                READ_IF_EXISTS(pSettings, r_float, section, "laserdot_world_attach_offset_z", 0.0f)};
 
-        const bool b_r2 = psDeviceFlags.test(rsR2) || psDeviceFlags.test(rsR3) || psDeviceFlags.test(rsR4);
+        constexpr bool b_r2 = true;
 
         const char* m_light_section = pSettings->r_string(section, "laser_light_section");
 
@@ -538,7 +540,8 @@ void CWeapon::Load(LPCSTR section)
 
         laser_light_render = ::Render->light_create();
         laser_light_render->set_type(IRender_Light::SPOT);
-        laser_light_render->set_shadow(true);
+        laser_light_render->set_shadow(false);
+        laser_light_render->set_moveable(true);
 
         const Fcolor clr = READ_IF_EXISTS(pSettings, r_fcolor, m_light_section, b_r2 ? "color_r2" : "color", (Fcolor{1.0f, 0.0f, 0.0f, 1.0f}));
         laser_fBrightness = clr.intensity();
@@ -564,7 +567,7 @@ void CWeapon::Load(LPCSTR section)
             Fvector{pSettings->r_float(section, "torch_omni_world_attach_offset_x"), pSettings->r_float(section, "torch_omni_world_attach_offset_y"),
                     pSettings->r_float(section, "torch_omni_world_attach_offset_z")};
 
-        const bool b_r2 = psDeviceFlags.test(rsR2) || psDeviceFlags.test(rsR3) || psDeviceFlags.test(rsR4);
+        constexpr bool b_r2 = true;
 
         const char* m_light_section = pSettings->r_string(section, "flashlight_section");
 
@@ -572,7 +575,8 @@ void CWeapon::Load(LPCSTR section)
 
         flashlight_render = ::Render->light_create();
         flashlight_render->set_type(IRender_Light::SPOT);
-        flashlight_render->set_shadow(true);
+        flashlight_render->set_shadow(ParentIsActor());
+        flashlight_render->set_moveable(true);
 
         const Fcolor clr = READ_IF_EXISTS(pSettings, r_fcolor, m_light_section, b_r2 ? "color_r2" : "color", (Fcolor{0.6f, 0.55f, 0.55f, 1.0f}));
         flashlight_fBrightness = clr.intensity();
@@ -587,6 +591,7 @@ void CWeapon::Load(LPCSTR section)
             (IRender_Light::LT)(READ_IF_EXISTS(pSettings, r_u8, m_light_section, "omni_type",
                                                2))); // KRodin: вообще omni это обычно поинт, но поинт светит во все стороны от себя, поэтому тут спот используется по умолчанию.
         flashlight_omni->set_shadow(false);
+        flashlight_omni->set_moveable(true);
 
         const Fcolor oclr = READ_IF_EXISTS(pSettings, r_fcolor, m_light_section, b_r2 ? "omni_color_r2" : "omni_color", (Fcolor{1.0f, 1.0f, 1.0f, 0.0f}));
         flashlight_omni->set_color(oclr);
@@ -603,7 +608,31 @@ void CWeapon::Load(LPCSTR section)
     dof_params_zoom = (READ_IF_EXISTS(pSettings, r_fvector4, section, "dof_zoom_params", (Fvector4{0, 0, 0, 1.6}))); //(Fvector4{0.1, 0.4, 0, 1.6})
     dof_params_reload = (READ_IF_EXISTS(pSettings, r_fvector4, section, "dof_reload_params", (Fvector4{0, 0, 1, 0})));
 
-    dont_interrupt_shot_anm = READ_IF_EXISTS(pSettings, r_bool, section, "dont_interrupt_shot_anm", true);
+    dont_interrupt_shot_anm = READ_IF_EXISTS(pSettings, r_bool, section, "dont_interrupt_shot_anm", false);
+    is_gunslinger_weapon = READ_IF_EXISTS(pSettings, r_bool, section, "is_gunslinger_weapon", false);
+
+    if (pSettings->line_exist(section, "bullet_textures_in_model"))
+    {
+        const char* str = pSettings->r_string(section, "bullet_textures_in_model");
+        for (int i{}, count = _GetItemCount(str); i < count;)
+        {
+            xr_string bullet_tex;
+            _GetItem(str, i++, bullet_tex);
+            bullet_textures_in_model.emplace_back(std::move(bullet_tex));
+        }
+    }
+    if (pSettings->line_exist(section, "bullet_textures_for_ammos"))
+    {
+        const char* str = pSettings->r_string(section, "bullet_textures_for_ammos");
+        for (int i{}, count = _GetItemCount(str); i < count;)
+        {
+            xr_string ammo_section, bullet_tex;
+            _GetItem(str, i++, ammo_section);
+            ASSERT_FMT(i < count, "Incorrect [bullet_textures_for_ammos] in section [%s]", section);
+            _GetItem(str, i++, bullet_tex);
+            bullet_textures_for_ammos.emplace(std::move(ammo_section), std::move(bullet_tex));
+        }
+    }
 }
 
 void CWeapon::LoadFireParams(LPCSTR section, LPCSTR prefix)
@@ -861,6 +890,8 @@ u8 CWeapon::idle_state()
     return eIdle;
 }
 
+float CWeapon::dof_zoom_effect{}, CWeapon::dof_reload_effect{};
+
 void CWeapon::UpdateCL()
 {
     inherited::UpdateCL();
@@ -878,7 +909,13 @@ void CWeapon::UpdateCL()
 
     VERIFY(smart_cast<IKinematics*>(Visual()));
 
+    CInventoryItem* pActorItem{};
     auto pActor = smart_cast<CActor*>(H_Parent());
+    if (pActor)
+    {
+        pActorItem = pActor->inventory().ActiveItem();
+    }
+
     if (GetState() == eIdle)
     {
         auto state = idle_state();
@@ -891,14 +928,14 @@ void CWeapon::UpdateCL()
             }
         }
 
-        if (pActor)
+        if (pActor && pActorItem == this)
         {
             if (psActorFlags.test(AF_DOF_ZOOM))
             {
                 if (m_bZoomMode && dof_zoom_effect < 1.f && !UseScopeTexture() && pActor->active_cam() == ACTOR_DEFS::eacFirstEye)
-                    UpdateDof(dof_zoom_effect, dof_params_zoom, false);
-                else if (dof_zoom_effect > 0.f && !m_bZoomMode)
-                    UpdateDof(dof_zoom_effect, dof_params_zoom, true);
+                    UpdateDof(dof_zoom_effect, Is3dssEnabled() ? dof_params_reload : dof_params_zoom, false);
+                else if (dof_zoom_effect > 0.f && (!m_bZoomMode || pActor->active_cam() != ACTOR_DEFS::eacFirstEye))
+                    UpdateDof(dof_zoom_effect, Is3dssEnabled() ? dof_params_reload : dof_params_zoom, true);
             }
 
             if (psActorFlags.test(AF_DOF_RELOAD) && dof_reload_effect > 0.f) 
@@ -907,20 +944,25 @@ void CWeapon::UpdateCL()
     }
     else if (GetState() == eReload)
     {
-        if (pActor && psActorFlags.test(AF_DOF_RELOAD) && dof_reload_effect < 1.f && pActor->active_cam() == ACTOR_DEFS::eacFirstEye)
-            UpdateDof(dof_reload_effect, dof_params_reload, false);
+        if (pActor && pActorItem == this && psActorFlags.test(AF_DOF_RELOAD))
+        {
+            if (dof_reload_effect < 1.f && pActor->active_cam() == ACTOR_DEFS::eacFirstEye)
+                UpdateDof(dof_reload_effect, dof_params_reload, false);
+            else if (dof_reload_effect > 0.f && pActor->active_cam() != ACTOR_DEFS::eacFirstEye)
+                UpdateDof(dof_reload_effect, dof_params_reload, true);
+        }
 
         m_idle_state = eIdle;
     }
     else
     {
-        if (pActor)
+        if (pActor && pActorItem == this)
         {
             if (psActorFlags.test(AF_DOF_RELOAD) && dof_reload_effect > 0.f)
                 UpdateDof(dof_reload_effect, dof_params_reload, true);
 
             if (psActorFlags.test(AF_DOF_ZOOM) && dof_zoom_effect > 0.f && (!m_bZoomMode || pActor->active_cam() != ACTOR_DEFS::eacFirstEye))
-                UpdateDof(dof_zoom_effect, dof_params_zoom, true);
+                UpdateDof(dof_zoom_effect, Is3dssEnabled() ? dof_params_reload : dof_params_zoom, true);
         }
 
         m_idle_state = eIdle;
@@ -930,7 +972,7 @@ void CWeapon::UpdateCL()
     UpdateFlashlight();
 }
 
-void CWeapon::UpdateDof(float& type, Fvector4 params_type, bool desire)
+void CWeapon::UpdateDof(float& type, const Fvector4& params_type, const bool desire)
 {
     if (desire)
         type -= Device.fTimeDelta / dof_transition_time;
@@ -1071,30 +1113,24 @@ void CWeapon::UpdateFlashlight()
     }
 }
 
-void CWeapon::renderable_Render()
+void CWeapon::renderable_Render(u32 context_id, IRenderable* root)
 {
     UpdateXForm();
 
     //нарисовать подсветку
     RenderLight();
 
-    //если мы в режиме снайперки, то сам HUD рисовать не надо
-    if (IsZoomed() && !IsRotatingToZoom() && ZoomTexture())
-        RenderHud(FALSE);
-    else
-        RenderHud(TRUE);
-
-    inherited::renderable_Render();
+    inherited::renderable_Render(context_id, root);
 }
 
-void CWeapon::render_hud_mode()
+void CWeapon::render_hud_mode(u32 context_id, IRenderable* root)
 {
     RenderLight();
 
-    inherited::render_hud_mode();
+    inherited::render_hud_mode(context_id, root);
 }
 
-bool CWeapon::need_renderable() { return !Device.m_SecondViewport.IsSVPFrame() && !(IsZoomed() && ZoomTexture() && !IsRotatingToZoom()); }
+bool CWeapon::need_renderable() { return !(IsZoomed() && ZoomTexture() && !IsRotatingToZoom()); }
 
 void CWeapon::signal_HideComplete()
 {
@@ -1147,7 +1183,7 @@ bool CWeapon::Action(s32 cmd, u32 flags)
             return false;
         }
 
-        if (Core.Features.test(xrCore::Feature::lock_reload_in_sprint) && ParentIsActor() && g_actor->get_state() & mcSprint)
+        if (psActorFlags.test(AF_LOCK_RELOAD) && ParentIsActor() && g_actor->get_state() & mcSprint)
             return true;
 
         if (flags & CMD_START)
@@ -1173,25 +1209,29 @@ bool CWeapon::Action(s32 cmd, u32 flags)
 
     case kWPN_ZOOM: {
         const u32 state = GetState();
-        if (IsZoomEnabled() && (state == eFire || state == eFire2 || state == eMagEmpty || state == eIdle || !IsPending()))
+        const bool bPending = IsPending();
+        if (IsZoomEnabled() && (state == eFire || state == eFire2 || state == eMagEmpty || state == eIdle || !bPending))
         {
             if (flags & CMD_START)
             {
                 if (psActorFlags.is(AF_WPN_AIM_TOGGLE) && IsZoomed())
                 {
                     OnZoomOut();
-                    SwitchState(eIdle);
+                    if (!bPending)
+                        SwitchState(eIdle);
                 }
                 else
                 {
                     OnZoomIn();
-                    SwitchState(eIdle);
+                    if (!bPending)
+                        SwitchState(eIdle);
                 }
             }
             else if (IsZoomed() && !psActorFlags.is(AF_WPN_AIM_TOGGLE))
             {
                 OnZoomOut();
-                SwitchState(eIdle);
+                if (!bPending)
+                    SwitchState(eIdle);
             }
             return true;
         }
@@ -1231,25 +1271,10 @@ void CWeapon::ZoomChange(bool inc)
 {
     bool wasChanged = false;
 
-    if (SecondVPEnabled())
+    if (Is3dssEnabled())
     {
-        float delta, min_zoom_factor;
-        GetZoomData(m_fSecondVPZoomFactor, delta, min_zoom_factor);
-
-        const float currentZoomFactor = m_fRTZoomFactor;
-
-        if (Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system))
-        {
-            m_fRTZoomFactor += delta * (inc ? 1 : -1);
-            clamp(m_fRTZoomFactor, min_zoom_factor, m_fSecondVPZoomFactor);
-        }
-        else
-        {
-            m_fRTZoomFactor += delta * (inc ? 1 : -1);
-            clamp(m_fRTZoomFactor, m_fSecondVPZoomFactor, min_zoom_factor);
-        }
-
-        wasChanged = !fsimilar(currentZoomFactor, m_fRTZoomFactor);
+// Simp: переменную кратность в новых прицелах сделал на скриптах, мб в будущем верну в двиг, но пока так.
+        return;
     }
     else
     {
@@ -1271,7 +1296,7 @@ void CWeapon::ZoomChange(bool inc)
 
         wasChanged = !fsimilar(currentZoomFactor, m_fZoomFactor);
 
-        if (H_Parent() && !IsRotatingToZoom() && !SecondVPEnabled())
+        if (H_Parent() && !IsRotatingToZoom())
             m_fRTZoomFactor = m_fZoomFactor; // store current
     }
 
@@ -1402,15 +1427,11 @@ BOOL CWeapon::CheckForMisfire()
     if (rnd < mp)
     {
         FireEnd();
-
         SwitchMisfire(true);
-
         return TRUE;
     }
     else
-    {
         return FALSE;
-    }
 }
 
 void CWeapon::Reload() { OnZoomOut(); }
@@ -1613,6 +1634,12 @@ void CWeapon::UpdateAddonsVisibility()
 
 bool CWeapon::Activate(bool now)
 {
+    VisMask new_mask;
+    new_mask.set_all();
+
+    const auto K = smart_cast<IKinematics*>(Visual());
+    K->LL_SetBonesVisible(new_mask);
+
     UpdateAddonsVisibility();
     return inherited::Activate(now);
 }
@@ -1621,7 +1648,7 @@ void CWeapon::InitAddons() {}
 
 float CWeapon::CurrentZoomFactor()
 {
-    if (SecondVPEnabled())
+    if (Is3dssEnabled())
         return Core.Features.test(xrCore::Feature::ogse_wpn_zoom_system) ? 1.0f : m_fIronSightZoomFactor; // no change to main fov zoom when use second vp
     else if (IsScopeAttached())
         return m_fScopeZoomFactor;
@@ -1634,7 +1661,7 @@ void CWeapon::OnZoomIn()
     m_bZoomMode = true;
 
     // если в режиме ПГ - не будем давать включать динамический зум
-    if (m_bScopeDynamicZoom && !IsGrenadeMode() && !SecondVPEnabled())
+    if (m_bScopeDynamicZoom && !IsGrenadeMode() && !Is3dssEnabled())
         m_fZoomFactor = m_fRTZoomFactor;
     else
         m_fZoomFactor = CurrentZoomFactor();
@@ -1677,7 +1704,7 @@ void CWeapon::OnZoomOut()
 
 bool CWeapon::UseScopeTexture()
 {
-    return !SecondVPEnabled() && m_UIScope; // только если есть текстура прицела - для простого создания коллиматоров
+    return !Is3dssEnabled() && m_UIScope; // только если есть текстура прицела - для простого создания коллиматоров
 }
 
 CUIStaticItem* CWeapon::ZoomTexture()
@@ -1773,7 +1800,7 @@ void CWeapon::create_physic_shell()
 {
     // xrKrodin: Временный? "фикс" для оружия из ганслингера, валяющегося на земле. По непонятным причинам (много костей или хз от чего ещё) в некоторых случаях при рассчетах
     // физики происходят краши в ode которые исправить невозможно.
-    if (IS_OGSR_GA)
+    if (is_gunslinger_weapon || IS_OGSR_GA)
     {
         auto vis = smart_cast<IKinematics*>(Visual());
         auto& rootBoneData = vis->LL_GetData(vis->LL_GetBoneRoot());
@@ -1843,12 +1870,11 @@ bool CWeapon::ready_to_kill() const { return (!IsMisfire() && ((GetState() == eI
 // Получить индекс текущих координат худа
 u8 CWeapon::GetCurrentHudOffsetIdx() const
 {
-    const bool b_aiming = ((IsZoomed() && m_fZoomRotationFactor <= 1.f) || (!IsZoomed() && m_fZoomRotationFactor > 0.f));
-
-    if (b_aiming)
+    if (IsZoomed())
     {
         const bool has_gl = GrenadeLauncherAttachable() && IsGrenadeLauncherAttached();
         const bool has_scope = ScopeAttachable() && IsScopeAttached();
+        //const bool has_aim_alt = AimAlt && is_second_zoom_offset_enabled;
 
         if (IsGrenadeMode())
         {
@@ -1868,10 +1894,15 @@ u8 CWeapon::GetCurrentHudOffsetIdx() const
         {
             if (m_bUseScopeZoom && has_scope)
                 return hud_item_measures::m_hands_offset_type_aim_scope;
+            //else if (has_aim_alt)
+            //    return hud_item_measures::m_hands_offset_type_alt_aim;
             else
                 return hud_item_measures::m_hands_offset_type_aim;
         }
     }
+
+    //if (LoweredActive && !(g_actor->get_state() & mcSprint))
+    //    return hud_item_measures::m_hands_offset_type_lowered;
 
     return hud_item_measures::m_hands_offset_type_normal;
 }
@@ -2041,74 +2072,40 @@ float CWeapon::GetConditionToShow() const
     return (GetCondition()); // powf(GetCondition(),4.0f));
 }
 
-BOOL CWeapon::ParentMayHaveAimBullet()
+bool CWeapon::ParentIsActor() const
 {
-    CObject* O = H_Parent();
-    if (!O)
-        return FALSE;
-    CEntityAlive* EA = smart_cast<CEntityAlive*>(O);
-    return EA->cast_actor() != 0;
-}
-
-BOOL CWeapon::ParentIsActor()
-{
-    CObject* O = H_Parent();
-    if (!O)
-        return FALSE;
-    CEntityAlive* EA = smart_cast<CEntityAlive*>(O);
-    if (!EA)
-        return FALSE;
-    return EA->cast_actor() != 0;
+    return smart_cast<const CActor*>(H_Parent()) != nullptr;
 }
 
 const float& CWeapon::hit_probability() const
 {
     VERIFY((g_SingleGameDifficulty >= egdNovice) && (g_SingleGameDifficulty <= egdMaster));
+#pragma todo("WTF???")
     return (m_hit_probability[egdNovice]);
 }
 
-// Обновление необходимости включения второго вьюпорта +SecondVP+
-// Вызывается только для активного оружия игрока
-void CWeapon::UpdateSecondVP()
+bool CWeapon::Is3dssEnabled() const
 {
-    // + CActor::UpdateCL();
-    CActor* pActor = smart_cast<CActor*>(H_Parent());
-    if (!pActor)
-        return;
-
-    CInventoryOwner* inv_owner = pActor->cast_inventory_owner();
-
-    bool b_is_active_item = inv_owner && (inv_owner->m_inventory->ActiveItem() == this);
-    R_ASSERT(b_is_active_item); // Эта функция должна вызываться только для оружия в руках нашего игрока
-
-    bool bCond_1 = m_fZoomRotationFactor > 0.05f; // Мы должны целиться
-    bool bCond_3 = pActor->cam_Active() == pActor->cam_FirstEye(); // Мы должны быть от 1-го лица
-
-    Device.m_SecondViewport.SetSVPActive(bCond_1 && bCond_3 && SecondVPEnabled());
+    const auto& zoom_params = shader_exports.get_custom_params("s3ds_param_2");
+    return !fis_zero(zoom_params.w) && !IsGrenadeMode() && psActorFlags.test(AF_3D_SCOPES);
 }
 
-bool CWeapon::SecondVPEnabled() const
-{
-    bool bCond_2 = m_fSecondVPZoomFactor > 0.0f; // В конфиге должен быть прописан фактор зума (scope_lense_fov_factor) больше чем 0
-    bool bCond_4 = !IsGrenadeMode(); // Мы не должны быть в режиме подствольника
-    bool bcond_6 = psActorFlags.test(AF_3D_SCOPES);
-
-    return bCond_2 && bCond_4 && bcond_6;
-}
-
-// Чувствительность мышкии с оружием в руках во время прицеливания
+// Чувствительность мышки с оружием в руках во время прицеливания
 float CWeapon::GetControlInertionFactor() const
 {
-    float fInertionFactor = inherited::GetControlInertionFactor();
+    const float fInertionFactor = inherited::GetControlInertionFactor();
 
-    if (IsZoomed() && SecondVPEnabled() && !IsRotatingToZoom())
+    if (IsZoomed() && Is3dssEnabled() && !IsRotatingToZoom())
     {
         if (m_bScopeDynamicZoom)
         {
-            const float delta_factor_total = 1 - m_fSecondVPZoomFactor;
-            float min_zoom_factor = 1 + delta_factor_total * m_fMinZoomK;
-            float k = (m_fRTZoomFactor - min_zoom_factor) / (m_fSecondVPZoomFactor - min_zoom_factor);
-            return (m_fScopeInertionFactor - fInertionFactor) * k + fInertionFactor;
+            const auto& zoom_params = shader_exports.get_custom_params("s3ds_param_2");
+            const float& max_zoom = zoom_params.y;
+            const float& current_zoom = zoom_params.w;
+            const float res = fInertionFactor + ((m_fScopeInertionFactor - fInertionFactor) * (current_zoom / max_zoom));
+            // Msg("--[%s] current inertion: [%g], fInertionFactor: [%g], m_fScopeInertionFactor: [%g], current zoom: [%g], max_zoom: [%g]", __FUNCTION__, res, fInertionFactor,
+            // m_fScopeInertionFactor, current_zoom, max_zoom);
+            return res;
         }
         else
             return m_fScopeInertionFactor;
@@ -2117,27 +2114,17 @@ float CWeapon::GetControlInertionFactor() const
     return fInertionFactor;
 }
 
-float CWeapon::GetSecondVPFov() const
-{
-    float fov_factor = m_fSecondVPZoomFactor;
-    if (m_bScopeDynamicZoom)
-    {
-        fov_factor = m_fRTZoomFactor;
-    }
-    return atanf(tanf(g_fov * (0.5f * PI / 180)) / fov_factor) / (0.5f * PI / 180);
-}
-
 float CWeapon::GetHudFov()
 {
     const float last_nw_hf = inherited::GetHudFov();
 
     if (m_fZoomRotationFactor > 0.0f)
     {
-        if (SecondVPEnabled() && m_fSecondVPHudFov > 0.0f)
+        if (Is3dssEnabled() && m_f3dssHudFov > 0.0f)
         {
             // В линзе зума
-            const float fDiff = last_nw_hf - m_fSecondVPHudFov;
-            return m_fSecondVPHudFov + (fDiff * (1 - m_fZoomRotationFactor));
+            const float fDiff = last_nw_hf - m_f3dssHudFov;
+            return m_f3dssHudFov + (fDiff * (1 - m_fZoomRotationFactor));
         }
         if ((m_eScopeStatus == CSE_ALifeItemWeapon::eAddonDisabled || IsScopeAttached()) && !IsGrenadeMode() && m_fZoomHudFov > 0.0f)
         {
@@ -2232,3 +2219,51 @@ void CWeapon::HUD_VisualBulletUpdate(bool force, int force_idx)
 }
 
 void CWeapon::ParseCurrentItem(CGameFont* F) { F->OutNext("WEAPON IN STRAPPED MODE: [%d]", m_strapped_mode); }
+
+void CWeapon::update_visual_bullet_textures(const bool forced)
+{
+    if (bullet_textures_in_model.empty())
+        return;
+
+    if (!GetHUDmode())
+        return;
+
+    const u32 id = m_set_next_ammoType_on_reload != u32(-1) ? m_set_next_ammoType_on_reload : m_ammoType;
+    const auto& current_ammo_sect = m_ammoTypes[id];
+    const auto bullet_texrure_find_it = bullet_textures_for_ammos.find(current_ammo_sect);
+    ASSERT_FMT(bullet_texrure_find_it != bullet_textures_for_ammos.end(), "!!Can't find [%s] in [bullet_textures_for_ammos] of [%s]", current_ammo_sect.c_str(),
+               cNameSect().c_str());
+    const auto& bullet_texrure_name = bullet_texrure_find_it->second;
+
+    if (!forced && current_bullet_texture == bullet_texrure_name)
+        return;
+
+    for (const auto& tex_name : bullet_textures_in_model)
+    {
+        const auto textures = Device.m_pRender->GetResourceManager()->FindTexture(tex_name.c_str());
+        if (textures.empty())
+        {
+            Msg("!![%s] can't find texture [%s] for [%s]", __FUNCTION__, tex_name.c_str(), cNameSect().c_str());
+            continue;
+        }
+
+        auto* tex = textures.front();
+        tex->Unload();
+        tex->Load(bullet_texrure_name.c_str());
+        current_bullet_texture = bullet_texrure_name;
+        //Msg("--[%s] replaced texture [%s] --> [%s] for [%s]", __FUNCTION__, tex_name.c_str(), current_bullet_texture.c_str(), cNameSect().c_str());
+    }
+}
+
+void CWeapon::on_a_hud_attach()
+{
+    inherited::on_a_hud_attach();
+
+    VisMask new_mask;
+    new_mask.set_all();
+
+    IKinematics* K = HudItemData()->m_model;
+    K->LL_SetBonesVisible(new_mask);
+}
+
+void CWeapon::on_b_hud_detach() { inherited::on_b_hud_detach(); }

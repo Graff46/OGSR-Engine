@@ -205,8 +205,8 @@ int compare_naturally(const void* a_ptr, const void* b_ptr)
 
 bool SelectTexture(const char* label, shared_str& texName)
 {
-    char tex[100];
-    strncpy(tex, texName.data(), 100);
+    string1024 tex;
+    strcpy_s(tex, texName.data());
 
     bool changed = false;
     static shared_str prevValue;
@@ -336,7 +336,7 @@ void ShowWeatherEditor(bool& show)
     for (const auto& el : env.WeatherCycles)
     {
         cycles.push_back(el.first);
-        if (el.first == env.CurrentWeatherName)
+        if (el.first == env.GetWeather())
             iCycle = cycles.size() - 1;
     }
 
@@ -438,8 +438,8 @@ void ShowWeatherEditor(bool& show)
 
     if (SelectTexture("sky_texture", cur->sky_texture_name))
     {
-        char buf[100];
-        strconcat(sizeof(buf), buf, cur->sky_texture_name.data(), "#small");
+        string1024 buf;
+        xr_strconcat(buf, cur->sky_texture_name.data(), "#small");
         cur->sky_texture_env_name = buf;
         cur->on_device_create();
         changed = true;
@@ -550,7 +550,7 @@ void ShowWeatherEditor(bool& show)
 
     if (changed)
     {
-        modifiedWeathers.insert(env.CurrentWeatherName);
+        modifiedWeathers.insert(env.GetWeather());
         s_ScriptWeatheParams = true;
     }
 
@@ -570,7 +570,7 @@ void ShowWeatherEditor(bool& show)
     {
         s_ScriptWeatheParams = false;
 
-        env.SetWeather(env.CurrentWeatherName, true);        
+        env.SetWeather(env.GetWeather(), true);        
 
         modifiedWeathers.clear();
     }

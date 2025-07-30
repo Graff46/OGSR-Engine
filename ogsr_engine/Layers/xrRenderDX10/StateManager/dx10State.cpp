@@ -4,7 +4,7 @@
 //#include "dx10RSManager.h"
 #include "dx10StateCache.h"
 
-dx10State::dx10State() : m_pRasterizerState(0), m_pDepthStencilState(0), m_pBlendState(0), m_uiStencilRef(UINT(-1)), m_uiAlphaRef(0) {}
+dx10State::dx10State() : m_pRasterizerState(nullptr), m_pDepthStencilState(nullptr), m_pBlendState(nullptr), m_uiStencilRef(UINT(-1)), m_uiAlphaRef(0) {}
 
 dx10State::~dx10State()
 {
@@ -29,46 +29,34 @@ dx10State* dx10State::Create(SimulatorStates& state_code)
         InitSamplers(pState->m_VSSamplers, state_code, CTexture::rstVertex);
         InitSamplers(pState->m_PSSamplers, state_code, CTexture::rstPixel);
         InitSamplers(pState->m_GSSamplers, state_code, CTexture::rstGeometry);
-#ifdef USE_DX11
         InitSamplers(pState->m_HSSamplers, state_code, CTexture::rstHull);
         InitSamplers(pState->m_DSSamplers, state_code, CTexture::rstDomain);
         InitSamplers(pState->m_CSSamplers, state_code, CTexture::rstCompute);
-#endif
     }
 
     return pState;
 }
 
-HRESULT dx10State::Apply()
+HRESULT dx10State::Apply(CBackend& cmd_list) const
 {
+    const auto context_id = cmd_list.context_id;
+
     VERIFY(m_pRasterizerState);
-    StateManager.SetRasterizerState(m_pRasterizerState);
+    cmd_list.StateManager.SetRasterizerState(m_pRasterizerState);
     VERIFY(m_pDepthStencilState);
-    StateManager.SetDepthStencilState(m_pDepthStencilState);
+    cmd_list.StateManager.SetDepthStencilState(m_pDepthStencilState);
     if (m_uiStencilRef != -1)
-        StateManager.SetStencilRef(m_uiStencilRef);
+        cmd_list.StateManager.SetStencilRef(m_uiStencilRef);
     VERIFY(m_pBlendState);
-    StateManager.SetBlendState(m_pBlendState);
-    StateManager.SetAlphaRef(m_uiAlphaRef);
+    cmd_list.StateManager.SetBlendState(m_pBlendState);
+    cmd_list.StateManager.SetAlphaRef(m_uiAlphaRef);
 
-    SSManager.GSApplySamplers(m_GSSamplers);
-    SSManager.VSApplySamplers(m_VSSamplers);
-    SSManager.PSApplySamplers(m_PSSamplers);
-#ifdef USE_DX11
-    SSManager.HSApplySamplers(m_HSSamplers);
-    SSManager.DSApplySamplers(m_DSSamplers);
-    SSManager.CSApplySamplers(m_CSSamplers);
-#endif
-
-    //	static const FLOAT BlendFactor[4] = {0.000f, 0.000f, 0.000f, 0.000f};
-    //	static const UINT SampleMask = 0xffffffff;
-
-    //	VERIFY(m_pRasterizerState);
-    //	HW.pDevice->RSSetState(m_pRasterizerState);
-    //	VERIFY(m_pDepthStencilState);
-    //	HW.pDevice->OMSetDepthStencilState(m_pDepthStencilState, m_uiStencilRef);
-    //	VERIFY(m_pBlendState);
-    //	HW.pDevice->OMSetBlendState(m_pBlendState, BlendFactor, SampleMask);
+    SSManager.GSApplySamplers(context_id, m_GSSamplers);
+    SSManager.VSApplySamplers(context_id, m_VSSamplers);
+    SSManager.PSApplySamplers(context_id, m_PSSamplers);
+    SSManager.HSApplySamplers(context_id, m_HSSamplers);
+    SSManager.DSApplySamplers(context_id, m_DSSamplers);
+    SSManager.CSApplySamplers(context_id, m_CSSamplers);
 
     return S_OK;
 }
@@ -76,7 +64,7 @@ HRESULT dx10State::Apply()
 void dx10State::Release()
 {
     dx10State* pState = this;
-    xr_delete<dx10State>(pState);
+    xr_delete(pState);
 }
 
 void dx10State::InitSamplers(tSamplerHArray& SamplerArray, SimulatorStates& state_code, int iBaseSamplerIndex)

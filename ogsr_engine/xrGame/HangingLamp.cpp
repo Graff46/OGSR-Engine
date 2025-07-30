@@ -51,13 +51,9 @@ void CHangingLamp::RespawnInit()
 void CHangingLamp::Center(Fvector& C) const
 {
     if (renderable.visual)
-    {
         renderable.xform.transform_tiny(C, renderable.visual->getVisData().sphere.P);
-    }
     else
-    {
         C.set(XFORM().c);
-    }
 }
 
 float CHangingLamp::Radius() const { return (renderable.visual) ? renderable.visual->getVisData().sphere.R : EPS; }
@@ -96,6 +92,8 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
         ambient_bone = K->LL_BoneID(*lamp->light_ambient_bone);
         VERIFY(ambient_bone != BI_NONE);
         collidable.model = xr_new<CCF_Skeleton>(this);
+
+        m_animated = !lamp->startup_animation.empty();
     }
     fBrightness = lamp->brightness;
     clr.set(lamp->color);
@@ -110,11 +108,17 @@ BOOL CHangingLamp::net_Spawn(CSE_Abstract* DC)
     light_render->set_cone(lamp->spot_cone_angle);
     light_render->set_texture(*lamp->light_texture);
     light_render->set_virtual_size(lamp->m_virtual_size);
-#pragma todo("KRodin: адаптировать под новый рендер!")
+
+// todo("адаптировать под новый рендер!")
     // light_render->set_flare(!!lamp->flags.is(CSE_ALifeObjectHangingLamp::flUseFlare));
-    light_render->set_volumetric(!!lamp->flags.is(CSE_ALifeObjectHangingLamp::flVolumetricLight));
-#pragma todo("KRodin: адаптировать под новый рендер!")
     // light_render->set_lsf_params(lamp->m_speed, lamp->m_amount, lamp->m_smap_jitter);
+
+    //Simp: для поинта не вижу смысла по дефолту включать волюметрик, ибо один поинт - это шесть отдельных источников света направленных в разные стороны. Слишком накладно по 6 волюметриков на светильник.
+    //Да и вообще лучше придумать настройки чтоб каждую лампу индивидуально настроить можно было. Пока только настройку через скрипты добавил.
+    light_render->set_volumetric(lamp->flags.is(CSE_ALifeObjectHangingLamp::flVolumetricLight) /*|| light_render->get_type() == IRender_Light::SPOT*/);
+    light_render->set_volumetric_quality(1.f);
+    light_render->set_volumetric_intensity(0.1f);
+    light_render->set_volumetric_distance(1.f);
 
     if (lamp->glow_texture.size())
     {
@@ -209,10 +213,13 @@ void CHangingLamp::UpdateCL()
     if (m_pPhysicsShell)
         m_pPhysicsShell->InterpolateGlobalTransform(&XFORM());
 
-    if (Alive() && light_render->get_active())
+    if (!Alive())
+        return;
+
+    if (light_render->get_active())
     {
         if (Visual())
-            PKinematics(Visual())->CalculateBones();
+            PKinematics(Visual())->CalculateBones(m_animated);
 
         // update T&R from light (main) bone
         Fmatrix xf;
@@ -268,10 +275,31 @@ void CHangingLamp::UpdateCL()
             }
         }
     }
+
+    //Эффект мигания при выбросе
+    bool light_status{lights_turned_on};
+    const float surge_progress = shader_exports.get_pda_params().x;
+
+    if (light_status && !fis_zero(surge_progress))
+    {
+        const float mig = 1.f - (surge_progress * 2.f);
+        const float time[]{Device.fTimeGlobal, Device.fTimeGlobal / 10.f};
+        light_status = Device.NoiseRandom(time) <= mig;
+    }
+
+    if (light_render)
+        light_render->set_active(light_status);
+
+    if (glow_render)
+        glow_render->set_active(light_status);
+
+    if (light_ambient)
+        light_ambient->set_active(light_status);
 }
 
 void CHangingLamp::TurnOn()
 {
+    lights_turned_on = true;
     light_render->set_active(true);
     if (glow_render)
         glow_render->set_active(true);
@@ -289,6 +317,7 @@ void CHangingLamp::TurnOn()
 
 void CHangingLamp::TurnOff()
 {
+    lights_turned_on = false;
     light_render->set_active(false);
     if (glow_render)
         glow_render->set_active(false);
@@ -305,7 +334,7 @@ void CHangingLamp::Hit(SHit* pHDS)
 {
     SHit HDS = *pHDS;
     callback(GameObject::eHit)(lua_game_object(), HDS.power, HDS.dir, smart_cast<const CGameObject*>(HDS.who)->lua_game_object(), HDS.bone());
-    BOOL bWasAlive = Alive();
+    bool bWasAlive = Alive();
 
     if (m_pPhysicsShell)
         m_pPhysicsShell->applyHit(pHDS->p_in_bone_space, pHDS->dir, pHDS->impulse, pHDS->boneID, pHDS->hit_type);
@@ -359,7 +388,7 @@ void CHangingLamp::CreateBody(CSE_ALifeObjectHangingLamp* lamp)
 
     /////////////////////////////////////////////////////////////////////////////
     BONE_P_PAIR_IT i = bone_map.begin(), e = bone_map.end();
-    for (; i != e; i++)
+    for (; i != e; ++i)
     {
         CPhysicsElement* fixed_element = i->second.element;
         /// R_ASSERT2(fixed_element,"fixed bone has no physics");
@@ -381,16 +410,21 @@ BOOL CHangingLamp::UsedAI_Locations() { return (FALSE); }
 
 void CHangingLamp::SetLSFParams(float _speed, float _amount, float _jit)
 {
-#pragma todo("KRodin: адаптировать под новый рендер!")
+// todo("адаптировать под новый рендер!")
     // light_render->set_lsf_params(_speed, _amount, _jit);
 }
 
-#pragma optimize("s", on)
+
 void CHangingLamp::script_register(lua_State* L)
 {
     luabind::module(L)[luabind::class_<CHangingLamp, CGameObject>("hanging_lamp")
                            .def(luabind::constructor<>())
                            .def("turn_on", &CHangingLamp::TurnOn)
                            .def("turn_off", &CHangingLamp::TurnOff)
-                           .def("set_lsf_params", &CHangingLamp::SetLSFParams)];
+                           .def("set_lsf_params", &CHangingLamp::SetLSFParams)
+                           .def("set_volumetric", [](CHangingLamp* self, const bool val) { self->light_render->set_volumetric(val); })
+                           .def("set_volumetric_quality", [](CHangingLamp* self, const float val) { self->light_render->set_volumetric_quality(val); })
+                           .def("set_volumetric_intensity", [](CHangingLamp* self, const float val) { self->light_render->set_volumetric_intensity(val); })
+                           .def("set_volumetric_distance", [](CHangingLamp* self, const float val) { self->light_render->set_volumetric_distance(val); })
+    ];
 }

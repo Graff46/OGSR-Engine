@@ -10,3 +10,8 @@
 #include "check_screenspace_FLORA.h"
 #include "check_screenspace_INTER_GRASS.h"
 #include "check_screenspace_NEWGLOSS.h"
+#include "check_screenspace_WIND.h"
+#include "check_screenspace_SHADOWS.h"
+#include "check_screenspace_SSS.h"
+#include "check_screenspace_LUT.h"
+#include "check_screenspace_BLOOM.h"

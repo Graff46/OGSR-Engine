@@ -10,7 +10,7 @@ void uber_deffer(CBlender_Compile& C, bool hq, LPCSTR _vspec, LPCSTR _pspec, BOO
     fix_texture_name(fname);
     ref_texture _t;
     _t.create(fname);
-    bool bump = _t.bump_exist();
+    const bool bump = _t.bump_exist();
 
     // detect lmap
     bool lmap = true;
@@ -18,7 +18,7 @@ void uber_deffer(CBlender_Compile& C, bool hq, LPCSTR _vspec, LPCSTR _pspec, BOO
         lmap = false;
     else
     {
-        pcstr tex = C.L_textures[2].c_str();
+        const pcstr tex = C.L_textures[2].c_str();
         if (tex[0] == 'l' && tex[1] == 'm' && tex[2] == 'a' && tex[3] == 'p')
             lmap = true;
         else
@@ -93,8 +93,6 @@ void uber_deffer(CBlender_Compile& C, bool hq, LPCSTR _vspec, LPCSTR _pspec, BOO
     }
 
     // Uber-construct
-#if defined(USE_DX10) || defined(USE_DX11)
-#ifdef USE_DX11
     if (bump && hq && RImplementation.o.dx11_enable_tessellation && C.TessMethod != 0)
     {
         char hs[256], ds[256]; // = "DX11\\tess", ds[256] = "DX11\\tess";
@@ -142,7 +140,7 @@ void uber_deffer(CBlender_Compile& C, bool hq, LPCSTR _vspec, LPCSTR _pspec, BOO
         C.r_TessPass(vs, hs, ds, "null", ps, FALSE);
         C.r_ComputePass("null");
         RImplementation.clearAllShaderOptions();
-        u32 stage = C.r_dx10Sampler("smp_bump_ds");
+        const u32 stage = C.r_dx10Sampler("smp_bump_ds");
         if (stage != -1)
         {
             C.i_dx10Address(stage, D3DTADDRESS_WRAP);
@@ -158,13 +156,9 @@ void uber_deffer(CBlender_Compile& C, bool hq, LPCSTR _vspec, LPCSTR _pspec, BOO
         }
     }
     else
-#endif
+
         C.r_Pass(vs, ps, FALSE);
-    // C.r_Sampler		("s_base",		C.L_textures[0],	false,	D3DTADDRESS_WRAP,	D3DTEXF_ANISOTROPIC,D3DTEXF_LINEAR,	D3DTEXF_ANISOTROPIC);
-    // C.r_Sampler		("s_bumpX",		fnameB,				false,	D3DTADDRESS_WRAP,	D3DTEXF_ANISOTROPIC,D3DTEXF_LINEAR,	D3DTEXF_ANISOTROPIC);	// should be before base bump
-    // C.r_Sampler		("s_bump",		fnameA,				false,	D3DTADDRESS_WRAP,	D3DTEXF_ANISOTROPIC,D3DTEXF_LINEAR,	D3DTEXF_ANISOTROPIC);
-    // C.r_Sampler		("s_bumpD",		dt,					false,	D3DTADDRESS_WRAP,	D3DTEXF_ANISOTROPIC,D3DTEXF_LINEAR,	D3DTEXF_ANISOTROPIC);
-    // C.r_Sampler		("s_detail",	dt,					false,	D3DTADDRESS_WRAP,	D3DTEXF_ANISOTROPIC,D3DTEXF_LINEAR,	D3DTEXF_ANISOTROPIC);
+
     C.r_dx10Texture("s_base", C.L_textures[0]);
     C.r_dx10Texture("s_bumpX", fnameB); // should be before base bump
     C.r_dx10Texture("s_bump", fnameA);
@@ -182,38 +176,12 @@ void uber_deffer(CBlender_Compile& C, bool hq, LPCSTR _vspec, LPCSTR _pspec, BOO
         C.r_dx10Texture("s_hemi", C.L_textures[2]);
         C.r_dx10Sampler("smp_rtlinear");
     }
-#else //	USE_DX10
-    C.r_Pass(vs, ps, FALSE);
-    VERIFY(C.L_textures[0].size());
-    if (bump)
-    {
-        VERIFY2(xr_strlen(fnameB), C.L_textures[0].c_str());
-        VERIFY2(xr_strlen(fnameA), C.L_textures[0].c_str());
-    }
-    if (bHasDetailBump)
-    {
-        VERIFY2(xr_strlen(texDetailBump), C.L_textures[0].c_str());
-        VERIFY2(xr_strlen(texDetailBumpX), C.L_textures[0].c_str());
-    }
-    C.r_Sampler("s_base", C.L_textures[0], false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC);
-    C.r_Sampler("s_bumpX", fnameB, false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC); // should be before base bump
-    C.r_Sampler("s_bump", fnameA, false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC);
-    C.r_Sampler("s_bumpD", dt, false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC);
-    C.r_Sampler("s_detail", dt, false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC);
-    if (bHasDetailBump)
-    {
-        C.r_Sampler("s_detailBump", texDetailBump, false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC);
-        C.r_Sampler("s_detailBumpX", texDetailBumpX, false, D3DTADDRESS_WRAP, D3DTEXF_ANISOTROPIC, D3DTEXF_LINEAR, D3DTEXF_ANISOTROPIC);
-    }
-    if (lmap)
-        C.r_Sampler("s_hemi", C.L_textures[2], false, D3DTADDRESS_CLAMP, D3DTEXF_LINEAR, D3DTEXF_NONE, D3DTEXF_LINEAR);
-#endif //	USE_DX10
+
 
     if (!DO_NOT_FINISH)
         C.r_End();
 }
 
-#ifdef USE_DX11
 void uber_shadow(CBlender_Compile& C, LPCSTR _vspec)
 {
     // Uber-parse
@@ -222,7 +190,7 @@ void uber_shadow(CBlender_Compile& C, LPCSTR _vspec)
     fix_texture_name(fname);
     ref_texture _t;
     _t.create(fname);
-    bool bump = _t.bump_exist();
+    const bool bump = _t.bump_exist();
 
     // detect lmap
     bool lmap = true;
@@ -230,7 +198,7 @@ void uber_shadow(CBlender_Compile& C, LPCSTR _vspec)
         lmap = false;
     else
     {
-        pcstr tex = C.L_textures[2].c_str();
+        const pcstr tex = C.L_textures[2].c_str();
         if (tex[0] == 'l' && tex[1] == 'm' && tex[2] == 'a' && tex[3] == 'p')
             lmap = true;
         else
@@ -319,7 +287,7 @@ void uber_shadow(CBlender_Compile& C, LPCSTR _vspec)
             C.r_dx10Texture("s_detailBump", texDetailBump);
             C.r_dx10Texture("s_detailBumpX", texDetailBumpX);
         }
-        u32 stage = C.r_dx10Sampler("smp_bump_ds");
+        const u32 stage = C.r_dx10Sampler("smp_bump_ds");
         if (stage != -1)
         {
             C.i_dx10Address(stage, D3DTADDRESS_WRAP);
@@ -331,4 +299,3 @@ void uber_shadow(CBlender_Compile& C, LPCSTR _vspec)
     else
         C.r_Pass("shadow_direct_base", "dumb", FALSE, TRUE, TRUE, FALSE);
 }
-#endif

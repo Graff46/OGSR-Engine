@@ -46,9 +46,9 @@ static void draw_rect(const Frect& r, const u32 color, const shared_str& name)
     UIRender->StartPrimitive(5, IUIRender::ptLineStrip, UI()->m_currentPointType);
 
     UIRender->PushPoint(r.lt.x, r.lt.y, 0, color, 0, 0);
-    UIRender->PushPoint(r.rb.x, r.lt.y, 0, color, 0, 0);
-    UIRender->PushPoint(r.rb.x, r.rb.y, 0, color, 0, 0);
-    UIRender->PushPoint(r.lt.x, r.rb.y, 0, color, 0, 0);
+    UIRender->PushPoint(r.rb.x - 1, r.lt.y, 0, color, 0, 0);
+    UIRender->PushPoint(r.rb.x - 1, r.rb.y - 1, 0, color, 0, 0);
+    UIRender->PushPoint(r.lt.x, r.rb.y - 1, 0, color, 0, 0);
     UIRender->PushPoint(r.lt.x, r.lt.y, 0, color, 0, 0);
 
     //.	UIRender->FlushLineStrip();
@@ -58,7 +58,7 @@ static void draw_rect(const Frect& r, const u32 color, const shared_str& name)
     {
         CGameFont* F = UI()->Font()->pFontDI;
         const float x = r.lt.x - (r.lt.x >= 20 ? 20 : 0);
-        const float y = r.lt.y > Device.dwHeight / 2 ? r.lt.y - F->GetHeight() - 20 : r.rb.y + 20;
+        const float y = r.lt.y > Device.dwHeight / 2 ? r.lt.y - F->CurrentHeight_() - 20 : r.rb.y + 20;
         F->Out(x, y, name.c_str());
         F->SetColor(D3DCOLOR_XRGB(255, 0, 255));
     }
@@ -372,6 +372,18 @@ bool CUIWindow::OnMouse(float x, float y, EUIMessages mouse_action)
         if (OnMouseDown(MOUSE_3))
             return true;
         break;
+    case WINDOW_LBUTTON_UP:
+        if (OnMouseUp(MOUSE_1))
+            return true;
+        break;
+    case WINDOW_RBUTTON_UP:
+        if (OnMouseUp(MOUSE_2))
+            return true;
+        break;
+    case WINDOW_CBUTTON_UP:
+        if (OnMouseUp(MOUSE_3))
+            return true;
+        break;
     case WINDOW_LBUTTON_DB_CLICK:
         if (OnDbClick())
             return true;
@@ -438,7 +450,7 @@ bool CUIWindow::OnDbClick()
 
 bool CUIWindow::OnMouseDown(int mouse_btn) { return false; }
 
-void CUIWindow::OnMouseUp(int mouse_btn) {}
+bool CUIWindow::OnMouseUp(int mouse_btn) { return false; }
 
 void CUIWindow::OnFocusReceive()
 {

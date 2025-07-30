@@ -14,7 +14,7 @@ public:
     virtual void Update();
     virtual bool EqualTo(CUICellItem* itm);
     virtual CUIDragItem* CreateDragItem();
-    CInventoryItem* object() { return (CInventoryItem*)m_pData; }
+    CInventoryItem* object() { return static_cast<CInventoryItem*>(m_pData); }
 
     // Real Wolf: Для коллбеков. 25.07.2014.
     virtual void OnFocusReceive();
@@ -28,14 +28,14 @@ class CUIAmmoCellItem : public CUIInventoryCellItem
 {
     typedef CUIInventoryCellItem inherited;
 
-protected:
-    virtual void UpdateItemText();
-
 public:
     CUIAmmoCellItem(CWeaponAmmo* itm);
+    virtual ~CUIAmmoCellItem() = default;
+
     virtual void Update();
+    virtual void UpdateItemText() override;
     virtual bool EqualTo(CUICellItem* itm);
-    CWeaponAmmo* object() { return (CWeaponAmmo*)m_pData; }
+    CWeaponAmmo* object() { return static_cast<CWeaponAmmo*>(m_pData); }
 };
 
 class CUIWeaponCellItem : public CUIInventoryCellItem
@@ -73,14 +73,4 @@ public:
     virtual bool EqualTo(CUICellItem* itm);
     CUIStatic* get_addon_static(u32 idx) { return m_addons[idx]; }
     Fvector2 get_addon_offset(u32 idx) { return m_addon_offset[idx]; }
-};
-
-class CBuyItemCustomDrawCell : public ICustomDrawCell
-{
-    CGameFont* m_pFont;
-    string16 m_string;
-
-public:
-    CBuyItemCustomDrawCell(LPCSTR str, CGameFont* pFont);
-    virtual void OnDraw(CUICellItem* cell);
 };

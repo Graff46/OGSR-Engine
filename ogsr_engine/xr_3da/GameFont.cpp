@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#pragma hdrstop
 
 #include "GameFont.h"
 #include "Render.h"
@@ -22,7 +21,7 @@ CGameFont::CGameFont(LPCSTR section, u32 flags)
     fXStep = 0.0f;
     uFlags = flags;
 
-    Initialize(pSettings->r_string(section, "shader"), pSettings->r_string(section, "texture"));
+    Initialize(pSettings->r_string(section, "shader"), pSettings->r_string(section, "texture"), section);
 
     if (pSettings->line_exist(section, "size"))
     {
@@ -36,24 +35,25 @@ CGameFont::CGameFont(LPCSTR section, u32 flags)
         SetInterval(pSettings->r_fvector2(section, "interval"));
 }
 
-CGameFont::CGameFont(LPCSTR shader, LPCSTR texture, u32 flags)
+CGameFont::CGameFont(LPCSTR shader, LPCSTR texture, const char* section, u32 flags)
 {
     pFontRender = RenderFactory->CreateFontRender();
     fCurrentHeight = 0.0f;
     fXStep = 0.0f;
     uFlags = flags;
 
-    Initialize(shader, texture);
+    Initialize(shader, texture, section);
 }
 
-void CGameFont::Initialize(LPCSTR cShader, LPCSTR cTextureName)
+void CGameFont::Initialize(LPCSTR cShader, LPCSTR cTextureName, const char* sect)
 {
     string_path cTexture;
 
     LPCSTR _lang = pSettings->r_string("string_table", "font_prefix");
-    const bool is_di = strstr(cTextureName, "ui_font_hud_01") || strstr(cTextureName, "ui_font_hud_02") || strstr(cTextureName, "ui_font_console_02");
+    const bool skip_prefix = READ_IF_EXISTS(pSettings, r_bool, sect, "skip_prefix", false) || strstr(cTextureName, "ui_font_hud_01") || strstr(cTextureName, "ui_font_hud_02") ||
+        strstr(cTextureName, "ui_font_console_02");
 
-    if (_lang && !is_di)
+    if (_lang && !skip_prefix)
         strconcat(sizeof(cTexture), cTexture, cTextureName, _lang);
     else
         xr_strcpy(cTexture, sizeof(cTexture), cTextureName);
@@ -221,8 +221,16 @@ CGameFont::~CGameFont()
     RenderFactory->DestroyFontRender(pFontRender);
 }
 
-#define DI2PX(x) float(iFloor((x + 1) * float(::Render->getTarget()->get_width()) * 0.5f))
-#define DI2PY(y) float(iFloor((y + 1) * float(::Render->getTarget()->get_height()) * 0.5f))
+static inline float DI2PX(float x)
+{
+    auto& cmd_list = ::Render->get_imm_command_list();
+    return float(iFloor((x + 1) * float(::Render->getTarget()->get_width(cmd_list)) * 0.5f));
+}
+static inline float DI2PY(float y)
+{
+    auto& cmd_list = ::Render->get_imm_command_list();
+    return float(iFloor((y + 1) * float(::Render->getTarget()->get_height(cmd_list)) * 0.5f));
+}
 
 void CGameFont::OutSet(float x, float y)
 {
@@ -232,7 +240,7 @@ void CGameFont::OutSet(float x, float y)
 
 void CGameFont::OutSetI(float x, float y) { OutSet(DI2PX(x), DI2PY(y)); }
 
-u32 CGameFont::smart_strlen(const char* S) { return (IsMultibyte() ? mbhMulti2Wide(NULL, NULL, 0, S) : xr_strlen(S)); }
+u32 CGameFont::SmartLength(const char* S) { return (IsMultibyte() ? mbhMulti2Wide(NULL, NULL, 0, S) : xr_strlen(S)); }
 
 void CGameFont::OnRender()
 {
@@ -309,14 +317,14 @@ u16 CGameFont::SplitByWidth(u16* puBuffer, u16 uBufferSize, float fTargetWidth, 
 
 void CGameFont::MasterOut(BOOL bCheckDevice, BOOL bUseCoords, BOOL bScaleCoords, BOOL bUseSkip, float _x, float _y, float _skip, LPCSTR fmt, va_list p)
 {
-    if (bCheckDevice && (!RDEVICE.b_is_Active))
+    if (bCheckDevice && (!Device.b_is_Active))
         return;
 
     String rs;
 
     rs.x = (bUseCoords ? (bScaleCoords ? (DI2PX(_x)) : _x) : fCurrentX);
     rs.y = (bUseCoords ? (bScaleCoords ? (DI2PY(_y)) : _y) : fCurrentY);
-    rs.c = dwCurrentColor;
+    rs.color = dwCurrentColor;
     rs.height = fCurrentHeight;
     rs.align = eCurrentAlignment;
 
@@ -417,7 +425,7 @@ float CGameFont::CurrentHeight_() { return fCurrentHeight * vInterval.y * GetHei
 void CGameFont::SetHeightI(float S)
 {
     VERIFY(uFlags & fsDeviceIndependent);
-    fCurrentHeight = S * RDEVICE.dwHeight;
+    fCurrentHeight = S * Device.dwHeight;
 };
 
 void CGameFont::SetHeight(float S)

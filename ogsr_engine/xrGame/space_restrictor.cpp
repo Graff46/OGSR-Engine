@@ -103,9 +103,6 @@ void CSpaceRestrictor::net_Destroy()
     Level().space_restriction_manager().unregister_restrictor(this);
 }
 
-// Временно отключена оптимизация в попытке выяснить причину странных крашей в этом куске.
-#pragma optimize("", off)
-
 bool CSpaceRestrictor::inside(const Fsphere& sphere)
 {
     if (getDestroy())
@@ -206,8 +203,6 @@ void CSpaceRestrictor::prepare()
 
     actual(true);
 }
-
-#pragma optimize("", on)
 
 bool CSpaceRestrictor::prepared_inside(const Fsphere& sphere) const
 {
@@ -420,7 +415,7 @@ void CSpaceRestrictor::OnRender()
 
         HUD().Font().pFontMedium->SetColor(Color);
         HUD().Font().pFontMedium->OutSet(x, y -= delta_height);
-        HUD().Font().pFontMedium->OutNext(Name());
+        HUD().Font().pFontMedium->OutNext("%s id=%d", Name(), ID());
         CCustomZone* z = smart_cast<CCustomZone*>(this);
         if (z)
         {

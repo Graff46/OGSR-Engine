@@ -27,7 +27,6 @@
 
 //расстояния не пролетев которого пуля не трогает того кто ее пустил
 #define PARENT_IGNORE_DIST 3.f
-extern float gCheckHitK;
 
 // test callback функция
 //   object - object for testing
@@ -39,7 +38,9 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
 
     if ((object->ID() == bullet->parent_id) && //-V595
         (bullet->fly_dist < PARENT_IGNORE_DIST) && (!bullet->flags.ricochet_was))
+    {
         return FALSE;
+    }
 
     BOOL bRes = TRUE;
     if (object)
@@ -68,6 +69,7 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
                         // да попали, найдем кто стрелял
                         bool play_whine = true;
                         CObject* initiator = Level().Objects.net_Find(bullet->parent_id);
+                        CBulletManager& bullet_manager = Level().BulletManager();
                         if (actor)
                         {
                             // попали в актера
@@ -88,7 +90,7 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
                                 {
                                     game_difficulty_hit_probability = weapon->hit_probability();
                                     float fly_dist = bullet->fly_dist + dist;
-                                    dist_factor = _min(1.f, fly_dist / Level().BulletManager().m_fHPMaxDist);
+                                    dist_factor = _min(1.f, fly_dist / bullet_manager.m_fHPMaxDist);
                                 }
                             }
 
@@ -101,9 +103,9 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
                             else
                             {
                                 // real test actor CFORM
-                                Level().BulletManager().m_rq_results.r_clear();
+                                bullet_manager.m_rq_results.r_clear();
 
-                                if (cform->_RayQuery(rd, Level().BulletManager().m_rq_results))
+                                if (cform->RayQuery(bullet_manager.m_rq_results, rd))
                                 {
                                     bRes = TRUE; // hit actor
                                     play_whine = false; // don't play whine sound
@@ -120,7 +122,7 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
                         {
                             Fvector pt;
                             pt.mad(bullet->pos, bullet->dir, dist);
-                            Level().BulletManager().PlayWhineSound(bullet, initiator, pt);
+                            bullet_manager.PlayWhineSound(bullet, initiator, pt);
                         }
                     }
                     else
@@ -140,7 +142,7 @@ BOOL CBulletManager::test_callback(const collide::ray_defs& rd, CObject* object,
 //	result.range;	// range from start to element
 //	result.element;	// if (O) "num tri" else "num bone"
 //	params;			// user defined abstract data
-//	Device.Statistic.TEST0.End();
+//	Device.Statistic.BulletManager.End();
 // return TRUE-продолжить трассировку / FALSE-закончить трассировку
 BOOL CBulletManager::firetrace_callback(collide::rq_result& result, LPVOID params)
 {
@@ -251,7 +253,7 @@ void CBulletManager::FireShotmark(SBullet* bullet, const Fvector& vDir, const Fv
             //отыграть партиклы попадания в материал
             CParticlesObject* ps = CParticlesObject::Create(ps_name, TRUE);
 
-            ps->UpdateParent(pos, zero_vel);
+            ps->UpdateParent(pos, {});
             GamePersistent().ps_needtoplay.push_back(ps);
         }
 
@@ -314,7 +316,7 @@ void CBulletManager::DynamicObjectHit(CBulletManager::_event& E)
 
     if (V)
     {
-        VERIFY3(V->LL_GetBoneVisible(u16(E.R.element)), *E.R.O->cNameVisual(), V->LL_BoneName_dbg(u16(E.R.element)));
+        VERIFY3(V->LL_GetBoneVisible(u16(E.R.element)), *E.R.O->cNameVisual(), V->LL_BoneName(u16(E.R.element)));
         Fmatrix& m_bone = (V->LL_GetBoneInstance(u16(E.R.element))).mTransform;
         Fmatrix m_inv_bone;
         m_inv_bone.invert(m_bone);

@@ -1,7 +1,11 @@
 #include "stdafx.h"
 #include "weaponBM16.h"
+#include "../xr_3da/x_ray.h"
 
-CWeaponBM16::~CWeaponBM16() { HUD_SOUND::DestroySound(m_sndReload1); }
+CWeaponBM16::~CWeaponBM16() 
+{ 
+    HUD_SOUND::DestroySound(m_sndReload1);
+}
 
 void CWeaponBM16::Load(LPCSTR section)
 {
@@ -26,6 +30,38 @@ void CWeaponBM16::UpdateSounds()
         m_sndReload1.set_position(get_LastFP());
 }
 
+void CWeaponBM16::OnShot()
+{
+    // Если актор бежит - останавливаем его
+    if (ParentIsActor())
+        Actor()->set_state_wishful(Actor()->get_state_wishful() & (~mcSprint));
+
+    AddShotEffector();
+    PlayAnimShoot();
+
+    if (IsMisfire())
+    {
+        if (!m_sndBreechJammed.sounds.empty())
+            PlaySound(m_sndBreechJammed, get_LastFP());
+    }
+    else
+    {
+        PlaySound(*m_pSndShotCurrent, get_LastFP(), true);
+
+        Fvector vel;
+        PHGetLinearVell(vel);
+        OnShellDrop(get_LastSP(), vel);
+
+        if (ShouldPlayFlameParticles())
+        {
+            StartFlameParticles();
+            ForceUpdateFireParticles();
+        }
+
+        StartSmokeParticles(get_LastFP(), vel);
+    }
+}
+
 void CWeaponBM16::PlayAnimShoot()
 {
     if (m_magazine.empty())
@@ -36,15 +72,15 @@ void CWeaponBM16::PlayAnimShoot()
                  std::to_string(m_magazine.size()).c_str());
     if (AnimationExist(guns_shoot_anm))
     {
-        PlayHUDMotion(guns_shoot_anm, false, GetState());
+        PlayHUDMotion(guns_shoot_anm, IS_OGSR_GA, GetState());
         return;
     }
 
     switch (m_magazine.size())
     {
-    case 1: PlayHUDMotion({"anim_shoot_1", "anm_shot_1"}, false, GetState()); break;
-    case 2: PlayHUDMotion({"anim_shoot", "anm_shot_2"}, false, GetState()); break;
-    default: PlayHUDMotion({"anim_shoot", "anm_shots"}, false, GetState()); break; // А что, у БМ бывает больше двух патронов?...
+    case 1: PlayHUDMotion({"anim_shoot_1", "anm_shot_1"}, IS_OGSR_GA, GetState()); break;
+    case 2: PlayHUDMotion({"anim_shoot", "anm_shot_2"}, IS_OGSR_GA, GetState()); break;
+    default: PlayHUDMotion({"anim_shoot", "anm_shots"}, IS_OGSR_GA, GetState()); break; // А что, у БМ бывает больше двух патронов?...
     }
 }
 
@@ -80,7 +116,9 @@ void CWeaponBM16::PlayAnimHide()
 void CWeaponBM16::PlayAnimReload()
 {
     if (m_magazine.size() == 1 || !HaveCartridgeInInventory(2))
-        PlayHUDMotion({IsMisfire() ? "anm_reload_jammed_1" : "nullptr", "anim_reload_1", "anm_reload_1"}, true, GetState());
+        PlayHUDMotion(
+            {IsMisfire() ? "anm_reload_jammed_1" : (m_magazine.size() == 0 ? "anm_reload_only_0" : "nullptr"), "anim_reload_1", "anm_reload_1"},
+            true, GetState());
     else
         PlayHUDMotion({IsMisfire() ? "anm_reload_jammed_2" : "nullptr", "anim_reload", "anm_reload_2"}, true, GetState());
 }

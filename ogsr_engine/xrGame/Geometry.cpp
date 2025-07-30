@@ -138,6 +138,43 @@ void CODEGeom::get_global_form_bt(Fmatrix& form)
     // PHDynamicData::DMXtoFMX((dReal*)(&form),form);
 }
 
+void CODEGeom::get_xform(Fmatrix& form)
+{
+    VERIFY(m_geom_transform);
+    const dReal* rot = nullptr;
+    const dReal* pos = nullptr;
+    dVector3 p;
+    dMatrix3 r;
+    get_final_tx_bt(pos, rot, p, r);
+
+    PHDynamicData::DMXPStoFMX(rot, pos, form);
+}
+
+template <typename geom_type>
+void t_get_box(geom_type* shell, const Fmatrix& form, Fvector& sz, Fvector& c)
+{
+    c.set(0, 0, 0);
+    VERIFY(sizeof(form.i) + sizeof(form._14_) == 4 * sizeof(float));
+    for (int i = 0; 3 > i; ++i)
+    {
+        float lo, hi;
+        const Fvector& ax = cast_fv(((const float*)&form + i * 4));
+        shell->get_extensions_bt(ax, 0, lo, hi);
+        sz[i] = hi - lo;
+        c.add(Fvector().mul(ax, (lo + hi) / 2));
+    }
+}
+
+void CODEGeom::get_Box(Fmatrix& form, Fvector& sz)
+{
+    get_xform(form);
+    Fvector c;
+    t_get_box(this, form, sz, c);
+    form.c = c;
+}
+
+bool CODEGeom::collide_fluids() { return !m_flags.test(SBoneShape::sfNoFogCollider); }
+
 void CODEGeom::set_static_ref_form(const Fmatrix& form)
 {
     dGeomSetPosition(geometry_transform(), form.c.x, form.c.y, form.c.z);
@@ -392,6 +429,15 @@ void CODEGeom::get_final_tx(dGeomID g, const dReal*& p, const dReal*& R, dReal* 
         p = dGeomGetPosition(g);
     }
 }
+
+void CODEGeom::set_local_form_bt(const Fmatrix& xform)
+{
+    dMatrix3 R;
+    PHDynamicData::FMXtoDMX(xform, R);
+    dGeomSetRotation(geom(), R);
+    dGeomSetPosition(geom(), xform.c.x, xform.c.y, xform.c.z);
+}
+
 void CBoxGeom::get_extensions_bt(const Fvector& axis, float center_prg, float& lo_ext, float& hi_ext)
 {
     VERIFY(m_geom_transform);
@@ -478,6 +524,20 @@ void CBoxGeom::set_local_form(const Fmatrix& form)
 }
 dGeomID CBoxGeom::create() { return dCreateBox(0, m_box.m_halfsize.x * 2.f, m_box.m_halfsize.y * 2.f, m_box.m_halfsize.z * 2.f); }
 
+void CBoxGeom::set_size(const Fvector& half_size)
+{
+    m_box.m_halfsize.set(half_size);
+    VERIFY(geom());
+    dGeomBoxSetLengths(geom(), m_box.m_halfsize.x * 2.f, m_box.m_halfsize.y * 2.f, m_box.m_halfsize.z * 2.f);
+}
+
+void CBoxGeom::get_size(Fvector& half_size)
+{
+    VERIFY(geom());
+    dGeomBoxGetLengths(geom(), cast_fp(half_size));
+    half_size.mul(0.5f);
+}
+
 void CBoxGeom::set_position(const Fvector& ref_point)
 {
     inherited::set_position(ref_point);
@@ -552,6 +612,14 @@ void CCylinderGeom::get_extensions_bt(const Fvector& axis, float center_prg, flo
     get_final_tx_bt(pos, rot, p, r);
     GetCylinderExtensions(g, cast_fp(axis), pos, rot, center_prg, &lo_ext, &hi_ext);
 }
+
+void CCylinderGeom::set_radius(float r)
+{
+    m_cylinder.m_radius = r;
+    VERIFY(geom());
+    dGeomCylinderSetParams(geom(), m_cylinder.m_radius, m_cylinder.m_height);
+}
+
 const Fvector& CCylinderGeom::local_center() { return m_cylinder.m_center; }
 
 void CCylinderGeom::get_local_form(Fmatrix& form)

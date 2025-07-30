@@ -82,7 +82,7 @@ bool GetRAlt() { return !!pInput->iGetAsyncKeyState(DIK_RMENU); }
 bool GetAlt() { return !!pInput->iGetAsyncKeyState(DIK_LMENU) || !!pInput->iGetAsyncKeyState(DIK_RMENU); }
 
 using namespace luabind;
-#pragma optimize("s", on)
+
 
 void CScriptEngine::script_register(lua_State* L)
 {
@@ -111,5 +111,5 @@ void CScriptEngine::script_register(lua_State* L)
 
            def("GetShift", &GetShift), def("GetLAlt", &GetLAlt), def("GetRAlt", &GetRAlt), def("GetAlt", &GetAlt),
 
-           def("device", [] { return &Device; })];
+           def("device", [] { return &Device; }), def("__debugbreak", [] { __debugbreak(); })];
 }

@@ -42,8 +42,8 @@ CMainMenu::CMainMenu()
 
     g_btnHint = NULL;
     m_deactivated_frame = 0;
+    languageChanged = false;
 
-    //---------------------------------------------------------------
     m_NeedErrDialog = ErrNoError;
     m_start_time = 0;
 
@@ -82,6 +82,26 @@ void CMainMenu::ReadTextureInfo()
             strcat_s(single_item, ".xml");
             CUITextureMaster::ParseShTexInfo(single_item);
         }
+    }
+
+    // autoload
+    FS_FileSet fset;
+    FS.file_list(fset, "$game_config$", FS_ListFiles, "ui\\textures_descr\\*.xml");
+    FS_FileSetIt fit = fset.begin();
+    FS_FileSetIt fit_e = fset.end();
+
+    for (; fit != fit_e; ++fit)
+    {
+        string_path fn1, fn2, fn3;
+        _splitpath((*fit).name.c_str(), fn1, fn2, fn3, 0);
+
+        xr_strcpy(fn1, "textures_descr\\");
+        xr_strcat(fn1, fn3);
+        xr_strcat(fn1, ".xml");
+
+        //xr_string fn1 = (*fit).name;
+
+        CUITextureMaster::ParseShTexInfo(fn1);
     }
 }
 
@@ -126,10 +146,10 @@ void CMainMenu::Activate(bool bActivate)
 
         m_Flags.set(flRestorePauseStr, bShowPauseString);
 
-        bShowPauseString = FALSE;
-
         if (!m_Flags.test(flRestorePause))
             Device.Pause(TRUE, TRUE, FALSE, "mm_activate2");
+
+        bShowPauseString = FALSE;
 
         m_startDialog->m_bWorkInPause = true;
         StartStopMenu(m_startDialog, true);
@@ -139,8 +159,8 @@ void CMainMenu::Activate(bool bActivate)
             Device.seqFrame.Remove(g_pGameLevel);
             Device.seqRender.Remove(g_pGameLevel);
             CCameraManager::ResetPP();
-        };
-        Device.seqRender.Add(this, 4); // 1-console 2-cursor 3-tutorial
+        }
+        Device.seqRender.Add(this, 5); // 1-console 2-cursor 3-tutorial
 
         if (!g_pGameLevel)
         {
@@ -203,8 +223,11 @@ bool CMainMenu::IsActive() { return !!m_Flags.test(flActive); }
 
 bool CMainMenu::CanSkipSceneRendering() { return IsActive() && !m_Flags.test(flGameSaveScreenshot); }
 
+bool CMainMenu::IsLanguageChanged() const { return languageChanged; }
+void CMainMenu::SetLanguageChanged(bool status) { languageChanged = status; }
+
 // IInputReceiver
-static int mouse_button_2_key[] = {MOUSE_1, MOUSE_2, MOUSE_3};
+static int mouse_button_2_key[] = {MOUSE_1, MOUSE_2, MOUSE_3, MOUSE_4, MOUSE_5, MOUSE_6, MOUSE_7, MOUSE_8};
 void CMainMenu::IR_OnMousePress(int btn)
 {
     if (!IsActive())
@@ -295,11 +318,11 @@ void CMainMenu::OnRender()
     if (m_Flags.test(flGameSaveScreenshot))
         return;
 
-    if (g_pGameLevel)
+ //   if (g_pGameLevel)
         Render->Calculate();
 
     Render->Render();
-    if (!OnRenderPPUI_query())
+ //   if (!OnRenderPPUI_query())
     {
         DoRenderDialogs();
         UI()->RenderFont();
@@ -309,6 +332,7 @@ void CMainMenu::OnRender()
 
 void CMainMenu::OnRenderPPUI_main()
 {
+/*
     if (!IsActive())
         return;
 
@@ -324,10 +348,12 @@ void CMainMenu::OnRenderPPUI_main()
     }
 
     UI()->pp_stop();
+*/
 }
 
 void CMainMenu::OnRenderPPUI_PP()
 {
+/*
     if (!IsActive())
         return;
 
@@ -342,6 +368,7 @@ void CMainMenu::OnRenderPPUI_PP()
         (*it)->Draw();
     }
     UI()->pp_stop();
+*/
 }
 
 void CMainMenu::StartStopMenu(CUIDialogWnd* pDialog, bool bDoHideIndicators)
@@ -382,6 +409,11 @@ void CMainMenu::OnFrame()
 
     if (IsActive())
         CheckForErrorDlg();
+
+    if (languageChanged)
+    {
+        languageChanged = false;
+    }
 }
 
 void CMainMenu::OnDeviceCreate() {}
